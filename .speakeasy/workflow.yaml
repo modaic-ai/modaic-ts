@@ -3,7 +3,7 @@ speakeasyVersion: latest
 sources:
     Modaic API:
         inputs:
-            - location: /Users/tytodd/Desktop/Modaic/code/core/modaic-ts/openapi.json
+            - location: ./openapi.json
         overlays:
             - location: .speakeasy/overlays/sdk-surface.overlay.json
         output: .speakeasy/out.openapi.yaml
