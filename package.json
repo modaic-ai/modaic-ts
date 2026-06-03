@@ -1,6 +1,6 @@
 {
   "name": "modaic",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "author": "Speakeasy",
   "type": "module",
   "main": "./esm/index.js",
@@ -43,6 +43,10 @@
     }
   },
   "sideEffects": false,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/modaic-ai/modaic-ts.git"
+  },
   "scripts": {
     "lint": "oxlint --max-warnings=0 --deny-warnings src/**/*.ts src/**/*.tsx",
     "build": "tsgo",

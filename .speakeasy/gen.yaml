@@ -34,7 +34,7 @@ generation:
     generateNewTests: true
     skipResponseBodyAssertions: false
 typescript:
-  version: 0.1.3
+  version: 0.1.4
   acceptHeaderEnum: false
   additionalDependencies:
     dependencies:
@@ -47,7 +47,7 @@ typescript:
   additionalPackageJSON: {}
   additionalScripts:
     test: bun test
-    "test:integration": MODAIC_INTEGRATION=1 bun test tests/arbiter/arbiter.integration.test.ts
+    test:integration: MODAIC_INTEGRATION=1 bun test tests/arbiter/arbiter.integration.test.ts
   alwaysIncludeInboundAndOutbound: false
   author: Speakeasy
   baseErrorName: ModaicClientError
