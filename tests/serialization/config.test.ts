@@ -1,8 +1,13 @@
 import { expect, test, describe } from "bun:test";
 import { z } from "zod";
-import { Signature } from "../../src/signatures/signature";
-import { Image, Audio, Scale, Enum } from "../../src/signatures/types";
-import { serializeSignatureToConfig } from "../../src/serialization/config";
+import {
+  Signature,
+  Image,
+  Audio,
+  Scale,
+  Enum,
+  serializeSignatureToConfig,
+} from "../../src/modaic/index";
 
 // Goldens captured by running `serialize_signature` in core/modaic (the Python SDK),
 // the same source of truth program.test.ts uses. These are the `signature` sub-object

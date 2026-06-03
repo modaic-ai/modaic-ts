@@ -1,9 +1,12 @@
 import { expect, test, describe, beforeEach, afterEach } from "bun:test";
 import { z } from "zod";
-import { Arbiter, ensure_reasoning_field } from "../../src/arbiter/arbiter";
-import { Signature } from "../../src/signatures/signature";
-import { repoNameToTitle } from "../../src/serialization/naming";
-import { AuthenticationError } from "../../src/exceptions";
+import {
+  Arbiter,
+  ensure_reasoning_field,
+  Signature,
+  repoNameToTitle,
+  AuthenticationError,
+} from "../../src/modaic/index";
 
 describe("ensure_reasoning_field", () => {
   const judge = (output: z.ZodObject<any>) =>
@@ -143,9 +146,18 @@ describe("Arbiter.predict request", () => {
   });
 
   test("posts the right body and parses the response", async () => {
-    let captured: { url: string; init: RequestInit } | null = null;
-    globalThis.fetch = (async (url: any, init: any) => {
-      captured = { url: String(url), init };
+    // The generated SDK calls fetch with a single `Request` object (not
+    // url + init), so capture from the Request.
+    let captured: { url: string; method: string; auth: string | null; body: string } | null =
+      null;
+    globalThis.fetch = (async (input: any, init?: any) => {
+      const req = input instanceof Request ? input : new Request(String(input), init);
+      captured = {
+        url: req.url,
+        method: req.method,
+        auth: req.headers.get("Authorization"),
+        body: await req.clone().text(),
+      };
       return new Response(
         JSON.stringify({
           example_id: "ex1",
@@ -173,10 +185,9 @@ describe("Arbiter.predict request", () => {
     expect(captured!.url).toBe(
       "https://api.example.test/api/v2/arbiters/predictions",
     );
-    expect(captured!.init.method).toBe("POST");
-    const headers = captured!.init.headers as Record<string, string>;
-    expect(headers.Authorization).toBe("Bearer test-token");
-    const body = JSON.parse(captured!.init.body as string);
+    expect(captured!.method).toBe("POST");
+    expect(captured!.auth).toBe("Bearer test-token");
+    const body = JSON.parse(captured!.body);
     expect(body).toEqual({
       input: { question: "q", answer: "a" },
       arbiter_repo: "modaic/judge",

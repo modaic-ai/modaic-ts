@@ -39,7 +39,7 @@ async function main() {
     answer: "Paris is the capital of France.",
   });
 
-  console.log("verdict:", result.output.verdict);
+  console.log("verdict:", result.output?.verdict);
   console.log("reasoning:", result.reasoning);
 }
 

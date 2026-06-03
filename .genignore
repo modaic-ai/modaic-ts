@@ -1,0 +1,5 @@
+# Files Speakeasy must NOT regenerate/overwrite — manually maintained.
+# src/index.ts is the package root barrel: it combines the generated SDK
+# exports with the hand-written modaic library layer (src/modaic). Keep its
+# SDK export lines in sync if the generated barrel ever changes.
+src/index.ts

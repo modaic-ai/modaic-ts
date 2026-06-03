@@ -16,10 +16,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import { z } from "zod";
-import { Signature } from "../src/signatures/signature";
-import { buildProgramJson } from "../src/serialization/program";
-import { serializeSignatureToConfig } from "../src/serialization/config";
-import { repoNameToTitle } from "../src/serialization/naming";
+import {
+  Signature,
+  buildProgramJson,
+  serializeSignatureToConfig,
+  repoNameToTitle,
+} from "../src/modaic/index";
 import { richSignatures } from "./rich_signatures";
 
 type FieldSpec = { name: string; type: string; desc?: string };

@@ -1,0 +1,1064 @@
+{
+  "overlay": "1.0.0",
+  "info": {
+    "title": "Modaic SDK surface",
+    "version": "1.0.0"
+  },
+  "actions": [
+    {
+      "target": "$",
+      "update": {
+        "servers": [
+          {
+            "url": "https://api.modaic.dev"
+          }
+        ]
+      }
+    },
+    {
+      "target": "$",
+      "update": {
+        "components": {
+          "securitySchemes": {
+            "token": {
+              "type": "http",
+              "scheme": "bearer"
+            }
+          }
+        }
+      }
+    },
+    {
+      "target": "$",
+      "update": {
+        "security": [
+          {
+            "token": []
+          }
+        ]
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/chat/completions\"][\"post\"].parameters[1]",
+      "remove": true
+    },
+    {
+      "target": "$.paths[\"/api/v1/jobs/confidence-scores\"][\"post\"].parameters[1]",
+      "remove": true
+    },
+    {
+      "target": "$.paths[\"/api/v1/jobs/confidence-scores/{job_id}\"][\"get\"].parameters[2]",
+      "remove": true
+    },
+    {
+      "target": "$.paths[\"/api/v1/jobs/confidence-scores/{job_id}\"][\"delete\"].parameters[2]",
+      "remove": true
+    },
+    {
+      "target": "$.paths[\"/api/v1/jobs/gepa\"][\"post\"].parameters[1]",
+      "remove": true
+    },
+    {
+      "target": "$.paths[\"/api/v1/jobs/gepa/{job_id}\"][\"get\"].parameters[2]",
+      "remove": true
+    },
+    {
+      "target": "$.paths[\"/api/v1/jobs/gepa/{job_id}\"][\"delete\"].parameters[2]",
+      "remove": true
+    },
+    {
+      "target": "$.paths[\"/api/v1/jobs/gepa/{job_id}/logs\"][\"get\"].parameters[2]",
+      "remove": true
+    },
+    {
+      "target": "$.paths[\"/api/v1/jobs/batch/predictions\"][\"post\"].parameters[1]",
+      "remove": true
+    },
+    {
+      "target": "$.paths[\"/api/v1/jobs/batch/predictions/{job_id}\"][\"get\"].parameters[2]",
+      "remove": true
+    },
+    {
+      "target": "$.paths[\"/api/v1/jobs/batch/predictions/{job_id}\"][\"delete\"].parameters[2]",
+      "remove": true
+    },
+    {
+      "target": "$.paths[\"/api/v1/jobs/batch/predictions/{job_id}/events\"][\"get\"].parameters[2]",
+      "remove": true
+    },
+    {
+      "target": "$.paths[\"/api/v1/jobs/batch/predictions/{job_id}/results\"][\"get\"].parameters[2]",
+      "remove": true
+    },
+    {
+      "target": "$.paths[\"/api/v1/arbiters/\"][\"get\"].parameters[2]",
+      "remove": true
+    },
+    {
+      "target": "$.paths[\"/api/v1/arbiters/schema\"][\"get\"].parameters[2]",
+      "remove": true
+    },
+    {
+      "target": "$.paths[\"/api/v1/arbiters/predictions\"][\"post\"].parameters[1]",
+      "remove": true
+    },
+    {
+      "target": "$.paths[\"/api/v1/arbiters/predictions/confidence\"][\"post\"].parameters[1]",
+      "remove": true
+    },
+    {
+      "target": "$.paths[\"/api/v1/arbiters/predictions/{prediction_id}/confidence\"][\"get\"].parameters[2]",
+      "remove": true
+    },
+    {
+      "target": "$.paths[\"/api/v1/arbiters/predictions/{prediction_id}/confidence\"][\"post\"].parameters[2]",
+      "remove": true
+    },
+    {
+      "target": "$.paths[\"/api/v1/arbiters/predictions/{prediction_id}/confidence/stream\"][\"get\"].parameters[2]",
+      "remove": true
+    },
+    {
+      "target": "$.paths[\"/api/v1/arbiters/predictions/dispatch\"][\"post\"].parameters[1]",
+      "remove": true
+    },
+    {
+      "target": "$.paths[\"/api/v1/arbiters/chat/completions\"][\"post\"].parameters[1]",
+      "remove": true
+    },
+    {
+      "target": "$.paths[\"/api/v1/arbiters\"][\"post\"].parameters[1]",
+      "remove": true
+    },
+    {
+      "target": "$.paths[\"/api/v1/arbiters/metadata\"][\"patch\"].parameters[1]",
+      "remove": true
+    },
+    {
+      "target": "$.paths[\"/api/v1/examples\"][\"get\"].parameters[14]",
+      "remove": true
+    },
+    {
+      "target": "$.paths[\"/api/v1/examples\"][\"post\"].parameters[1]",
+      "remove": true
+    },
+    {
+      "target": "$.paths[\"/api/v1/examples\"][\"delete\"].parameters[1]",
+      "remove": true
+    },
+    {
+      "target": "$.paths[\"/api/v1/examples/export\"][\"post\"].parameters[1]",
+      "remove": true
+    },
+    {
+      "target": "$.paths[\"/api/v1/examples/export/download\"][\"get\"].parameters[3]",
+      "remove": true
+    },
+    {
+      "target": "$.paths[\"/api/v1/examples/distinct-hashes\"][\"get\"].parameters[3]",
+      "remove": true
+    },
+    {
+      "target": "$.paths[\"/api/v1/examples/has-uncalibrated\"][\"get\"].parameters[3]",
+      "remove": true
+    },
+    {
+      "target": "$.paths[\"/api/v1/examples/graded-count\"][\"get\"].parameters[3]",
+      "remove": true
+    },
+    {
+      "target": "$.paths[\"/api/v1/examples/{example_id}/annotation\"][\"patch\"].parameters[2]",
+      "remove": true
+    },
+    {
+      "target": "$.paths[\"/api/v1/examples/{example_id}\"][\"get\"].parameters[2]",
+      "remove": true
+    },
+    {
+      "target": "$.paths[\"/api/v2/arbiters/predictions\"][\"post\"].parameters[1]",
+      "remove": true
+    },
+    {
+      "target": "$.paths[\"/api/v1/user/{userId}\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/user/{userId}\"][\"delete\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/user/username/{username}\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/user/username/{username}\"][\"put\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/user/check/email/\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/user/check/username/{username}\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/user/keys/ssh\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/user/keys/ssh\"][\"post\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/user/keys/ssh/{key_id}\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/user/keys/ssh/{key_id}\"][\"delete\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/user/keys/gpg\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/user/keys/gpg\"][\"post\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/user/keys/gpg/{key_id}\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/user/keys/gpg/{key_id}\"][\"delete\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/user/{username}/profile/picture\"][\"post\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/user/find/search\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/user/billing/usage\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/auth/validate-invite-code\"][\"post\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/auth/callback\"][\"post\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/auth/register\"][\"post\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/auth/login\"][\"post\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/auth/me\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/auth/onboarding\"][\"post\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/auth/session\"][\"delete\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/auth/token/refresh\"][\"post\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/auth/mfa/verify\"][\"post\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/auth/mfa/factors\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/auth/mfa/enroll\"][\"post\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/auth/mfa/enroll/verify\"][\"post\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/auth/mfa/{factor_id}\"][\"delete\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/tokens/{username}\"][\"post\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/tokens/{username}/id/{token_id}\"][\"delete\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/tokens\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/tokens/orgs/{org_name}\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/misc/licenses\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/payments/customer\"][\"post\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/payments/setup-intent\"][\"post\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/payments/confirm-payment-method\"][\"post\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/payments/payment-methods\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/payments/payment-methods/{payment_method_id}/make-default\"][\"post\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/payments/payment-methods/{payment_method_id}\"][\"delete\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/payments/subscriptions/pro/checkout-context\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/payments/subscriptions/pro/start-with-saved\"][\"post\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/payments/subscriptions/pro/create-intent-for-new-card\"][\"post\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/payments/subscriptions/pro/create-subscription-with-new-card\"][\"post\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/payments/subscriptions/pro/confirm-new-card\"][\"post\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/payments/subscriptions/active\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/payments/subscriptions/{subscription_id}/cancel\"][\"post\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/payments/subscriptions/{subscription_id}/reactivate\"][\"post\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/payments/invoices/latest\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/payments/invoices\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/payments/webhooks/stripe\"][\"post\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/notifications/slack/install\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/notifications/slack/callback\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/notifications/slack/status\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/notifications/slack/{installation_id}\"][\"delete\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/notifications/slack/{installation_id}/channels\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/notifications/slack/{installation_id}/channels\"][\"put\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/notifications/slack/{installation_id}/selected-channels\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/notifications/slack/send-annotations\"][\"post\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/notifications/slack/interactions\"][\"post\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/orgs/create\"][\"post\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/orgs/{org_name}/members\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/orgs/{org_name}/permissions\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/orgs/user/{username}\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/orgs/{org_name}/members/{username}\"][\"post\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/orgs/{org_name}/members/{username}\"][\"delete\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/orgs/{org_name}/members/{username}/role\"][\"patch\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/jobs\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/env-vars/{owner_username}\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/env-vars/{owner_username}\"][\"post\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/examples/distinct-versions\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/examples/confidence-distribution\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/examples/prediction-volume\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/examples/agreement\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/contact\"][\"post\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/usage/me\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v1/usage/orgs/{org_name}\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/repos/search\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/repos/{username}\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/repos\"][\"post\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/repos/{username}/{repo_name}\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/repos/{username}/{repo_name}\"][\"delete\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/repos/{username}/{repo_name}\"][\"patch\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/repos/star/{username}/{repo_name}\"][\"put\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/repos/unstar/{username}/{repo_name}\"][\"delete\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/repos/starred/{username}/{repo_name}\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/repos/{username}/{repo_name}/languages\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/repos/{username}/{repo_name}/contents/{file_path}\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/repos/{username}/{repo_name}/raw/{file_path}\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/repos/{username}/{repo_name}/git/trees/{sha}\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/repos/{username}/{repo_name}/branches\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/repos/{username}/{repo_name}/branches/{branch_name}\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/repos/{username}/{repo_name}/commits\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/repos/{username}/{repo_name}/commits/{sha}\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/repos/{username}/{repo_name}/git/commits/{sha}\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/repos/{username}/{repo_name}/collaborators\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/repos/{username}/{repo_name}/contributors\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/repos/{username}/{repo_name}/issues\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/repos/{username}/{repo_name}/issues\"][\"post\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/repos/{username}/{repo_name}/issues/{issue_number}\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/repos/{username}/{repo_name}/issues/{issue_number}/comments\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/repos/{username}/{repo_name}/pulls\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/repos/{username}/{repo_name}/pulls\"][\"post\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/repos/markdown\"][\"post\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/repos/markdown/raw\"][\"post\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/repos/{username}/{repo_name}/file/blob/{sha}\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/repos/{username}/{repo_name}/topics\"][\"put\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/repos/{username}/{repo_name}/topics/{topic}\"][\"put\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/repos/{username}/{repo_name}/topics/{topic}\"][\"delete\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/repos/{username}/{repo_name}/collaborators/{collaborator}/permission\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/repos/{entity_name}/{repo_name}/metadata\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/repos/{entity_name}/{repo_name}/contents/{filepath}\"][\"put\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/repos/{entity_name}/{repo_name}/contents/{filepath}\"][\"post\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/repos/{entity_name}/{repo_name}/contents/{filepath}\"][\"delete\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/users/search\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/users\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/users/id/{user_id}\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/users/{username}\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/users/{username}\"][\"put\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/users/{user_id}\"][\"delete\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/users/check/{source_type}\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/users/keys/ssh\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/users/keys/ssh\"][\"post\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/users/keys/ssh/{key_id}\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/users/keys/ssh/{key_id}\"][\"delete\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/users/keys/gpg\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/users/keys/gpg\"][\"post\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/users/keys/gpg/{key_id}\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/users/keys/gpg/{key_id}\"][\"delete\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/users/{username}/profile-picture\"][\"post\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/users/billing/usage\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/orgs\"][\"post\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/orgs/{org}/email\"][\"put\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/orgs/{org}\"][\"delete\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/orgs/{org}/billing/usage\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/orgs/{org}/members\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/orgs/{org}/permissions\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/orgs/user/{username}\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/orgs/{org}/members/{member}\"][\"post\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/orgs/{org}/members/{member}\"][\"delete\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/orgs/{org}/members/{member}/role\"][\"patch\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/examples/{example_id}/annotation\"][\"patch\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/api/v2/waitlist\"][\"post\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/badge\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    },
+    {
+      "target": "$.paths[\"/health\"][\"get\"]",
+      "update": {
+        "x-speakeasy-ignore": true
+      }
+    }
+  ]
+}

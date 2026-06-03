@@ -1,0 +1,21 @@
+workflowVersion: 1.0.0
+speakeasyVersion: latest
+sources:
+    Modaic API:
+        inputs:
+            - location: /Users/tytodd/Desktop/Modaic/code/core/modaic-ts/openapi.json
+        overlays:
+            - location: .speakeasy/overlays/sdk-surface.overlay.json
+        output: .speakeasy/out.openapi.yaml
+        registry:
+            location: registry.speakeasyapi.dev/modaic/modaic/modaic-api
+targets:
+    modaic:
+        target: typescript
+        source: Modaic API
+        codeSamples:
+            registry:
+                location: registry.speakeasyapi.dev/modaic/modaic/modaic-api-typescript-code-samples
+            labelOverride:
+                fixedValue: Typescript (SDK)
+            blocking: false

@@ -1,0 +1,39 @@
+speakeasyVersion: 1.770.0
+sources:
+    Modaic API:
+        sourceNamespace: modaic-api
+        sourceRevisionDigest: sha256:7967a48e19c6d90a5546ae67d3167dbc4597385bbd0cf6d656113308a7e93df1
+        sourceBlobDigest: sha256:0df56ce78b193c65333e84e5d946454745d82b66677b9c73123309e8bf4b38c3
+        tags:
+            - latest
+            - 1.0.0
+targets:
+    modaic:
+        source: Modaic API
+        sourceNamespace: modaic-api
+        sourceRevisionDigest: sha256:7967a48e19c6d90a5546ae67d3167dbc4597385bbd0cf6d656113308a7e93df1
+        sourceBlobDigest: sha256:0df56ce78b193c65333e84e5d946454745d82b66677b9c73123309e8bf4b38c3
+        codeSamplesNamespace: modaic-api-typescript-code-samples
+        codeSamplesRevisionDigest: sha256:0f77f4ee3aab253d33e0da3f71d2697be617aa76e239fc90a14c63bbcfc10103
+workflow:
+    workflowVersion: 1.0.0
+    speakeasyVersion: latest
+    sources:
+        Modaic API:
+            inputs:
+                - location: /Users/tytodd/Desktop/Modaic/code/core/modaic-ts/openapi.json
+            overlays:
+                - location: .speakeasy/overlays/sdk-surface.overlay.json
+            output: .speakeasy/out.openapi.yaml
+            registry:
+                location: registry.speakeasyapi.dev/modaic/modaic/modaic-api
+    targets:
+        modaic:
+            target: typescript
+            source: Modaic API
+            codeSamples:
+                registry:
+                    location: registry.speakeasyapi.dev/modaic/modaic/modaic-api-typescript-code-samples
+                labelOverride:
+                    fixedValue: Typescript (SDK)
+                blocking: false

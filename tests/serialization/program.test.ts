@@ -1,7 +1,6 @@
 import { expect, test, describe } from "bun:test";
 import { z } from "zod";
-import { Signature } from "../../src/signatures/signature";
-import { buildProgramJson } from "../../src/serialization/program";
+import { Signature, buildProgramJson } from "../../src/modaic/index";
 
 // The meaningful subset of the Python artifact at
 // .../sync/TyTodd/predict-test-repo/program.json — the canonical "SummarizeSignature".
@@ -77,6 +76,26 @@ describe("buildProgramJson", () => {
     expect(program.signature.fields.map((f) => f.prefix)).toEqual([
       "Text:",
       "Summary:",
+    ]);
+  });
+
+  test("appends metadata as the last key (full key order)", () => {
+    const program = buildProgramJson(signature, MODEL);
+    expect(Object.keys(program)).toEqual([
+      "traces",
+      "train",
+      "demos",
+      "signature",
+      "lm",
+      "metadata",
+    ]);
+  });
+
+  test("accepts a string signature like ds.ts", () => {
+    const program = buildProgramJson(Signature.parse("question -> answer"), MODEL);
+    expect(program.signature.fields.map((f) => f.prefix)).toEqual([
+      "Question:",
+      "Answer:",
     ]);
   });
 });

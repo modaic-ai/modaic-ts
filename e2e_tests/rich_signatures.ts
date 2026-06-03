@@ -5,8 +5,7 @@
  * Python suite (test_roundtrip.py) checks the round-trip.
  */
 import { z } from "zod";
-import { Signature } from "../src/signatures/signature";
-import { Image, Audio, Scale, Enum } from "../src/signatures/types";
+import { Signature, Image, Audio, Scale, Enum } from "../src/modaic/index";
 
 export const richSignatures: Record<string, Signature> = {
   // Primitives + int default + Image ($ref/$defs) + Scale (int enum) + multi Enum
