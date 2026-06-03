@@ -28,6 +28,7 @@ type Spec = {
   inputs: FieldSpec[];
   outputs: FieldSpec[];
   repo?: string;
+  model?: string;
 };
 
 const specs = JSON.parse(
@@ -94,7 +95,7 @@ const { signature, repo } = resolve(name);
 fs.mkdirSync(outDir, { recursive: true });
 fs.writeFileSync(
   path.join(outDir, "program.json"),
-  JSON.stringify(buildProgramJson(signature), null, 2),
+  JSON.stringify(buildProgramJson(signature, spec.model ?? "gpt-oss-120b"), null, 2),
 );
 
 try {
