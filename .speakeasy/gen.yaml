@@ -44,7 +44,15 @@ typescript:
       '@types/bun': latest
       '@types/node': ^22.0.0
     peerDependencies: {}
-  additionalPackageJSON: {}
+  additionalPackageJSON:
+    license: MIT
+    files:
+      - esm
+      - src
+      - FUNCTIONS.md
+      - RUNTIMES.md
+      - USAGE.md
+      - jsr.json
   additionalScripts:
     test: bun test
     test:integration: MODAIC_INTEGRATION=1 bun test tests/arbiter/arbiter.integration.test.ts
