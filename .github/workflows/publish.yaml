@@ -1,6 +1,7 @@
 name: Publish
 
-# Publishes the package to npm when a version tag (vX.Y.Z) is pushed.
+# Publishes the package to npm when a version tag (vX.Y.Z) is pushed, then
+# cuts a matching GitHub Release with auto-generated notes.
 #
 #   Release flow (Speakeasy owns the version number):
 #     1. Merge a Speakeasy regen PR (it bumps "version" in package.json)
@@ -20,7 +21,7 @@ on:
         required: true
 
 permissions:
-  contents: read
+  contents: write # create GitHub Releases / read tags
 
 jobs:
   publish:
@@ -72,3 +73,17 @@ jobs:
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub Release
+        if: github.event_name == 'push' && steps.check.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            echo "Release $GITHUB_REF_NAME already exists — skipping."
+          else
+            gh release create "$GITHUB_REF_NAME" \
+              --title "$GITHUB_REF_NAME" \
+              --generate-notes \
+              --verify-tag
+          fi
