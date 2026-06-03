@@ -3,3 +3,6 @@
 # exports with the hand-written modaic library layer (src/modaic). Keep its
 # SDK export lines in sync if the generated barrel ever changes.
 src/index.ts
+
+# CONTRIBUTING.md carries a hand-written "Releasing & Publishing" section.
+CONTRIBUTING.md
