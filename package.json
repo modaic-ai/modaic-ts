@@ -1,10 +1,7 @@
 {
   "name": "modaic",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "author": "Speakeasy",
-  "license": "MIT",
-  "type": "module",
-  "main": "./esm/index.js",
   "files": [
     "esm",
     "src",
@@ -13,6 +10,9 @@
     "USAGE.md",
     "jsr.json"
   ],
+  "license": "MIT",
+  "type": "module",
+  "main": "./esm/index.js",
   "exports": {
     ".": {
       "source": "./src/index.ts",

@@ -2,8 +2,8 @@ speakeasyVersion: 1.770.0
 sources:
     Modaic API:
         sourceNamespace: modaic-api
-        sourceRevisionDigest: sha256:29f929de1263ce45291a9fd1d4e77939f38286e7d653c1618ab8fca913153603
-        sourceBlobDigest: sha256:d2846cd2579a6195e599c69d61fa222b51a8c3aa122b0a255030fcbbdd6da268
+        sourceRevisionDigest: sha256:be4f2769b96c0861eb96918ed1cb0dfca916572f24eb2c0ba498937f3e04d4bf
+        sourceBlobDigest: sha256:3c38b823b67640b32897f0383e3a910802c7d49bf37088f2f5b6487b2332397f
         tags:
             - latest
             - 1.0.0
@@ -11,10 +11,10 @@ targets:
     modaic:
         source: Modaic API
         sourceNamespace: modaic-api
-        sourceRevisionDigest: sha256:29f929de1263ce45291a9fd1d4e77939f38286e7d653c1618ab8fca913153603
-        sourceBlobDigest: sha256:d2846cd2579a6195e599c69d61fa222b51a8c3aa122b0a255030fcbbdd6da268
+        sourceRevisionDigest: sha256:be4f2769b96c0861eb96918ed1cb0dfca916572f24eb2c0ba498937f3e04d4bf
+        sourceBlobDigest: sha256:3c38b823b67640b32897f0383e3a910802c7d49bf37088f2f5b6487b2332397f
         codeSamplesNamespace: modaic-api-typescript-code-samples
-        codeSamplesRevisionDigest: sha256:afa5d41a7c628840fd377b3f0a89f5c3e782c7d3edf104eab682f331f0b4bb4a
+        codeSamplesRevisionDigest: sha256:55f15e1cea18feaae800367f3fcbc6223634b5617ccb1efd01eeaa31d9cd2e08
 workflow:
     workflowVersion: 1.0.0
     speakeasyVersion: latest
@@ -24,6 +24,7 @@ workflow:
                 - location: ./openapi.json
             overlays:
                 - location: .speakeasy/overlays/sdk-surface.overlay.json
+                - location: .speakeasy/overlays/naming.overlay.json
             output: .speakeasy/out.openapi.yaml
             registry:
                 location: registry.speakeasyapi.dev/modaic/modaic/modaic-api

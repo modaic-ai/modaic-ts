@@ -7,8 +7,7 @@ const modaicClient = new ModaicClient({
 });
 
 async function run() {
-  const result = await modaicClient
-    .createChatCompletionApiV1ChatCompletionsPost();
+  const result = await modaicClient.chat.createCompletion();
 
   console.log(result);
 }

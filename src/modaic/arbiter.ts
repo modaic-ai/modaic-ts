@@ -230,7 +230,7 @@ export class Arbiter {
     // before any client is constructed.
     const token = resolveToken();
     const client = new ModaicClient({ token, serverURL: getApiUrl() });
-    return client.createPredictionApiV2ArbitersPredictionsPost({
+    return client.predictions.createV2({
       input,
       arbiterRepo: this.repo,
       arbiterRevision: this.rev,

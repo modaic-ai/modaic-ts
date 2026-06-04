@@ -1,0 +1,261 @@
+{
+  "overlay": "1.0.0",
+  "info": {
+    "title": "Modaic SDK method naming",
+    "version": "1.0.0"
+  },
+  "actions": [
+    {
+      "target": "$[\"paths\"][\"/api/v1/arbiters\"][\"post\"]",
+      "update": {
+        "x-speakeasy-group": "arbiters",
+        "x-speakeasy-name-override": "init"
+      }
+    },
+    {
+      "target": "$[\"paths\"][\"/api/v1/arbiters/\"][\"get\"]",
+      "update": {
+        "x-speakeasy-group": "arbiters",
+        "x-speakeasy-name-override": "get"
+      }
+    },
+    {
+      "target": "$[\"paths\"][\"/api/v1/arbiters/schema\"][\"get\"]",
+      "update": {
+        "x-speakeasy-group": "arbiters",
+        "x-speakeasy-name-override": "getSchema"
+      }
+    },
+    {
+      "target": "$[\"paths\"][\"/api/v1/arbiters/supported-models\"][\"get\"]",
+      "update": {
+        "x-speakeasy-group": "arbiters",
+        "x-speakeasy-name-override": "getSupportedModels"
+      }
+    },
+    {
+      "target": "$[\"paths\"][\"/api/v1/arbiters/metadata\"][\"patch\"]",
+      "update": {
+        "x-speakeasy-group": "arbiters",
+        "x-speakeasy-name-override": "updateMetadata"
+      }
+    },
+    {
+      "target": "$[\"paths\"][\"/api/v1/arbiters/chat/completions\"][\"post\"]",
+      "update": {
+        "x-speakeasy-group": "arbiters",
+        "x-speakeasy-name-override": "createChatCompletion"
+      }
+    },
+    {
+      "target": "$[\"paths\"][\"/api/v1/chat/completions\"][\"post\"]",
+      "update": {
+        "x-speakeasy-group": "chat",
+        "x-speakeasy-name-override": "createCompletion"
+      }
+    },
+    {
+      "target": "$[\"paths\"][\"/api/v1/arbiters/predictions\"][\"post\"]",
+      "update": {
+        "x-speakeasy-group": "predictions",
+        "x-speakeasy-name-override": "create"
+      }
+    },
+    {
+      "target": "$[\"paths\"][\"/api/v2/arbiters/predictions\"][\"post\"]",
+      "update": {
+        "x-speakeasy-group": "predictions",
+        "x-speakeasy-name-override": "createV2"
+      }
+    },
+    {
+      "target": "$[\"paths\"][\"/api/v1/arbiters/predictions/dispatch\"][\"post\"]",
+      "update": {
+        "x-speakeasy-group": "predictions",
+        "x-speakeasy-name-override": "dispatch"
+      }
+    },
+    {
+      "target": "$[\"paths\"][\"/api/v1/arbiters/predictions/confidence\"][\"post\"]",
+      "update": {
+        "x-speakeasy-group": "predictions",
+        "x-speakeasy-name-override": "getConfidence"
+      }
+    },
+    {
+      "target": "$[\"paths\"][\"/api/v1/arbiters/predictions/{prediction_id}/confidence\"][\"post\"]",
+      "update": {
+        "x-speakeasy-group": "predictions",
+        "x-speakeasy-name-override": "enqueueConfidence"
+      }
+    },
+    {
+      "target": "$[\"paths\"][\"/api/v1/arbiters/predictions/{prediction_id}/confidence\"][\"get\"]",
+      "update": {
+        "x-speakeasy-group": "predictions",
+        "x-speakeasy-name-override": "getConfidenceStatus"
+      }
+    },
+    {
+      "target": "$[\"paths\"][\"/api/v1/arbiters/predictions/{prediction_id}/confidence/stream\"][\"get\"]",
+      "update": {
+        "x-speakeasy-group": "predictions",
+        "x-speakeasy-name-override": "streamConfidence"
+      }
+    },
+    {
+      "target": "$[\"paths\"][\"/api/v1/examples\"][\"get\"]",
+      "update": {
+        "x-speakeasy-group": "examples",
+        "x-speakeasy-name-override": "list"
+      }
+    },
+    {
+      "target": "$[\"paths\"][\"/api/v1/examples\"][\"post\"]",
+      "update": {
+        "x-speakeasy-group": "examples",
+        "x-speakeasy-name-override": "ingest"
+      }
+    },
+    {
+      "target": "$[\"paths\"][\"/api/v1/examples\"][\"delete\"]",
+      "update": {
+        "x-speakeasy-group": "examples",
+        "x-speakeasy-name-override": "delete"
+      }
+    },
+    {
+      "target": "$[\"paths\"][\"/api/v1/examples/{example_id}\"][\"get\"]",
+      "update": {
+        "x-speakeasy-group": "examples",
+        "x-speakeasy-name-override": "get"
+      }
+    },
+    {
+      "target": "$[\"paths\"][\"/api/v1/examples/{example_id}/annotation\"][\"patch\"]",
+      "update": {
+        "x-speakeasy-group": "examples",
+        "x-speakeasy-name-override": "patchAnnotation"
+      }
+    },
+    {
+      "target": "$[\"paths\"][\"/api/v1/examples/export\"][\"post\"]",
+      "update": {
+        "x-speakeasy-group": "examples",
+        "x-speakeasy-name-override": "export"
+      }
+    },
+    {
+      "target": "$[\"paths\"][\"/api/v1/examples/export/download\"][\"get\"]",
+      "update": {
+        "x-speakeasy-group": "examples",
+        "x-speakeasy-name-override": "downloadExport"
+      }
+    },
+    {
+      "target": "$[\"paths\"][\"/api/v1/examples/graded-count\"][\"get\"]",
+      "update": {
+        "x-speakeasy-group": "examples",
+        "x-speakeasy-name-override": "getGradedCount"
+      }
+    },
+    {
+      "target": "$[\"paths\"][\"/api/v1/examples/distinct-hashes\"][\"get\"]",
+      "update": {
+        "x-speakeasy-group": "examples",
+        "x-speakeasy-name-override": "getDistinctHashes"
+      }
+    },
+    {
+      "target": "$[\"paths\"][\"/api/v1/examples/has-uncalibrated\"][\"get\"]",
+      "update": {
+        "x-speakeasy-group": "examples",
+        "x-speakeasy-name-override": "hasUncalibrated"
+      }
+    },
+    {
+      "target": "$[\"paths\"][\"/api/v1/jobs/batch/predictions\"][\"post\"]",
+      "update": {
+        "x-speakeasy-group": "jobs",
+        "x-speakeasy-name-override": "startBatchPredictions"
+      }
+    },
+    {
+      "target": "$[\"paths\"][\"/api/v1/jobs/batch/predictions/{job_id}\"][\"get\"]",
+      "update": {
+        "x-speakeasy-group": "jobs",
+        "x-speakeasy-name-override": "getBatchPredictionStatus"
+      }
+    },
+    {
+      "target": "$[\"paths\"][\"/api/v1/jobs/batch/predictions/{job_id}\"][\"delete\"]",
+      "update": {
+        "x-speakeasy-group": "jobs",
+        "x-speakeasy-name-override": "cancelBatchPrediction"
+      }
+    },
+    {
+      "target": "$[\"paths\"][\"/api/v1/jobs/batch/predictions/{job_id}/events\"][\"get\"]",
+      "update": {
+        "x-speakeasy-group": "jobs",
+        "x-speakeasy-name-override": "streamBatchEvents"
+      }
+    },
+    {
+      "target": "$[\"paths\"][\"/api/v1/jobs/batch/predictions/{job_id}/results\"][\"get\"]",
+      "update": {
+        "x-speakeasy-group": "jobs",
+        "x-speakeasy-name-override": "streamBatchResults"
+      }
+    },
+    {
+      "target": "$[\"paths\"][\"/api/v1/jobs/confidence-scores\"][\"post\"]",
+      "update": {
+        "x-speakeasy-group": "jobs",
+        "x-speakeasy-name-override": "startConfidenceScore"
+      }
+    },
+    {
+      "target": "$[\"paths\"][\"/api/v1/jobs/confidence-scores/{job_id}\"][\"get\"]",
+      "update": {
+        "x-speakeasy-group": "jobs",
+        "x-speakeasy-name-override": "getConfidenceScoreStatus"
+      }
+    },
+    {
+      "target": "$[\"paths\"][\"/api/v1/jobs/confidence-scores/{job_id}\"][\"delete\"]",
+      "update": {
+        "x-speakeasy-group": "jobs",
+        "x-speakeasy-name-override": "cancelConfidenceScore"
+      }
+    },
+    {
+      "target": "$[\"paths\"][\"/api/v1/jobs/gepa\"][\"post\"]",
+      "update": {
+        "x-speakeasy-group": "jobs",
+        "x-speakeasy-name-override": "startOptimization"
+      }
+    },
+    {
+      "target": "$[\"paths\"][\"/api/v1/jobs/gepa/{job_id}\"][\"get\"]",
+      "update": {
+        "x-speakeasy-group": "jobs",
+        "x-speakeasy-name-override": "getOptimizationStatus"
+      }
+    },
+    {
+      "target": "$[\"paths\"][\"/api/v1/jobs/gepa/{job_id}\"][\"delete\"]",
+      "update": {
+        "x-speakeasy-group": "jobs",
+        "x-speakeasy-name-override": "cancelOptimization"
+      }
+    },
+    {
+      "target": "$[\"paths\"][\"/api/v1/jobs/gepa/{job_id}/logs\"][\"get\"]",
+      "update": {
+        "x-speakeasy-group": "jobs",
+        "x-speakeasy-name-override": "getOptimizationLogs"
+      }
+    }
+  ]
+}
