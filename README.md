@@ -11,7 +11,7 @@ the two interoperate.
 ## Quickstart
 
 ```ts
-import { Arbiter, Signature } from "@modaic/modaic-ts";
+import { Arbiter, Signature, Enum } from "@modaic/modaic-ts";
 import { z } from "zod";
 
 const signature = new Signature({
@@ -21,7 +21,8 @@ const signature = new Signature({
     answer: z.string().describe("The answer to judge"),
   }),
   output: z.object({
-    verdict: z.string().describe("correct | incorrect"),
+    // Arbiter outputs must be discrete — use Enum (or a Zod enum), not a plain string.
+    verdict: Enum("correct", "incorrect").describe("Whether the answer is correct"),
   }),
 });
 
@@ -29,7 +30,7 @@ const signature = new Signature({
 const arbiter = await Arbiter.create({
   repo: "modaic/quality-judge",
   signature,
-  commit_message: "initial judge",
+  model: "together_ai/openai/gpt-oss-120b",
 });
 
 // Run it (the server runs the LLM).
@@ -37,7 +38,7 @@ const result = await arbiter.predict({ question: "...", answer: "..." });
 console.log(result.output, result.reasoning);
 
 // Update later (optional new signature / metadata / extra files).
-await arbiter.update({ signature, commit_message: "tweak prompt" });
+await arbiter.update({ signature, model: "together_ai/openai/gpt-oss-120b" });
 
 // Open an existing judge at a specific revision.
 const existing = new Arbiter("modaic/quality-judge", { rev: "v1" });
