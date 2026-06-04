@@ -83,6 +83,8 @@ const EXPECTED_TYPES = {
       prefix: "Rating:",
       title: "Rating",
       type: "integer",
+      "x-modaic-args": [1, 5],
+      "x-modaic-type": "Scale",
     },
     decision: {
       __dspy_field_type: "output",
@@ -91,6 +93,8 @@ const EXPECTED_TYPES = {
       prefix: "Decision:",
       title: "Decision",
       type: "string",
+      "x-modaic-args": ["YES", "NO", "MAYBE"],
+      "x-modaic-type": "Enum",
     },
     note: {
       __dspy_field_type: "output",
@@ -222,7 +226,7 @@ describe("serializeSignatureToConfig", () => {
     });
   });
 
-  test("single-value Enum serializes as a const", () => {
+  test("single-value Enum serializes as a const + marker", () => {
     const signature = new Signature({
       instructions: "x",
       input: z.object({ q: z.string() }),
@@ -236,6 +240,46 @@ describe("serializeSignatureToConfig", () => {
       desc: "${ok}",
       prefix: "Ok:",
       title: "Ok",
+      type: "string",
+      "x-modaic-args": ["ONLY"],
+      "x-modaic-type": "Enum",
+    });
+  });
+
+  test("degenerate Scale(n, n) serializes as a const + marker (matches pydantic)", () => {
+    const signature = new Signature({
+      instructions: "x",
+      input: z.object({ q: z.string() }),
+      output: z.object({ rating: Scale(3, 3) }),
+    });
+    const sig = serializeSignatureToConfig(signature, "T").signature as any;
+
+    expect(sig.properties.rating).toEqual({
+      __dspy_field_type: "output",
+      const: 3,
+      desc: "${rating}",
+      prefix: "Rating:",
+      title: "Rating",
+      type: "integer",
+      "x-modaic-args": [3, 3],
+      "x-modaic-type": "Scale",
+    });
+  });
+
+  test("a bare z.enum stays unmarked (plain Literal, not modaic.Enum)", () => {
+    const signature = new Signature({
+      instructions: "x",
+      input: z.object({ q: z.string() }),
+      output: z.object({ cat: z.enum(["a", "b", "c"]) }),
+    });
+    const sig = serializeSignatureToConfig(signature, "T").signature as any;
+
+    expect(sig.properties.cat).toEqual({
+      __dspy_field_type: "output",
+      desc: "${cat}",
+      enum: ["a", "b", "c"],
+      prefix: "Cat:",
+      title: "Cat",
       type: "string",
     });
   });

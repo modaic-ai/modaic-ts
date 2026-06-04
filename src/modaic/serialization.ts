@@ -122,18 +122,25 @@ function coreFragment(
 ): JsonSchema {
   const modaicType = meta["__modaic_type"];
 
-  // Special modaic types (Image/Audio/Scale) are identified by the marker, not structure.
+  // Special modaic types (Image/Audio/Scale/Enum) are identified by the marker, not structure.
   if (modaicType === "image" || modaicType === "audio") {
     const name = modaicType === "image" ? "Image" : "Audio";
     defs[name] = { type: `dspy.${name}` };
     return { $ref: `#/$defs/${name}` };
   }
+  // Scale/Enum serialize to their underlying Literal (enum for many, const for one — like
+  // pydantic) plus marker keys so the Python deserializer rebuilds a Scale/Enum, not a bare
+  // Literal. A raw `z.enum` (no marker) stays unmarked, mirroring a plain Python Literal.
   if (modaicType === "scale") {
     const lo = Number(meta["lo"]);
     const hi = Number(meta["hi"]);
     const values: number[] = [];
     for (let v = lo; v <= hi; v++) values.push(v);
-    return { enum: values, type: "integer" };
+    return { ...enumOrConst(values), "x-modaic-type": "Scale", "x-modaic-args": [lo, hi] };
+  }
+  if (modaicType === "enum") {
+    const values = enumValues(core);
+    return { ...enumOrConst(values), "x-modaic-type": "Enum", "x-modaic-args": values };
   }
 
   const d = defOf(core);
