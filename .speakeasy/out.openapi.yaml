@@ -1244,6 +1244,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HTTPValidationError"
+      "x-speakeasy-group": "chat"
+      "x-speakeasy-name-override": "createCompletion"
   /api/v1/payments/customer:
     post:
       tags:
@@ -2724,6 +2726,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HTTPValidationError"
+      "x-speakeasy-group": "jobs"
+      "x-speakeasy-name-override": "startConfidenceScore"
   /api/v1/jobs/confidence-scores/{job_id}:
     get:
       summary: "Get Confidence Score Job Status"
@@ -2756,6 +2760,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HTTPValidationError"
+      "x-speakeasy-group": "jobs"
+      "x-speakeasy-name-override": "getConfidenceScoreStatus"
     delete:
       summary: "Cancel Confidence Score Job"
       description: "Cancel a running confidence score computation job."
@@ -2787,6 +2793,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HTTPValidationError"
+      "x-speakeasy-group": "jobs"
+      "x-speakeasy-name-override": "cancelConfidenceScore"
   /api/v1/jobs/gepa:
     post:
       summary: "Start Optimization Job"
@@ -2819,6 +2827,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HTTPValidationError"
+      "x-speakeasy-group": "jobs"
+      "x-speakeasy-name-override": "startOptimization"
   /api/v1/jobs/gepa/{job_id}:
     delete:
       summary: "Cancel Optimization Job"
@@ -2851,6 +2861,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HTTPValidationError"
+      "x-speakeasy-group": "jobs"
+      "x-speakeasy-name-override": "cancelOptimization"
     get:
       summary: "Get Optimization Job Status"
       description: "Get the status of a GEPA optimization job.\n\nThis endpoint is a pure Postgres reader. The sandbox writes logs and\nterminal state directly to the hub_jobs row; a background Celery task\nhandles finalization (env_var cleanup, Slack notification, re-predict\ntrigger). Subsequent re-predict/scoring phases are tracked via the\n``phase`` column updated by the Celery pipeline."
@@ -2883,6 +2895,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HTTPValidationError"
+      "x-speakeasy-group": "jobs"
+      "x-speakeasy-name-override": "getOptimizationStatus"
   /api/v1/jobs/gepa/{job_id}/logs:
     get:
       summary: "Get Optimization Job Logs"
@@ -2915,6 +2929,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HTTPValidationError"
+      "x-speakeasy-group": "jobs"
+      "x-speakeasy-name-override": "getOptimizationLogs"
   /api/v1/jobs:
     get:
       summary: "List Jobs"
@@ -2999,6 +3015,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HTTPValidationError"
+      "x-speakeasy-group": "jobs"
+      "x-speakeasy-name-override": "startBatchPredictions"
   /api/v1/jobs/batch/predictions/{job_id}:
     get:
       summary: "Get Batch Predictions Job Status"
@@ -3031,6 +3049,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HTTPValidationError"
+      "x-speakeasy-group": "jobs"
+      "x-speakeasy-name-override": "getBatchPredictionStatus"
     delete:
       summary: "Cancel Batch Predictions Job"
       description: "Cancel a running batch predictions job. Because all inserts happen in a\nsingle transaction at the end of the task, cancelling mid-execution leaves\nno partial state in ClickHouse."
@@ -3062,6 +3082,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HTTPValidationError"
+      "x-speakeasy-group": "jobs"
+      "x-speakeasy-name-override": "cancelBatchPrediction"
   /api/v1/jobs/batch/predictions/{job_id}/events:
     get:
       summary: "Stream Batch Predictions Events"
@@ -3094,6 +3116,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HTTPValidationError"
+      "x-speakeasy-group": "jobs"
+      "x-speakeasy-name-override": "streamBatchEvents"
   /api/v1/jobs/batch/predictions/{job_id}/results:
     get:
       summary: "Stream Batch Predictions Results"
@@ -3126,6 +3150,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HTTPValidationError"
+      "x-speakeasy-group": "jobs"
+      "x-speakeasy-name-override": "streamBatchResults"
   /api/v1/arbiters/:
     get:
       summary: "Get Arbiter"
@@ -3157,6 +3183,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HTTPValidationError"
+      "x-speakeasy-group": "arbiters"
+      "x-speakeasy-name-override": "get"
   /api/v1/arbiters/schema:
     get:
       summary: "Get Arbiter Schema Output"
@@ -3188,6 +3216,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HTTPValidationError"
+      "x-speakeasy-group": "arbiters"
+      "x-speakeasy-name-override": "getSchema"
   /api/v1/arbiters/predictions:
     post:
       summary: "Create Prediction"
@@ -3219,6 +3249,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HTTPValidationError"
+      "x-speakeasy-group": "predictions"
+      "x-speakeasy-name-override": "create"
   /api/v1/arbiters/predictions/confidence:
     post:
       summary: "Get Prediction Confidence"
@@ -3251,6 +3283,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HTTPValidationError"
+      "x-speakeasy-group": "predictions"
+      "x-speakeasy-name-override": "getConfidence"
   /api/v1/arbiters/predictions/{prediction_id}/confidence:
     post:
       summary: "Enqueue Prediction Confidence"
@@ -3284,6 +3318,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HTTPValidationError"
+      "x-speakeasy-group": "predictions"
+      "x-speakeasy-name-override": "enqueueConfidence"
     get:
       summary: "Get Prediction Confidence Status"
       description: "Read current state of the confidence resource for ``prediction_id``.\n\nReturns 404 when no one has POSTed and no row exists. Otherwise returns\n200 with status ``completed`` / ``queued`` / ``failed``."
@@ -3316,6 +3352,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HTTPValidationError"
+      "x-speakeasy-group": "predictions"
+      "x-speakeasy-name-override": "getConfidenceStatus"
   /api/v1/arbiters/predictions/{prediction_id}/confidence/stream:
     get:
       summary: "Stream Prediction Confidence"
@@ -3348,6 +3386,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HTTPValidationError"
+      "x-speakeasy-group": "predictions"
+      "x-speakeasy-name-override": "streamConfidence"
   /api/v1/arbiters/predictions/dispatch:
     post:
       summary: "Dispatch Prediction"
@@ -3379,6 +3419,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HTTPValidationError"
+      "x-speakeasy-group": "predictions"
+      "x-speakeasy-name-override": "dispatch"
   /api/v1/arbiters/chat/completions:
     post:
       summary: "Create Chat Completion"
@@ -3411,6 +3453,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HTTPValidationError"
+      "x-speakeasy-group": "arbiters"
+      "x-speakeasy-name-override": "createChatCompletion"
   /api/v1/arbiters/supported-models:
     get:
       summary: "Get Supported Models"
@@ -3421,6 +3465,8 @@ paths:
           content:
             application/json:
               schema: {}
+      "x-speakeasy-group": "arbiters"
+      "x-speakeasy-name-override": "getSupportedModels"
   /api/v1/arbiters:
     post:
       summary: "Init Arbiter"
@@ -3452,6 +3498,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HTTPValidationError"
+      "x-speakeasy-group": "arbiters"
+      "x-speakeasy-name-override": "init"
   /api/v1/arbiters/metadata:
     patch:
       summary: "Update Arbiter Metadata"
@@ -3484,6 +3532,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HTTPValidationError"
+      "x-speakeasy-group": "arbiters"
+      "x-speakeasy-name-override": "updateMetadata"
   /api/v1/env-vars/{owner_username}:
     get:
       summary: "List Env Vars"
@@ -3594,6 +3644,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HTTPValidationError"
+      "x-speakeasy-group": "examples"
+      "x-speakeasy-name-override": "ingest"
     get:
       summary: "List Examples"
       description: "Offset-based pagination for examples within a single repo, ordered by (created_at, id) ascending."
@@ -3735,6 +3787,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HTTPValidationError"
+      "x-speakeasy-group": "examples"
+      "x-speakeasy-name-override": "list"
     delete:
       summary: "Delete Examples"
       description: "Delete one or more examples from a repo."
@@ -3766,6 +3820,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HTTPValidationError"
+      "x-speakeasy-group": "examples"
+      "x-speakeasy-name-override": "delete"
   /api/v1/examples/export:
     post:
       summary: "Export Examples"
@@ -3799,6 +3855,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HTTPValidationError"
+      "x-speakeasy-group": "examples"
+      "x-speakeasy-name-override": "export"
   /api/v1/examples/export/download:
     get:
       summary: "Download Export"
@@ -3838,6 +3896,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HTTPValidationError"
+      "x-speakeasy-group": "examples"
+      "x-speakeasy-name-override": "downloadExport"
   /api/v1/examples/distinct-hashes:
     get:
       summary: "Get Distinct Hashes"
@@ -3880,6 +3940,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HTTPValidationError"
+      "x-speakeasy-group": "examples"
+      "x-speakeasy-name-override": "getDistinctHashes"
   /api/v1/examples/has-uncalibrated:
     get:
       summary: "Has Uncalibrated Predictions"
@@ -3921,6 +3983,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HTTPValidationError"
+      "x-speakeasy-group": "examples"
+      "x-speakeasy-name-override": "hasUncalibrated"
   /api/v1/examples/graded-count:
     get:
       summary: "Get Graded Count"
@@ -3962,6 +4026,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HTTPValidationError"
+      "x-speakeasy-group": "examples"
+      "x-speakeasy-name-override": "getGradedCount"
   /api/v1/examples/distinct-versions:
     get:
       summary: "Get Distinct Versions"
@@ -4235,6 +4301,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HTTPValidationError"
+      "x-speakeasy-group": "examples"
+      "x-speakeasy-name-override": "patchAnnotation"
   /api/v1/examples/{example_id}:
     get:
       summary: "Get Example By Id"
@@ -4269,6 +4337,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HTTPValidationError"
+      "x-speakeasy-group": "examples"
+      "x-speakeasy-name-override": "get"
   /api/v1/contact:
     post:
       summary: "Submit Contact Form"
@@ -7761,6 +7831,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HTTPValidationError"
+      "x-speakeasy-group": "predictions"
+      "x-speakeasy-name-override": "createV2"
   /api/v2/examples/{example_id}/annotation:
     patch:
       summary: "Patch Example V2"

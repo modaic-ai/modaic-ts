@@ -13,8 +13,9 @@
  *   MODAIC_INTEGRATION=1 MODAIC_TOKEN=... bun test tests/arbiter/arbiter.integration.test.ts
  *   # or: MODAIC_TOKEN=... npm run test:integration
  *
- * Optional: MODAIC_TEST_MODEL overrides the LiteLLM model (default gpt-oss-120b).
- * The predict test needs that model to have a provider key configured on the hub.
+ * Optional: MODAIC_TEST_MODEL overrides the model (default modaic/openai/gpt-oss-120b).
+ * Use the full LiteLLM routing string (provider prefix included) — a bare probe key like
+ * `gpt-oss-120b` doesn't route server-side and yields an empty judge output (500).
  *
  * Every repo created here is registered for best-effort deletion in afterAll.
  */
@@ -34,7 +35,7 @@ import {
 } from "../../src/modaic/index";
 
 const TOKEN = process.env.MODAIC_TOKEN ?? "";
-const MODEL = process.env.MODAIC_TEST_MODEL ?? "gpt-oss-120b";
+const MODEL = process.env.MODAIC_TEST_MODEL ?? "modaic/openai/gpt-oss-120b";
 const RUN = Boolean(TOKEN) && Boolean(process.env.MODAIC_INTEGRATION);
 
 // The hub needs a moment to index a freshly-pushed arbiter before inference can

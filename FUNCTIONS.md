@@ -20,7 +20,7 @@ specific category of applications.
 
 ```typescript
 import { ModaicClientCore } from "modaic/core.js";
-import { createChatCompletionApiV1ChatCompletionsPost } from "modaic/funcs/create-chat-completion-api-v1-chat-completions-post.js";
+import { chatCreateCompletion } from "modaic/funcs/chat-create-completion.js";
 
 // Use `ModaicClientCore` for best tree-shaking performance.
 // You can create one instance of it to use across an application.
@@ -29,12 +29,12 @@ const modaicClient = new ModaicClientCore({
 });
 
 async function run() {
-  const res = await createChatCompletionApiV1ChatCompletionsPost(modaicClient);
+  const res = await chatCreateCompletion(modaicClient);
   if (res.ok) {
     const { value: result } = res;
     console.log(result);
   } else {
-    console.log("createChatCompletionApiV1ChatCompletionsPost failed:", res.error);
+    console.log("chatCreateCompletion failed:", res.error);
   }
 }
 

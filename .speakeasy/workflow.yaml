@@ -6,6 +6,7 @@ sources:
             - location: ./openapi.json
         overlays:
             - location: .speakeasy/overlays/sdk-surface.overlay.json
+            - location: .speakeasy/overlays/naming.overlay.json
         output: .speakeasy/out.openapi.yaml
         registry:
             location: registry.speakeasyapi.dev/modaic/modaic/modaic-api

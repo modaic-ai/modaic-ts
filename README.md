@@ -148,8 +148,7 @@ const modaicClient = new ModaicClient({
 });
 
 async function run() {
-  const result = await modaicClient
-    .createChatCompletionApiV1ChatCompletionsPost();
+  const result = await modaicClient.chat.createCompletion();
 
   console.log(result);
 }
@@ -179,8 +178,7 @@ const modaicClient = new ModaicClient({
 });
 
 async function run() {
-  const result = await modaicClient
-    .createChatCompletionApiV1ChatCompletionsPost();
+  const result = await modaicClient.chat.createCompletion();
 
   console.log(result);
 }
@@ -196,44 +194,56 @@ run();
 <details open>
 <summary>Available methods</summary>
 
-### [ModaicClient SDK](docs/sdks/modaicclient/README.md)
+### [Arbiters](docs/sdks/arbiters/README.md)
 
-* [createChatCompletionApiV1ChatCompletionsPost](docs/sdks/modaicclient/README.md#createchatcompletionapiv1chatcompletionspost) - Create Chat Completion
-* [startConfidenceScoreJobApiV1JobsConfidenceScoresPost](docs/sdks/modaicclient/README.md#startconfidencescorejobapiv1jobsconfidencescorespost) - Start Confidence Score Job
-* [getConfidenceScoreJobStatusApiV1JobsConfidenceScoresJobIdGet](docs/sdks/modaicclient/README.md#getconfidencescorejobstatusapiv1jobsconfidencescoresjobidget) - Get Confidence Score Job Status
-* [cancelConfidenceScoreJobApiV1JobsConfidenceScoresJobIdDelete](docs/sdks/modaicclient/README.md#cancelconfidencescorejobapiv1jobsconfidencescoresjobiddelete) - Cancel Confidence Score Job
-* [startOptimizationJobApiV1JobsGepaPost](docs/sdks/modaicclient/README.md#startoptimizationjobapiv1jobsgepapost) - Start Optimization Job
-* [cancelOptimizationJobApiV1JobsGepaJobIdDelete](docs/sdks/modaicclient/README.md#canceloptimizationjobapiv1jobsgepajobiddelete) - Cancel Optimization Job
-* [getOptimizationJobStatusApiV1JobsGepaJobIdGet](docs/sdks/modaicclient/README.md#getoptimizationjobstatusapiv1jobsgepajobidget) - Get Optimization Job Status
-* [getOptimizationJobLogsApiV1JobsGepaJobIdLogsGet](docs/sdks/modaicclient/README.md#getoptimizationjoblogsapiv1jobsgepajobidlogsget) - Get Optimization Job Logs
-* [startBatchPredictionsJobApiV1JobsBatchPredictionsPost](docs/sdks/modaicclient/README.md#startbatchpredictionsjobapiv1jobsbatchpredictionspost) - Start Batch Predictions Job
-* [getBatchPredictionsJobStatusApiV1JobsBatchPredictionsJobIdGet](docs/sdks/modaicclient/README.md#getbatchpredictionsjobstatusapiv1jobsbatchpredictionsjobidget) - Get Batch Predictions Job Status
-* [cancelBatchPredictionsJobApiV1JobsBatchPredictionsJobIdDelete](docs/sdks/modaicclient/README.md#cancelbatchpredictionsjobapiv1jobsbatchpredictionsjobiddelete) - Cancel Batch Predictions Job
-* [streamBatchPredictionsEventsApiV1JobsBatchPredictionsJobIdEventsGet](docs/sdks/modaicclient/README.md#streambatchpredictionseventsapiv1jobsbatchpredictionsjobideventsget) - Stream Batch Predictions Events
-* [streamBatchPredictionsResultsApiV1JobsBatchPredictionsJobIdResultsGet](docs/sdks/modaicclient/README.md#streambatchpredictionsresultsapiv1jobsbatchpredictionsjobidresultsget) - Stream Batch Predictions Results
-* [getArbiterApiV1ArbitersGet](docs/sdks/modaicclient/README.md#getarbiterapiv1arbitersget) - Get Arbiter
-* [getArbiterSchemaOutputApiV1ArbitersSchemaGet](docs/sdks/modaicclient/README.md#getarbiterschemaoutputapiv1arbitersschemaget) - Get Arbiter Schema Output
-* [createPredictionApiV1ArbitersPredictionsPost](docs/sdks/modaicclient/README.md#createpredictionapiv1arbiterspredictionspost) - Create Prediction
-* [getPredictionConfidenceApiV1ArbitersPredictionsConfidencePost](docs/sdks/modaicclient/README.md#getpredictionconfidenceapiv1arbiterspredictionsconfidencepost) - Get Prediction Confidence
-* [enqueuePredictionConfidenceApiV1ArbitersPredictionsPredictionIdConfidencePost](docs/sdks/modaicclient/README.md#enqueuepredictionconfidenceapiv1arbiterspredictionspredictionidconfidencepost) - Enqueue Prediction Confidence
-* [getPredictionConfidenceStatusApiV1ArbitersPredictionsPredictionIdConfidenceGet](docs/sdks/modaicclient/README.md#getpredictionconfidencestatusapiv1arbiterspredictionspredictionidconfidenceget) - Get Prediction Confidence Status
-* [streamPredictionConfidenceApiV1ArbitersPredictionsPredictionIdConfidenceStreamGet](docs/sdks/modaicclient/README.md#streampredictionconfidenceapiv1arbiterspredictionspredictionidconfidencestreamget) - Stream Prediction Confidence
-* [dispatchPredictionApiV1ArbitersPredictionsDispatchPost](docs/sdks/modaicclient/README.md#dispatchpredictionapiv1arbiterspredictionsdispatchpost) - Dispatch Prediction
-* [createChatCompletionApiV1ArbitersChatCompletionsPost](docs/sdks/modaicclient/README.md#createchatcompletionapiv1arbiterschatcompletionspost) - Create Chat Completion
-* [getSupportedModelsApiV1ArbitersSupportedModelsGet](docs/sdks/modaicclient/README.md#getsupportedmodelsapiv1arbiterssupportedmodelsget) - Get Supported Models
-* [initArbiterApiV1ArbitersPost](docs/sdks/modaicclient/README.md#initarbiterapiv1arbiterspost) - Init Arbiter
-* [updateArbiterMetadataApiV1ArbitersMetadataPatch](docs/sdks/modaicclient/README.md#updatearbitermetadataapiv1arbitersmetadatapatch) - Update Arbiter Metadata
-* [ingestExamplesApiV1ExamplesPost](docs/sdks/modaicclient/README.md#ingestexamplesapiv1examplespost) - Ingest Examples
-* [listExamplesApiV1ExamplesGet](docs/sdks/modaicclient/README.md#listexamplesapiv1examplesget) - List Examples
-* [deleteExamplesApiV1ExamplesDelete](docs/sdks/modaicclient/README.md#deleteexamplesapiv1examplesdelete) - Delete Examples
-* [exportExamplesApiV1ExamplesExportPost](docs/sdks/modaicclient/README.md#exportexamplesapiv1examplesexportpost) - Export Examples
-* [downloadExportApiV1ExamplesExportDownloadGet](docs/sdks/modaicclient/README.md#downloadexportapiv1examplesexportdownloadget) - Download Export
-* [getDistinctHashesApiV1ExamplesDistinctHashesGet](docs/sdks/modaicclient/README.md#getdistincthashesapiv1examplesdistincthashesget) - Get Distinct Hashes
-* [hasUncalibratedPredictionsApiV1ExamplesHasUncalibratedGet](docs/sdks/modaicclient/README.md#hasuncalibratedpredictionsapiv1exampleshasuncalibratedget) - Has Uncalibrated Predictions
-* [getGradedCountApiV1ExamplesGradedCountGet](docs/sdks/modaicclient/README.md#getgradedcountapiv1examplesgradedcountget) - Get Graded Count
-* [patchExampleApiV1ExamplesExampleIdAnnotationPatch](docs/sdks/modaicclient/README.md#patchexampleapiv1examplesexampleidannotationpatch) - Patch Example
-* [getExampleByIdApiV1ExamplesExampleIdGet](docs/sdks/modaicclient/README.md#getexamplebyidapiv1examplesexampleidget) - Get Example By Id
-* [createPredictionApiV2ArbitersPredictionsPost](docs/sdks/modaicclient/README.md#createpredictionapiv2arbiterspredictionspost) - Create Prediction
+* [get](docs/sdks/arbiters/README.md#get) - Get Arbiter
+* [getSchema](docs/sdks/arbiters/README.md#getschema) - Get Arbiter Schema Output
+* [createChatCompletion](docs/sdks/arbiters/README.md#createchatcompletion) - Create Chat Completion
+* [getSupportedModels](docs/sdks/arbiters/README.md#getsupportedmodels) - Get Supported Models
+* [init](docs/sdks/arbiters/README.md#init) - Init Arbiter
+* [updateMetadata](docs/sdks/arbiters/README.md#updatemetadata) - Update Arbiter Metadata
+
+### [Chat](docs/sdks/chat/README.md)
+
+* [createCompletion](docs/sdks/chat/README.md#createcompletion) - Create Chat Completion
+
+### [Examples](docs/sdks/examples/README.md)
+
+* [ingest](docs/sdks/examples/README.md#ingest) - Ingest Examples
+* [list](docs/sdks/examples/README.md#list) - List Examples
+* [delete](docs/sdks/examples/README.md#delete) - Delete Examples
+* [export](docs/sdks/examples/README.md#export) - Export Examples
+* [downloadExport](docs/sdks/examples/README.md#downloadexport) - Download Export
+* [getDistinctHashes](docs/sdks/examples/README.md#getdistincthashes) - Get Distinct Hashes
+* [hasUncalibrated](docs/sdks/examples/README.md#hasuncalibrated) - Has Uncalibrated Predictions
+* [getGradedCount](docs/sdks/examples/README.md#getgradedcount) - Get Graded Count
+* [patchAnnotation](docs/sdks/examples/README.md#patchannotation) - Patch Example
+* [get](docs/sdks/examples/README.md#get) - Get Example By Id
+
+### [Jobs](docs/sdks/jobs/README.md)
+
+* [startConfidenceScore](docs/sdks/jobs/README.md#startconfidencescore) - Start Confidence Score Job
+* [getConfidenceScoreStatus](docs/sdks/jobs/README.md#getconfidencescorestatus) - Get Confidence Score Job Status
+* [cancelConfidenceScore](docs/sdks/jobs/README.md#cancelconfidencescore) - Cancel Confidence Score Job
+* [startOptimization](docs/sdks/jobs/README.md#startoptimization) - Start Optimization Job
+* [cancelOptimization](docs/sdks/jobs/README.md#canceloptimization) - Cancel Optimization Job
+* [getOptimizationStatus](docs/sdks/jobs/README.md#getoptimizationstatus) - Get Optimization Job Status
+* [getOptimizationLogs](docs/sdks/jobs/README.md#getoptimizationlogs) - Get Optimization Job Logs
+* [startBatchPredictions](docs/sdks/jobs/README.md#startbatchpredictions) - Start Batch Predictions Job
+* [getBatchPredictionStatus](docs/sdks/jobs/README.md#getbatchpredictionstatus) - Get Batch Predictions Job Status
+* [cancelBatchPrediction](docs/sdks/jobs/README.md#cancelbatchprediction) - Cancel Batch Predictions Job
+* [streamBatchEvents](docs/sdks/jobs/README.md#streambatchevents) - Stream Batch Predictions Events
+* [streamBatchResults](docs/sdks/jobs/README.md#streambatchresults) - Stream Batch Predictions Results
+
+### [Predictions](docs/sdks/predictions/README.md)
+
+* [create](docs/sdks/predictions/README.md#create) - Create Prediction
+* [getConfidence](docs/sdks/predictions/README.md#getconfidence) - Get Prediction Confidence
+* [enqueueConfidence](docs/sdks/predictions/README.md#enqueueconfidence) - Enqueue Prediction Confidence
+* [getConfidenceStatus](docs/sdks/predictions/README.md#getconfidencestatus) - Get Prediction Confidence Status
+* [streamConfidence](docs/sdks/predictions/README.md#streamconfidence) - Stream Prediction Confidence
+* [dispatch](docs/sdks/predictions/README.md#dispatch) - Dispatch Prediction
+* [createV2](docs/sdks/predictions/README.md#createv2) - Create Prediction
 
 </details>
 <!-- End Available Resources and Operations [operations] -->
@@ -253,42 +263,42 @@ To read more about standalone functions, check [FUNCTIONS.md](./FUNCTIONS.md).
 
 <summary>Available standalone functions</summary>
 
-- [`cancelBatchPredictionsJobApiV1JobsBatchPredictionsJobIdDelete`](docs/sdks/modaicclient/README.md#cancelbatchpredictionsjobapiv1jobsbatchpredictionsjobiddelete) - Cancel Batch Predictions Job
-- [`cancelConfidenceScoreJobApiV1JobsConfidenceScoresJobIdDelete`](docs/sdks/modaicclient/README.md#cancelconfidencescorejobapiv1jobsconfidencescoresjobiddelete) - Cancel Confidence Score Job
-- [`cancelOptimizationJobApiV1JobsGepaJobIdDelete`](docs/sdks/modaicclient/README.md#canceloptimizationjobapiv1jobsgepajobiddelete) - Cancel Optimization Job
-- [`createChatCompletionApiV1ArbitersChatCompletionsPost`](docs/sdks/modaicclient/README.md#createchatcompletionapiv1arbiterschatcompletionspost) - Create Chat Completion
-- [`createChatCompletionApiV1ChatCompletionsPost`](docs/sdks/modaicclient/README.md#createchatcompletionapiv1chatcompletionspost) - Create Chat Completion
-- [`createPredictionApiV1ArbitersPredictionsPost`](docs/sdks/modaicclient/README.md#createpredictionapiv1arbiterspredictionspost) - Create Prediction
-- [`createPredictionApiV2ArbitersPredictionsPost`](docs/sdks/modaicclient/README.md#createpredictionapiv2arbiterspredictionspost) - Create Prediction
-- [`deleteExamplesApiV1ExamplesDelete`](docs/sdks/modaicclient/README.md#deleteexamplesapiv1examplesdelete) - Delete Examples
-- [`dispatchPredictionApiV1ArbitersPredictionsDispatchPost`](docs/sdks/modaicclient/README.md#dispatchpredictionapiv1arbiterspredictionsdispatchpost) - Dispatch Prediction
-- [`downloadExportApiV1ExamplesExportDownloadGet`](docs/sdks/modaicclient/README.md#downloadexportapiv1examplesexportdownloadget) - Download Export
-- [`enqueuePredictionConfidenceApiV1ArbitersPredictionsPredictionIdConfidencePost`](docs/sdks/modaicclient/README.md#enqueuepredictionconfidenceapiv1arbiterspredictionspredictionidconfidencepost) - Enqueue Prediction Confidence
-- [`exportExamplesApiV1ExamplesExportPost`](docs/sdks/modaicclient/README.md#exportexamplesapiv1examplesexportpost) - Export Examples
-- [`getArbiterApiV1ArbitersGet`](docs/sdks/modaicclient/README.md#getarbiterapiv1arbitersget) - Get Arbiter
-- [`getArbiterSchemaOutputApiV1ArbitersSchemaGet`](docs/sdks/modaicclient/README.md#getarbiterschemaoutputapiv1arbitersschemaget) - Get Arbiter Schema Output
-- [`getBatchPredictionsJobStatusApiV1JobsBatchPredictionsJobIdGet`](docs/sdks/modaicclient/README.md#getbatchpredictionsjobstatusapiv1jobsbatchpredictionsjobidget) - Get Batch Predictions Job Status
-- [`getConfidenceScoreJobStatusApiV1JobsConfidenceScoresJobIdGet`](docs/sdks/modaicclient/README.md#getconfidencescorejobstatusapiv1jobsconfidencescoresjobidget) - Get Confidence Score Job Status
-- [`getDistinctHashesApiV1ExamplesDistinctHashesGet`](docs/sdks/modaicclient/README.md#getdistincthashesapiv1examplesdistincthashesget) - Get Distinct Hashes
-- [`getExampleByIdApiV1ExamplesExampleIdGet`](docs/sdks/modaicclient/README.md#getexamplebyidapiv1examplesexampleidget) - Get Example By Id
-- [`getGradedCountApiV1ExamplesGradedCountGet`](docs/sdks/modaicclient/README.md#getgradedcountapiv1examplesgradedcountget) - Get Graded Count
-- [`getOptimizationJobLogsApiV1JobsGepaJobIdLogsGet`](docs/sdks/modaicclient/README.md#getoptimizationjoblogsapiv1jobsgepajobidlogsget) - Get Optimization Job Logs
-- [`getOptimizationJobStatusApiV1JobsGepaJobIdGet`](docs/sdks/modaicclient/README.md#getoptimizationjobstatusapiv1jobsgepajobidget) - Get Optimization Job Status
-- [`getPredictionConfidenceApiV1ArbitersPredictionsConfidencePost`](docs/sdks/modaicclient/README.md#getpredictionconfidenceapiv1arbiterspredictionsconfidencepost) - Get Prediction Confidence
-- [`getPredictionConfidenceStatusApiV1ArbitersPredictionsPredictionIdConfidenceGet`](docs/sdks/modaicclient/README.md#getpredictionconfidencestatusapiv1arbiterspredictionspredictionidconfidenceget) - Get Prediction Confidence Status
-- [`getSupportedModelsApiV1ArbitersSupportedModelsGet`](docs/sdks/modaicclient/README.md#getsupportedmodelsapiv1arbiterssupportedmodelsget) - Get Supported Models
-- [`hasUncalibratedPredictionsApiV1ExamplesHasUncalibratedGet`](docs/sdks/modaicclient/README.md#hasuncalibratedpredictionsapiv1exampleshasuncalibratedget) - Has Uncalibrated Predictions
-- [`ingestExamplesApiV1ExamplesPost`](docs/sdks/modaicclient/README.md#ingestexamplesapiv1examplespost) - Ingest Examples
-- [`initArbiterApiV1ArbitersPost`](docs/sdks/modaicclient/README.md#initarbiterapiv1arbiterspost) - Init Arbiter
-- [`listExamplesApiV1ExamplesGet`](docs/sdks/modaicclient/README.md#listexamplesapiv1examplesget) - List Examples
-- [`patchExampleApiV1ExamplesExampleIdAnnotationPatch`](docs/sdks/modaicclient/README.md#patchexampleapiv1examplesexampleidannotationpatch) - Patch Example
-- [`startBatchPredictionsJobApiV1JobsBatchPredictionsPost`](docs/sdks/modaicclient/README.md#startbatchpredictionsjobapiv1jobsbatchpredictionspost) - Start Batch Predictions Job
-- [`startConfidenceScoreJobApiV1JobsConfidenceScoresPost`](docs/sdks/modaicclient/README.md#startconfidencescorejobapiv1jobsconfidencescorespost) - Start Confidence Score Job
-- [`startOptimizationJobApiV1JobsGepaPost`](docs/sdks/modaicclient/README.md#startoptimizationjobapiv1jobsgepapost) - Start Optimization Job
-- [`streamBatchPredictionsEventsApiV1JobsBatchPredictionsJobIdEventsGet`](docs/sdks/modaicclient/README.md#streambatchpredictionseventsapiv1jobsbatchpredictionsjobideventsget) - Stream Batch Predictions Events
-- [`streamBatchPredictionsResultsApiV1JobsBatchPredictionsJobIdResultsGet`](docs/sdks/modaicclient/README.md#streambatchpredictionsresultsapiv1jobsbatchpredictionsjobidresultsget) - Stream Batch Predictions Results
-- [`streamPredictionConfidenceApiV1ArbitersPredictionsPredictionIdConfidenceStreamGet`](docs/sdks/modaicclient/README.md#streampredictionconfidenceapiv1arbiterspredictionspredictionidconfidencestreamget) - Stream Prediction Confidence
-- [`updateArbiterMetadataApiV1ArbitersMetadataPatch`](docs/sdks/modaicclient/README.md#updatearbitermetadataapiv1arbitersmetadatapatch) - Update Arbiter Metadata
+- [`arbitersCreateChatCompletion`](docs/sdks/arbiters/README.md#createchatcompletion) - Create Chat Completion
+- [`arbitersGet`](docs/sdks/arbiters/README.md#get) - Get Arbiter
+- [`arbitersGetSchema`](docs/sdks/arbiters/README.md#getschema) - Get Arbiter Schema Output
+- [`arbitersGetSupportedModels`](docs/sdks/arbiters/README.md#getsupportedmodels) - Get Supported Models
+- [`arbitersInit`](docs/sdks/arbiters/README.md#init) - Init Arbiter
+- [`arbitersUpdateMetadata`](docs/sdks/arbiters/README.md#updatemetadata) - Update Arbiter Metadata
+- [`chatCreateCompletion`](docs/sdks/chat/README.md#createcompletion) - Create Chat Completion
+- [`examplesDelete`](docs/sdks/examples/README.md#delete) - Delete Examples
+- [`examplesDownloadExport`](docs/sdks/examples/README.md#downloadexport) - Download Export
+- [`examplesExport`](docs/sdks/examples/README.md#export) - Export Examples
+- [`examplesGet`](docs/sdks/examples/README.md#get) - Get Example By Id
+- [`examplesGetDistinctHashes`](docs/sdks/examples/README.md#getdistincthashes) - Get Distinct Hashes
+- [`examplesGetGradedCount`](docs/sdks/examples/README.md#getgradedcount) - Get Graded Count
+- [`examplesHasUncalibrated`](docs/sdks/examples/README.md#hasuncalibrated) - Has Uncalibrated Predictions
+- [`examplesIngest`](docs/sdks/examples/README.md#ingest) - Ingest Examples
+- [`examplesList`](docs/sdks/examples/README.md#list) - List Examples
+- [`examplesPatchAnnotation`](docs/sdks/examples/README.md#patchannotation) - Patch Example
+- [`jobsCancelBatchPrediction`](docs/sdks/jobs/README.md#cancelbatchprediction) - Cancel Batch Predictions Job
+- [`jobsCancelConfidenceScore`](docs/sdks/jobs/README.md#cancelconfidencescore) - Cancel Confidence Score Job
+- [`jobsCancelOptimization`](docs/sdks/jobs/README.md#canceloptimization) - Cancel Optimization Job
+- [`jobsGetBatchPredictionStatus`](docs/sdks/jobs/README.md#getbatchpredictionstatus) - Get Batch Predictions Job Status
+- [`jobsGetConfidenceScoreStatus`](docs/sdks/jobs/README.md#getconfidencescorestatus) - Get Confidence Score Job Status
+- [`jobsGetOptimizationLogs`](docs/sdks/jobs/README.md#getoptimizationlogs) - Get Optimization Job Logs
+- [`jobsGetOptimizationStatus`](docs/sdks/jobs/README.md#getoptimizationstatus) - Get Optimization Job Status
+- [`jobsStartBatchPredictions`](docs/sdks/jobs/README.md#startbatchpredictions) - Start Batch Predictions Job
+- [`jobsStartConfidenceScore`](docs/sdks/jobs/README.md#startconfidencescore) - Start Confidence Score Job
+- [`jobsStartOptimization`](docs/sdks/jobs/README.md#startoptimization) - Start Optimization Job
+- [`jobsStreamBatchEvents`](docs/sdks/jobs/README.md#streambatchevents) - Stream Batch Predictions Events
+- [`jobsStreamBatchResults`](docs/sdks/jobs/README.md#streambatchresults) - Stream Batch Predictions Results
+- [`predictionsCreate`](docs/sdks/predictions/README.md#create) - Create Prediction
+- [`predictionsCreateV2`](docs/sdks/predictions/README.md#createv2) - Create Prediction
+- [`predictionsDispatch`](docs/sdks/predictions/README.md#dispatch) - Dispatch Prediction
+- [`predictionsEnqueueConfidence`](docs/sdks/predictions/README.md#enqueueconfidence) - Enqueue Prediction Confidence
+- [`predictionsGetConfidence`](docs/sdks/predictions/README.md#getconfidence) - Get Prediction Confidence
+- [`predictionsGetConfidenceStatus`](docs/sdks/predictions/README.md#getconfidencestatus) - Get Prediction Confidence Status
+- [`predictionsStreamConfidence`](docs/sdks/predictions/README.md#streamconfidence) - Stream Prediction Confidence
 
 </details>
 <!-- End Standalone functions [standalone-funcs] -->
@@ -307,19 +317,18 @@ const modaicClient = new ModaicClient({
 });
 
 async function run() {
-  const result = await modaicClient
-    .createChatCompletionApiV1ChatCompletionsPost({
-      retries: {
-        strategy: "backoff",
-        backoff: {
-          initialInterval: 1,
-          maxInterval: 50,
-          exponent: 1.1,
-          maxElapsedTime: 100,
-        },
-        retryConnectionErrors: false,
+  const result = await modaicClient.chat.createCompletion({
+    retries: {
+      strategy: "backoff",
+      backoff: {
+        initialInterval: 1,
+        maxInterval: 50,
+        exponent: 1.1,
+        maxElapsedTime: 100,
       },
-    });
+      retryConnectionErrors: false,
+    },
+  });
 
   console.log(result);
 }
@@ -347,8 +356,7 @@ const modaicClient = new ModaicClient({
 });
 
 async function run() {
-  const result = await modaicClient
-    .createChatCompletionApiV1ChatCompletionsPost();
+  const result = await modaicClient.chat.createCompletion();
 
   console.log(result);
 }
@@ -383,8 +391,7 @@ const modaicClient = new ModaicClient({
 
 async function run() {
   try {
-    const result = await modaicClient
-      .createChatCompletionApiV1ChatCompletionsPost();
+    const result = await modaicClient.chat.createCompletion();
 
     console.log(result);
   } catch (error) {
@@ -447,8 +454,7 @@ const modaicClient = new ModaicClient({
 });
 
 async function run() {
-  const result = await modaicClient
-    .createChatCompletionApiV1ChatCompletionsPost();
+  const result = await modaicClient.chat.createCompletion();
 
   console.log(result);
 }

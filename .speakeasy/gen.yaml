@@ -34,7 +34,7 @@ generation:
     generateNewTests: true
     skipResponseBodyAssertions: false
 typescript:
-  version: 0.1.4
+  version: 0.2.0
   acceptHeaderEnum: false
   additionalDependencies:
     dependencies:
@@ -45,7 +45,6 @@ typescript:
       '@types/node': ^22.0.0
     peerDependencies: {}
   additionalPackageJSON:
-    license: MIT
     files:
       - esm
       - src
@@ -53,6 +52,7 @@ typescript:
       - RUNTIMES.md
       - USAGE.md
       - jsr.json
+    license: MIT
   additionalScripts:
     test: bun test
     test:integration: MODAIC_INTEGRATION=1 bun test tests/arbiter/arbiter.integration.test.ts
