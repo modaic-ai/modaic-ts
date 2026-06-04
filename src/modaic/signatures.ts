@@ -314,14 +314,14 @@ export function infer_prefix(attributeName: string): string {
  *   - `Image` / `Audio`  -> `$defs["Image"] = {"type":"dspy.Image"}` + a `$ref` field,
  *                           which the Python SDK reconstructs as a real `dspy.Image` /
  *                           `dspy.Audio` (its adapters already render them multimodally).
- *   - `Scale(lo, hi)`    -> a plain integer enum `{"enum":[lo..hi], "type":"integer"}`,
- *                           matching Python `modaic.Scale[lo, hi]`.
- *   - `Enum(...values)`  -> a plain string enum `{"enum":[...], "type":"string"}`,
- *                           matching Python `modaic.Enum[...]`.
+ *   - `Scale(lo, hi)`    -> an integer enum/const tagged with `"x-modaic-type":"Scale"` +
+ *                           `"x-modaic-args":[lo, hi]`, matching Python `modaic.Scale[lo, hi]`.
+ *   - `Enum(...values)`  -> a string enum/const tagged with `"x-modaic-type":"Enum"` +
+ *                           `"x-modaic-args":[...values]`, matching Python `modaic.Enum[...]`.
  */
 
 /** Marker value the serializer reads from a field's `.meta().__modaic_type`. */
-export type ModaicTypeTag = "image" | "audio" | "scale";
+export type ModaicTypeTag = "image" | "audio" | "scale" | "enum";
 
 /**
  * `modaic.Image` — a multimodal image field, the TS analog of `dspy.Image`.
@@ -370,8 +370,9 @@ export class Audio {
 /**
  * `modaic.Scale(lo, hi)` — an integer rating in `[lo, hi]` inclusive.
  *
- * Serializes to a plain integer enum `{"enum":[lo, lo+1, …, hi], "type":"integer"}`,
- * matching Python `modaic.Scale[lo, hi]` (which presents to the model as a Literal of ints).
+ * Serializes to the underlying integer Literal — `{"enum":[lo..hi], "type":"integer"}`,
+ * or `{"const": lo, "type":"integer"}` when `lo === hi` — plus the round-trip marker keys
+ * `"x-modaic-type":"Scale"` and `"x-modaic-args":[lo, hi]`, matching Python `modaic.Scale[lo, hi]`.
  */
 export function Scale(lo: number, hi: number): z.ZodType {
   if (!Number.isInteger(lo) || !Number.isInteger(hi)) {
@@ -390,9 +391,11 @@ export function Scale(lo: number, hi: number): z.ZodType {
 /**
  * `modaic.Enum(...values)` — a string choice from a fixed set.
  *
- * Serializes to `{"enum":[...], "type":"string"}` (a single value serializes as
- * `{"const": v, "type":"string"}`), matching Python `modaic.Enum[...]`.
+ * Serializes to the underlying string Literal — `{"enum":[...], "type":"string"}`, or
+ * `{"const": v, "type":"string"}` for a single value — plus the round-trip marker keys
+ * `"x-modaic-type":"Enum"` and `"x-modaic-args":[...values]`, matching Python `modaic.Enum[...]`.
+ * The `__modaic_type` marker also distinguishes it from a bare `z.enum` (a plain Literal).
  */
 export function Enum<T extends string>(...values: [T, ...T[]]): z.ZodType {
-  return z.enum(values);
+  return z.enum(values).meta({ __modaic_type: "enum", values });
 }
