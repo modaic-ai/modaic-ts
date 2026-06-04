@@ -4,15 +4,15 @@
 
 ### Available Operations
 
-* [create](#create) - Create Prediction
+* [createV1](#createv1) - Create Prediction
 * [getConfidence](#getconfidence) - Get Prediction Confidence
 * [enqueueConfidence](#enqueueconfidence) - Enqueue Prediction Confidence
 * [getConfidenceStatus](#getconfidencestatus) - Get Prediction Confidence Status
 * [streamConfidence](#streamconfidence) - Stream Prediction Confidence
 * [dispatch](#dispatch) - Dispatch Prediction
-* [createV2](#createv2) - Create Prediction
+* [create](#create) - Create Prediction
 
-## create
+## createV1
 
 Create Prediction
 
@@ -27,7 +27,7 @@ const modaicClient = new ModaicClient({
 });
 
 async function run() {
-  const result = await modaicClient.predictions.create({
+  const result = await modaicClient.predictions.createV1({
     input: {
       "key": "<value>",
       "key1": "<value>",
@@ -47,7 +47,7 @@ The standalone function version of this method:
 
 ```typescript
 import { ModaicClientCore } from "modaic/core.js";
-import { predictionsCreate } from "modaic/funcs/predictions-create.js";
+import { predictionsCreateV1 } from "modaic/funcs/predictions-create-v1.js";
 
 // Use `ModaicClientCore` for best tree-shaking performance.
 // You can create one instance of it to use across an application.
@@ -56,7 +56,7 @@ const modaicClient = new ModaicClientCore({
 });
 
 async function run() {
-  const res = await predictionsCreate(modaicClient, {
+  const res = await predictionsCreateV1(modaicClient, {
     input: {
       "key": "<value>",
       "key1": "<value>",
@@ -67,7 +67,7 @@ async function run() {
     const { value: result } = res;
     console.log(result);
   } else {
-    console.log("predictionsCreate failed:", res.error);
+    console.log("predictionsCreateV1 failed:", res.error);
   }
 }
 
@@ -534,7 +534,7 @@ run();
 | errors.HTTPValidationError      | 422                             | application/json                |
 | errors.ModaicClientDefaultError | 4XX, 5XX                        | \*/\*                           |
 
-## createV2
+## create
 
 Run a single arbiter against a single example and return a flat result.
 
@@ -554,7 +554,7 @@ const modaicClient = new ModaicClient({
 });
 
 async function run() {
-  const result = await modaicClient.predictions.createV2({
+  const result = await modaicClient.predictions.create({
     input: {
 
     },
@@ -573,7 +573,7 @@ The standalone function version of this method:
 
 ```typescript
 import { ModaicClientCore } from "modaic/core.js";
-import { predictionsCreateV2 } from "modaic/funcs/predictions-create-v2.js";
+import { predictionsCreate } from "modaic/funcs/predictions-create.js";
 
 // Use `ModaicClientCore` for best tree-shaking performance.
 // You can create one instance of it to use across an application.
@@ -582,7 +582,7 @@ const modaicClient = new ModaicClientCore({
 });
 
 async function run() {
-  const res = await predictionsCreateV2(modaicClient, {
+  const res = await predictionsCreate(modaicClient, {
     input: {
   
     },
@@ -592,7 +592,7 @@ async function run() {
     const { value: result } = res;
     console.log(result);
   } else {
-    console.log("predictionsCreateV2 failed:", res.error);
+    console.log("predictionsCreate failed:", res.error);
   }
 }
 

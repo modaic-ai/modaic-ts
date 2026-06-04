@@ -29,22 +29,14 @@ import { Result } from "../types/fp.js";
 
 /**
  * Create Prediction
- *
- * @remarks
- * Run a single arbiter against a single example and return a flat result.
- *
- * Unlike v1's ``POST /api/v1/arbiters/predictions`` (which takes a list of
- * arbiters and wraps the response in a ``predictions`` array), v2 takes
- * exactly one arbiter and returns ``{example_id, prediction_id, output,
- * reasoning, messages}``.
  */
-export function predictionsCreateV2(
+export function predictionsCreateV1(
   client: ModaicClientCore,
-  request: models.SrcApiV2ArbitersSchemasPredictExampleRequest,
+  request: models.SrcApiV1ArbitersSchemasPredictExampleRequest,
   options?: RequestOptions,
 ): APIPromise<
   Result<
-    models.PredictExampleResponse,
+    any,
     | errors.HTTPValidationError
     | ModaicClientError
     | ResponseValidationError
@@ -65,12 +57,12 @@ export function predictionsCreateV2(
 
 async function $do(
   client: ModaicClientCore,
-  request: models.SrcApiV2ArbitersSchemasPredictExampleRequest,
+  request: models.SrcApiV1ArbitersSchemasPredictExampleRequest,
   options?: RequestOptions,
 ): Promise<
   [
     Result<
-      models.PredictExampleResponse,
+      any,
       | errors.HTTPValidationError
       | ModaicClientError
       | ResponseValidationError
@@ -88,7 +80,7 @@ async function $do(
     request,
     (value) =>
       z.parse(
-        models.SrcApiV2ArbitersSchemasPredictExampleRequest$outboundSchema,
+        models.SrcApiV1ArbitersSchemasPredictExampleRequest$outboundSchema,
         value,
       ),
     "Input validation failed",
@@ -99,7 +91,7 @@ async function $do(
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
 
-  const path = pathToFunc("/api/v2/arbiters/predictions")();
+  const path = pathToFunc("/api/v1/arbiters/predictions")();
 
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
@@ -113,7 +105,7 @@ async function $do(
   const context = {
     options: client._options,
     baseURL: options?.serverURL ?? client._baseURL ?? "",
-    operationID: "create_prediction_api_v2_arbiters_predictions_post",
+    operationID: "create_prediction_api_v1_arbiters_predictions_post",
     oAuth2Scopes: null,
 
     resolvedSecurity: requestSecurity,
@@ -157,7 +149,7 @@ async function $do(
   };
 
   const [result] = await M.match<
-    models.PredictExampleResponse,
+    any,
     | errors.HTTPValidationError
     | ModaicClientError
     | ResponseValidationError
@@ -168,7 +160,7 @@ async function $do(
     | UnexpectedClientError
     | SDKValidationError
   >(
-    M.json(200, models.PredictExampleResponse$inboundSchema),
+    M.json(200, z.any()),
     M.jsonErr(422, errors.HTTPValidationError$inboundSchema),
     M.fail("4XX"),
     M.fail("5XX"),

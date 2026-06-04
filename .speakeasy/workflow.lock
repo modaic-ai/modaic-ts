@@ -14,7 +14,7 @@ targets:
         sourceRevisionDigest: sha256:be4f2769b96c0861eb96918ed1cb0dfca916572f24eb2c0ba498937f3e04d4bf
         sourceBlobDigest: sha256:3c38b823b67640b32897f0383e3a910802c7d49bf37088f2f5b6487b2332397f
         codeSamplesNamespace: modaic-api-typescript-code-samples
-        codeSamplesRevisionDigest: sha256:55f15e1cea18feaae800367f3fcbc6223634b5617ccb1efd01eeaa31d9cd2e08
+        codeSamplesRevisionDigest: sha256:be444e3de2742d2202889e51aff80c42c83aca9139e2aac8dc719e1084db37d4
 workflow:
     workflowVersion: 1.0.0
     speakeasyVersion: latest

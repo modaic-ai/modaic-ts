@@ -237,13 +237,13 @@ run();
 
 ### [Predictions](docs/sdks/predictions/README.md)
 
-* [create](docs/sdks/predictions/README.md#create) - Create Prediction
+* [createV1](docs/sdks/predictions/README.md#createv1) - Create Prediction
 * [getConfidence](docs/sdks/predictions/README.md#getconfidence) - Get Prediction Confidence
 * [enqueueConfidence](docs/sdks/predictions/README.md#enqueueconfidence) - Enqueue Prediction Confidence
 * [getConfidenceStatus](docs/sdks/predictions/README.md#getconfidencestatus) - Get Prediction Confidence Status
 * [streamConfidence](docs/sdks/predictions/README.md#streamconfidence) - Stream Prediction Confidence
 * [dispatch](docs/sdks/predictions/README.md#dispatch) - Dispatch Prediction
-* [createV2](docs/sdks/predictions/README.md#createv2) - Create Prediction
+* [create](docs/sdks/predictions/README.md#create) - Create Prediction
 
 </details>
 <!-- End Available Resources and Operations [operations] -->
@@ -293,7 +293,7 @@ To read more about standalone functions, check [FUNCTIONS.md](./FUNCTIONS.md).
 - [`jobsStreamBatchEvents`](docs/sdks/jobs/README.md#streambatchevents) - Stream Batch Predictions Events
 - [`jobsStreamBatchResults`](docs/sdks/jobs/README.md#streambatchresults) - Stream Batch Predictions Results
 - [`predictionsCreate`](docs/sdks/predictions/README.md#create) - Create Prediction
-- [`predictionsCreateV2`](docs/sdks/predictions/README.md#createv2) - Create Prediction
+- [`predictionsCreateV1`](docs/sdks/predictions/README.md#createv1) - Create Prediction
 - [`predictionsDispatch`](docs/sdks/predictions/README.md#dispatch) - Dispatch Prediction
 - [`predictionsEnqueueConfidence`](docs/sdks/predictions/README.md#enqueueconfidence) - Enqueue Prediction Confidence
 - [`predictionsGetConfidence`](docs/sdks/predictions/README.md#getconfidence) - Get Prediction Confidence

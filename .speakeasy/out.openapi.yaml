@@ -3250,7 +3250,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/HTTPValidationError"
       "x-speakeasy-group": "predictions"
-      "x-speakeasy-name-override": "create"
+      "x-speakeasy-name-override": "createV1"
   /api/v1/arbiters/predictions/confidence:
     post:
       summary: "Get Prediction Confidence"
@@ -7832,7 +7832,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/HTTPValidationError"
       "x-speakeasy-group": "predictions"
-      "x-speakeasy-name-override": "createV2"
+      "x-speakeasy-name-override": "create"
   /api/v2/examples/{example_id}/annotation:
     patch:
       summary: "Patch Example V2"
