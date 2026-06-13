@@ -1,6 +1,6 @@
 {
   "name": "modaic",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "author": "Speakeasy",
   "files": [
     "esm",
@@ -60,7 +60,7 @@
     "lint": "oxlint --max-warnings=0 --deny-warnings src/**/*.ts src/**/*.tsx",
     "build": "tsgo",
     "prepublishOnly": "npm run build",
-    "test:integration": "MODAIC_INTEGRATION=1 bun test tests/arbiter/arbiter.integration.test.ts",
+    "test:integration": "MODAIC_INTEGRATION=1 bun test tests/**/*.integration.test.ts",
     "test": "bun test"
   },
   "peerDependencies": {
