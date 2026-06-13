@@ -18,7 +18,28 @@ export type {
   CreateOptions,
   UpdateOptions,
   PredictOptions,
+  PredictAllOptions,
 } from "./arbiter.js";
+
+// Batch predictions (Arbiter.predict_all → async job handle)
+export {
+  BatchJob,
+  BatchJobFailedError,
+  BatchJobTimeoutError,
+  toBatchProgressEvent,
+} from "./batch.js";
+export type {
+  WaitFor,
+  WaitOptions,
+  BatchJobInit,
+  ProgressCounters,
+  BatchResultsSummary,
+  BatchProgressEvent,
+  BatchPrediction,
+  BatchExampleResult,
+} from "./batch.js";
+// Batch request inputs come straight from the generated SDK models.
+export type { BatchExample } from "../models/index.js";
 
 // Serialization — the canonical config.json / program.json format
 export {

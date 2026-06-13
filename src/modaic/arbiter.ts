@@ -5,7 +5,7 @@ import {
   buildProgramJson,
   repoNameToTitle,
 } from "./serialization.js";
-import { resolveToken, getApiUrl } from "./runtime.js";
+import { resolveToken, getApiUrl, ModaicError } from "./runtime.js";
 import {
   syncAndPush,
   createRepo,
@@ -13,7 +13,18 @@ import {
   type PushFiles,
 } from "./git.js";
 import { ModaicClient } from "../sdk/sdk.js";
-import type { PredictExampleResponse } from "../models/index.js";
+import type {
+  PredictExampleResponse,
+  BatchExample,
+  BatchPredictionsJobRequest,
+} from "../models/index.js";
+import {
+  BatchJob,
+  type BatchExampleResult,
+  type BatchProgressEvent,
+  type WaitFor,
+  type WaitOptions,
+} from "./batch.js";
 
 /**
  * The fixed description given to an Arbiter's injected `reasoning` output field.
@@ -120,6 +131,31 @@ export interface PredictOptions {
   ground_truth?: Record<string, unknown> | null;
   ground_reasoning?: string;
   compute_confidence?: boolean;
+}
+
+/** Options for `arbiter.predict_all`. Mirrors the Python SDK's `predict_all`. */
+export interface PredictAllOptions {
+  /**
+   * Re-predict existing examples by their ClickHouse ids instead of ingesting
+   * new ones. Mutually exclusive with the `examples` argument — pass exactly one.
+   */
+  example_ids?: string[] | null;
+  /** Enqueue batch confidence scoring after predictions persist. Default false. */
+  compute_confidence?: boolean;
+  /**
+   * Milestone to block for, or `null` to return the {@link BatchJob} handle
+   * immediately without waiting. Default `"predictions"`. `"scores"` requires
+   * `compute_confidence: true`.
+   */
+  wait_for?: WaitFor | null;
+  /** Seconds between polls in the fallback path. Default 30. */
+  poll_interval?: number;
+  /** Overall wait budget in seconds. Default 3600. */
+  timeout?: number;
+  /** Print a textual progress line to stderr while waiting. Default false. */
+  show_progress?: boolean;
+  /** Called with every progress snapshot (SSE or polled) while waiting. */
+  on_event?: (event: BatchProgressEvent) => void;
 }
 
 /**
@@ -238,6 +274,93 @@ export class Arbiter {
       groundReasoning: opts.ground_reasoning ?? "",
       computeConfidence: opts.compute_confidence ?? false,
     });
+  }
+
+  /**
+   * Run a batch of predictions against this Arbiter as an async job.
+   *
+   * Mirrors Python's `Arbiter.predict_all`: it starts a batch job via
+   * `client.jobs.startBatchPredictions` (this single arbiter), then — unless
+   * `wait_for` is `null` — blocks until the requested milestone and returns the
+   * per-example results. With `wait_for: null` it returns the {@link BatchJob}
+   * handle immediately so the caller can drive `status()` / `wait()` / `cancel()`.
+   *
+   * Pass exactly one input mode: `examples` (ingest new rows) or
+   * `opts.example_ids` (re-predict existing rows by ClickHouse id).
+   */
+  async predict_all(
+    examples: BatchExample[] | null,
+    opts: PredictAllOptions = {},
+  ): Promise<BatchJob | BatchExampleResult[]> {
+    const waitFor = opts.wait_for === undefined ? "predictions" : opts.wait_for;
+    const computeConfidence = opts.compute_confidence ?? false;
+    const exampleIds = opts.example_ids ?? null;
+
+    // Exactly one of `examples` / `example_ids`.
+    if ((examples == null) === (exampleIds == null)) {
+      throw new ModaicError(
+        "predict_all requires exactly one of `examples` or `example_ids`",
+      );
+    }
+    if (waitFor === "scores" && !computeConfidence) {
+      throw new ModaicError(
+        "wait_for='scores' requires compute_confidence=true",
+      );
+    }
+
+    let nExamples: number;
+    if (examples != null) {
+      if (examples.length > 1000) {
+        throw new ModaicError("predict_all accepts at most 1000 examples per call");
+      }
+      examples.forEach((ex, i) => {
+        if (ex == null || ex.input == null) {
+          throw new ModaicError(`examples[${i}] is missing required 'input' key`);
+        }
+      });
+      nExamples = examples.length;
+    } else {
+      if (exampleIds!.length > 1000) {
+        throw new ModaicError(
+          "predict_all accepts at most 1000 example_ids per call",
+        );
+      }
+      nExamples = exampleIds!.length;
+    }
+
+    // Resolve the token up front so a missing token throws AuthenticationError
+    // before any client is constructed.
+    const token = resolveToken();
+    const baseURL = getApiUrl();
+    const client = new ModaicClient({ token, serverURL: baseURL });
+
+    const request: BatchPredictionsJobRequest = {
+      arbiters: [{ arbiterRepo: this.repo, arbiterRevision: this.rev }],
+      computeConfidence,
+    };
+    if (examples != null) request.examples = examples;
+    if (exampleIds != null) request.exampleIds = exampleIds;
+
+    const data: any = await client.jobs.startBatchPredictions(request);
+
+    const job = new BatchJob({
+      client,
+      token,
+      baseURL,
+      jobId: data?.job_id ?? data?.jobId,
+      total: data?.total ?? nExamples, // single arbiter ⇒ total = n_examples
+      arbiters: [this.repo],
+    });
+
+    if (waitFor == null) return job;
+
+    // Build wait options without passing `undefined` (exactOptionalPropertyTypes).
+    const waitOpts: WaitOptions = { waitFor };
+    if (opts.poll_interval !== undefined) waitOpts.pollInterval = opts.poll_interval;
+    if (opts.timeout !== undefined) waitOpts.timeout = opts.timeout;
+    if (opts.show_progress !== undefined) waitOpts.showProgress = opts.show_progress;
+    if (opts.on_event !== undefined) waitOpts.onEvent = opts.on_event;
+    return job.wait(waitOpts);
   }
 
   /**
