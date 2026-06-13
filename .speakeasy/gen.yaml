@@ -57,6 +57,7 @@ typescript:
     test: bun test
     test:integration: MODAIC_INTEGRATION=1 bun test tests/arbiter/arbiter.integration.test.ts
   alwaysIncludeInboundAndOutbound: false
+  apiPromiseHelpers: false
   author: Speakeasy
   baseErrorName: ModaicClientError
   clientServerStatusCodesAsErrors: true
@@ -67,6 +68,7 @@ typescript:
   enableReactQuery: false
   enumFormat: union
   envVarPrefix: MODAIC
+  eventStreamClassName: EventStream
   exportZodModelNamespace: false
   fixEnumNameSanitization: false
   flatAdditionalProperties: true
@@ -99,6 +101,7 @@ typescript:
   preApplyUnionDiscriminators: true
   preserveModelFieldNames: false
   privateIdentifierPrefix: '#'
+  requestExtras: false
   responseFormat: flat
   sseFlatResponse: false
   templateVersion: v2

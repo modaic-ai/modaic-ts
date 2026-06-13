@@ -1,9 +1,9 @@
-speakeasyVersion: 1.770.0
+speakeasyVersion: 1.778.0
 sources:
     Modaic API:
         sourceNamespace: modaic-api
-        sourceRevisionDigest: sha256:be4f2769b96c0861eb96918ed1cb0dfca916572f24eb2c0ba498937f3e04d4bf
-        sourceBlobDigest: sha256:3c38b823b67640b32897f0383e3a910802c7d49bf37088f2f5b6487b2332397f
+        sourceRevisionDigest: sha256:0b5d2a988a33455f4ec74dc745e02e8a04c08775374620daeda8b6088feb8f74
+        sourceBlobDigest: sha256:f3a2bf6298658d71f4547294a8290ac71881d535f68b9a27263b4648cee7ec0c
         tags:
             - latest
             - 1.0.0
@@ -11,10 +11,10 @@ targets:
     modaic:
         source: Modaic API
         sourceNamespace: modaic-api
-        sourceRevisionDigest: sha256:be4f2769b96c0861eb96918ed1cb0dfca916572f24eb2c0ba498937f3e04d4bf
-        sourceBlobDigest: sha256:3c38b823b67640b32897f0383e3a910802c7d49bf37088f2f5b6487b2332397f
+        sourceRevisionDigest: sha256:0b5d2a988a33455f4ec74dc745e02e8a04c08775374620daeda8b6088feb8f74
+        sourceBlobDigest: sha256:f3a2bf6298658d71f4547294a8290ac71881d535f68b9a27263b4648cee7ec0c
         codeSamplesNamespace: modaic-api-typescript-code-samples
-        codeSamplesRevisionDigest: sha256:be444e3de2742d2202889e51aff80c42c83aca9139e2aac8dc719e1084db37d4
+        codeSamplesRevisionDigest: sha256:992a65a4de0ef5491ef75f37cd7b5718a2db82b16190258f68a8e57ceaa5fc96
 workflow:
     workflowVersion: 1.0.0
     speakeasyVersion: latest

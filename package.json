@@ -60,8 +60,8 @@
     "lint": "oxlint --max-warnings=0 --deny-warnings src/**/*.ts src/**/*.tsx",
     "build": "tsgo",
     "prepublishOnly": "npm run build",
-    "test:integration": "MODAIC_INTEGRATION=1 bun test tests/**/*.integration.test.ts",
-    "test": "bun test"
+    "test": "bun test",
+    "test:integration": "MODAIC_INTEGRATION=1 bun test tests/arbiter/arbiter.integration.test.ts"
   },
   "peerDependencies": {
     

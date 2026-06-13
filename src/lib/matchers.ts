@@ -6,7 +6,7 @@ import { ModaicClientDefaultError } from "../models/errors/modaic-client-default
 import { ResponseValidationError } from "../models/errors/response-validation-error.js";
 import { ERR, OK, Result } from "../types/fp.js";
 import { matchResponse, matchStatusCode, StatusCodePredicate } from "./http.js";
-import { isPlainObject } from "./is-plain-object.js";
+import { isPlainObject } from "./primitives.js";
 
 export type Encoding =
   | "jsonl"
