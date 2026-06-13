@@ -7,7 +7,10 @@ name: Publish
 #     1. Merge a Speakeasy regen PR (it bumps "version" in package.json)
 #     2. git tag vX.Y.Z <merge commit> && git push origin vX.Y.Z
 #
-# Requires the NPM_TOKEN repository secret (npm automation token).
+# Auth: npm trusted publishing via OIDC — no NPM_TOKEN. Requires `id-token:
+# write` below, npm CLI >= 11.5.1, and a Trusted Publisher configured on
+# npmjs.com for this repo with the workflow filename set to "publish.yaml".
+# Provenance is generated automatically (the repo is public).
 
 on:
   push:
@@ -22,6 +25,7 @@ on:
 
 permissions:
   contents: write # create GitHub Releases / read tags
+  id-token: write # OIDC token for npm trusted publishing
 
 jobs:
   publish:
@@ -37,6 +41,10 @@ jobs:
         with:
           node-version: 22
           registry-url: "https://registry.npmjs.org"
+
+      # Trusted publishing (OIDC) needs npm >= 11.5.1; Node 22 ships npm 10.
+      - name: Upgrade npm
+        run: npm install -g npm@latest
 
       - name: Install dependencies
         run: npm ci
@@ -70,9 +78,7 @@ jobs:
 
       - name: Publish to npm
         if: steps.check.outputs.skip == 'false'
-        run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public --provenance
 
       - name: Create GitHub Release
         if: github.event_name == 'push' && steps.check.outputs.skip == 'false'

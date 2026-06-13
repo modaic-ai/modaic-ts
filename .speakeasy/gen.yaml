@@ -55,7 +55,7 @@ typescript:
     license: MIT
   additionalScripts:
     test: bun test
-    test:integration: MODAIC_INTEGRATION=1 bun test tests/arbiter/arbiter.integration.test.ts
+    test:integration: MODAIC_INTEGRATION=1 bun test tests/**/*.integration.test.ts
   alwaysIncludeInboundAndOutbound: false
   apiPromiseHelpers: false
   author: Speakeasy
