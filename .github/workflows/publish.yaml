@@ -36,18 +36,16 @@ jobs:
         with:
           ref: ${{ github.event.inputs.ref || github.ref }}
 
-      # NOTE: intentionally NO `registry-url` here. setup-node's registry-url
-      # writes an .npmrc with a placeholder `_authToken`, which shadows OIDC
-      # trusted publishing and makes `npm publish` fail with a 404 on PUT.
-      # Without it, npm targets the default registry and authenticates via OIDC.
+      # Matches npm's official trusted-publishing example: setup-node@v6 +
+      # Node 24 (ships npm >= 11.5.1, which OIDC trusted publishing requires)
+      # with registry-url set. Older npm (Node 22 ships npm 10) does NOT do the
+      # OIDC registry-auth handshake, so the publish falls back to a token and
+      # fails (404 / ENEEDAUTH). No NODE_AUTH_TOKEN — auth is OIDC.
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: 22
-
-      # Trusted publishing (OIDC) needs npm >= 11.5.1; Node 22 ships npm 10.
-      - name: Upgrade npm
-        run: npm install -g npm@latest
+          node-version: 24
+          registry-url: "https://registry.npmjs.org"
 
       - name: Install dependencies
         run: npm ci
@@ -81,7 +79,9 @@ jobs:
 
       - name: Publish to npm
         if: steps.check.outputs.skip == 'false'
-        run: npm publish --access public --provenance
+        run: |
+          echo "Publishing with npm $(npm --version) on node $(node --version)"
+          npm publish --access public
 
       - name: Create GitHub Release
         if: github.event_name == 'push' && steps.check.outputs.skip == 'false'
