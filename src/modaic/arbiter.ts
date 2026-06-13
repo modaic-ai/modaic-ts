@@ -159,6 +159,50 @@ export interface PredictAllOptions {
 }
 
 /**
+ * Supported arbiter probe models, mirroring the Python SDK's `ARBITER_PROBES`
+ * (`modaic/programs/arbiters.py`) verbatim. Keys are normalized model names; values
+ * become README frontmatter (alongside `is_arbiter: true`). Keep in sync with Python —
+ * the commented entries below are kept as-is so the two tables stay aligned.
+ */
+export const ARBITER_PROBES: Record<string, Record<string, unknown>> = {
+  // "qwen3-32b": { probe_model: "modaic/qwen3-32b-probe", size: "medium" },
+  // "qwen3-vl-32b-instruct": { probe_model: "modaic/qwen3-32b-probe", size: "medium" },
+  // "qwen3.5-4b": { probe_model: "modaic/qwen3.5-4b-probe", size: "small", supports_reasoning: true },
+  "llama-3.1-8b": { model: "llama-3.1-8b", size: "small" },
+  "llama-3.1-8b-instruct": { model: "llama-3.1-8b", size: "small" },
+  "gpt-oss-120b": { model: "gpt-oss-120b", size: "medium", supports_reasoning: true },
+};
+
+/**
+ * Normalize a LiteLLM model string to its bare model name — the TS analog of Python's
+ * `normalize_model_name`. Strips any provider prefix, lowercases, and turns `:` tags into
+ * `-` (e.g. `"openai/GPT-OSS-120B"` and `"vllm/gpt-oss-120b:latest"` → `"gpt-oss-120b"`).
+ */
+export function normalizeModelName(model: string): string {
+  return model.toLowerCase().split("/").pop()!.replace(/:/g, "-");
+}
+
+/**
+ * Build the arbiter metadata stamped into the README frontmatter for `model` — the TS
+ * analog of Python `make_arbiter`'s `predict.metadata |= {"is_arbiter": True, **ARBITER_PROBES[...]}`.
+ *
+ * Throws if the (normalized) model isn't a supported probe model, matching the Python SDK.
+ * The Python `register_reasoning_model`/litellm step is intentionally skipped: the TS SDK
+ * never runs the LLM locally, so there is nothing to register.
+ */
+export function arbiterMetadata(model: string): Record<string, unknown> {
+  const normalized = normalizeModelName(model);
+  const probe = ARBITER_PROBES[normalized];
+  if (!probe) {
+    throw new Error(
+      `Arbiters are not supported for model ${model}, see ` +
+        "https://docs.modaic.dev/guides/basic_usage/create_an_arbiter",
+    );
+  }
+  return { is_arbiter: true, ...probe };
+}
+
+/**
  * A handle to a Modaic Arbiter (an LLM judge) stored on Modaic Hub.
  *
  * Like `modaic_client.Arbiter`, this is a thin wrapper over the Modaic REST API
@@ -208,7 +252,9 @@ export class Arbiter {
       branch,
       token,
       files: { config, program },
-      metadata: opts.metadata ?? null,
+      // Stamp is_arbiter + the probe metadata the confidence scorer needs (user metadata wins,
+      // matching Python's `self.metadata | (metadata or {})`). Throws on an unsupported model.
+      metadata: { ...arbiterMetadata(opts.model), ...(opts.metadata ?? {}) },
       extraFiles: opts.extra_files ?? null,
       commitMessage: opts.commit_message ?? "(no commit message)",
       tag: opts.tag,
@@ -246,7 +292,9 @@ export class Arbiter {
       branch: this.branch,
       token,
       files,
-      metadata: opts.metadata ?? null,
+      // When the model is (re)written, re-stamp is_arbiter + probe metadata; a metadata-only update
+      // leaves it untouched. User metadata wins.
+      metadata: opts.model ? { ...arbiterMetadata(opts.model), ...(opts.metadata ?? {}) } : (opts.metadata ?? null),
       extraFiles: opts.extra_files ?? null,
       commitMessage: opts.commit_message ?? "(no commit message)",
       tag: opts.tag,
