@@ -1,0 +1,54 @@
+name: Open PR as bot
+
+# When a `claude/**` branch is pushed, open a pull request for it authored by
+# the GitHub App (so the PR shows as `modaic-bot[bot]`, not the human whose
+# credentials pushed the branch).
+#
+# Requires two repo secrets from a GitHub App installed on this repo with
+# `Pull requests: write` + `Contents: read`:
+#   * APP_ID          — the App's numeric id
+#   * APP_PRIVATE_KEY — the App's .pem private key (full contents)
+#
+# Because the PR is opened with a real App installation token (not the built-in
+# GITHUB_TOKEN), the PR DOES trigger the repo's other workflows.
+
+on:
+  push:
+    branches:
+      - "claude/**"
+
+permissions:
+  contents: read # for actions/checkout
+
+jobs:
+  open-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mint GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Open PR if none exists
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          if gh pr view "$BRANCH" --json number >/dev/null 2>&1; then
+            echo "A PR already exists for $BRANCH — nothing to do."
+            exit 0
+          fi
+          SUBJECT="$(git log -1 --pretty=%s)"
+          BODY="$(git log -1 --pretty=%b)"
+          gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "$SUBJECT" \
+            --body "$BODY"
