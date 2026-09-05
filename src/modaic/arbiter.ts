@@ -148,7 +148,7 @@ export interface PredictAllOptions {
    * `compute_confidence: true`.
    */
   wait_for?: WaitFor | null;
-  /** Seconds between polls in the fallback path. Default 30. */
+  /** Seconds between polls in the fallback path. Default 2. */
   poll_interval?: number;
   /** Overall wait budget in seconds. Default 3600. */
   timeout?: number;

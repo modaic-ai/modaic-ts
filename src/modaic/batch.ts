@@ -81,7 +81,7 @@ export interface BatchExampleResult {
 export interface WaitOptions {
   /** Milestone to block for. Default `"predictions"`. */
   waitFor?: WaitFor;
-  /** Seconds between polls in the fallback path. Default 30. */
+  /** Seconds between polls in the fallback path. Default 2. */
   pollInterval?: number;
   /** Overall wait budget in seconds. Default 3600. */
   timeout?: number;
@@ -338,7 +338,7 @@ export class BatchJob {
    */
   async wait(opts: WaitOptions = {}): Promise<BatchExampleResult[]> {
     const waitFor = opts.waitFor ?? "predictions";
-    const pollInterval = opts.pollInterval ?? 30;
+    const pollInterval = opts.pollInterval ?? 2;
     const timeout = opts.timeout ?? 3600;
     const showProgress = opts.showProgress ?? false;
     const onEvent = opts.onEvent;
