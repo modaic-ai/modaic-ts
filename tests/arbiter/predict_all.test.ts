@@ -59,6 +59,21 @@ const sse = (blocks: string[]): Response =>
     headers: { "content-type": "text/event-stream" },
   });
 
+/** An SSE stream that sends data but never closes, like the live heartbeat-only path. */
+const openSse = (blocks: string[]): Response => {
+  const encoder = new TextEncoder();
+  const body = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(encoder.encode(blocks.join("\n\n") + "\n\n"));
+      // Deliberately leave the stream open. The waiter must still finish via polling.
+    },
+  });
+  return new Response(body, {
+    status: 200,
+    headers: { "content-type": "text/event-stream" },
+  });
+};
+
 beforeEach(() => {
   process.env["MODAIC_TOKEN"] = "test-token";
   // Fail loudly if a test hits the network without setting up a route.
@@ -292,6 +307,48 @@ describe("BatchJob.events", () => {
 /* -------------------------------------------------------------------------- */
 
 describe("Arbiter.predict_all wait (polling fallback)", () => {
+  test("keeps polling when SSE sends only start and heartbeat frames", async () => {
+    let statusCalls = 0;
+    installFetch((url, method) => {
+      if (method === "POST" && url.endsWith("/batch/predictions")) {
+        return json({ job_id: "job-heartbeat", total: 1 });
+      }
+      if (method === "GET" && url.endsWith("/job-heartbeat/events")) {
+        return openSse([
+          'event: start\ndata: {"event":"start","status":"predicting"}',
+          ": heartbeat",
+        ]);
+      }
+      if (method === "GET" && url.endsWith("/job-heartbeat/results")) {
+        return ndjson([
+          {
+            example_id: "e1",
+            predictions: [{ output: { verdict: "yes" }, reasoning: "r" }],
+          },
+        ]);
+      }
+      if (method === "GET" && url.endsWith("/batch/predictions/job-heartbeat")) {
+        statusCalls += 1;
+        return json(
+          statusCalls < 2
+            ? { event: "prediction", status: "predicting" }
+            : { event: "prediction", status: "scoring" },
+        );
+      }
+      throw new Error(`unexpected ${method} ${url}`);
+    });
+
+    const events: string[] = [];
+    const rows = await new Arbiter("modaic/judge").predict_all(
+      [{ input: { q: "a" } }],
+      { poll_interval: 0.01, on_event: (event) => events.push(event.status) },
+    );
+
+    expect(rows).toHaveLength(1);
+    expect(statusCalls).toBeGreaterThanOrEqual(2);
+    expect(events).toContain("scoring");
+  });
+
   test("polls status to a milestone then returns results", async () => {
     let statusCalls = 0;
     installFetch((url, method) => {
