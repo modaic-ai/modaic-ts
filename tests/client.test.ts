@@ -81,7 +81,7 @@ function alignmentJson(status = "completed") {
 function responseFor(request: Request): Response {
   const { pathname } = new URL(request.url);
   const method = request.method;
-  if (pathname === "/api/v1/decision") {
+  if (pathname === "/api/v1/systemone") {
     return Response.json({
       model: "typesafe/jev-latest",
       answers: { refund: { type: "noul", noul: 0.9 } },
@@ -219,7 +219,7 @@ describe("regressions for model-bound resources", () => {
         const body = await request.clone().json();
         return Response.json({ ...modelJson(), id: body.slug, workspace: body.workspace, slug: body.slug });
       }
-      if (new URL(request.url).pathname.endsWith("/decision")) return responseFor(request);
+      if (new URL(request.url).pathname.endsWith("/systemone")) return responseFor(request);
       return Response.json({ items: [], alignments: [], batchDecisions: [] });
     } });
     const first = await makeClient("key-a").models.create({ workspace: "team-a", slug: "first" });
@@ -404,7 +404,7 @@ describe("Modaic", () => {
     const result = await model.decisions.create(options);
     expect(result.exampleId).toBe(EXAMPLE_ID);
     expect(requests).toHaveLength(2);
-    expect(requests[1]!.url).toBe("https://example.test/api/v1/decision");
+    expect(requests[1]!.url).toBe("https://example.test/api/v1/systemone");
     expect(requests[1]!.headers.get("authorization")).toBe("Bearer test-key");
     expect(requests[1]!.headers.get("idempotency-key")).toBe(options.idempotencyKey);
     const boundBody = await requests[1]!.json();
@@ -421,7 +421,7 @@ describe("Modaic", () => {
   });
 
   test("bound decisions preserve API errors", async () => {
-    const { modaic } = setup((request) => new URL(request.url).pathname.endsWith("/decision")
+    const { modaic } = setup((request) => new URL(request.url).pathname.endsWith("/systemone")
       ? Response.json({ code: "rate_limited", detail: "Slow down" }, { status: 429 })
       : responseFor(request));
     const model = await modaic.models.get("farouk1", "support-triage");
@@ -513,7 +513,7 @@ describe("Modaic", () => {
       true,
     );
     expect(new Set(requests.map((request) => new URL(request.url).pathname))).toContain(
-      "/api/v1/decision",
+      "/api/v1/systemone",
     );
     expect(await requests[0]?.clone().json()).toMatchObject({ example_id: EXAMPLE_ID });
   });

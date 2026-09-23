@@ -44,8 +44,8 @@ export class Transport {
       throw new Error("A global fetch implementation or options.fetch is required.");
     }
     this.#apiKey = apiKey;
-    this.#baseUrl = (options.baseUrl ?? environment("MODAIC_BASE_URL") ?? DEFAULT_BASE_URL).replace(
-      /\/$/,
+    this.#baseUrl = (options.baseUrl || environment("MODAIC_API_URL") || DEFAULT_BASE_URL).replace(
+      /\/+$/,
       "",
     );
     this.#timeoutMs = options.timeoutMs ?? 30_000;
@@ -53,13 +53,32 @@ export class Transport {
   }
 
   async request<T>(method: string, path: string, options: RequestOptions = {}): Promise<T> {
+    const deadline = performance.now() + this.#timeoutMs;
+    const delays = [100, 200, 400, 800, 1600];
+    for (let attempt = 0; ; attempt++) {
+      const remaining = deadline - performance.now();
+      if (attempt > 0 && remaining <= 0) throw new ModaicTimeoutError("Modaic API replay timed out.");
+      try {
+        return await this.#requestOnce<T>(method, path, options, attempt === 0 ? this.#timeoutMs : remaining);
+      } catch (error) {
+        const delay = delays[attempt];
+        if (!(error instanceof ModaicAPIError) || error.status !== 409
+          || error.code !== "decision_in_progress" || method !== "POST" || path !== "/systemone"
+          || !new Headers(options.headers).get("idempotency-key") || delay === undefined) throw error;
+        if (performance.now() + delay >= deadline) throw new ModaicTimeoutError("Modaic API replay timed out.");
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+  }
+
+  async #requestOnce<T>(method: string, path: string, options: RequestOptions, timeoutMs: number): Promise<T> {
     const url = new URL(`${this.#baseUrl}${path}`);
     for (const [key, value] of Object.entries(options.query ?? {})) {
       if (value !== undefined) url.searchParams.set(key, String(value));
     }
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), this.#timeoutMs);
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
     let response: Response;
     try {
       const headers = new Headers(options.headers);
@@ -73,15 +92,25 @@ export class Transport {
         ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
       });
     } catch (error) {
+      clearTimeout(timeout);
       if (controller.signal.aborted) {
         throw new ModaicTimeoutError("Modaic API request timed out.", { cause: error });
       }
       throw new ModaicConnectionError("Could not reach the Modaic API.", { cause: error });
+    }
+
+    let text: string;
+    try {
+      // Fetch resolves at headers; retain the timeout until the body arrives.
+      text = await response.text();
+    } catch (error) {
+      if (controller.signal.aborted) {
+        throw new ModaicTimeoutError("Modaic API request timed out.", { cause: error });
+      }
+      throw new ModaicConnectionError("Could not read the Modaic API response.", { cause: error });
     } finally {
       clearTimeout(timeout);
     }
-
-    const text = await response.text();
     let body: unknown;
     if (text) {
       try {

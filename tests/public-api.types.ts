@@ -1,5 +1,5 @@
 // Compiled by typecheck, never executed. These errors must remain type errors.
-import type { CreatedModel, Model, Modaic } from "../src/index.js";
+import type { CreatedModel, DecisionRecord, ExampleDecision, Model, Modaic } from "../src/index.js";
 
 export async function publicContract(client: Modaic, created: CreatedModel, fetched: Model) {
   const workspace: string = created.workspace;
@@ -18,7 +18,20 @@ export async function publicContract(client: Modaic, created: CreatedModel, fetc
   created.jobs.alignments.wait("job");
   // @ts-expect-error The legacy owner field is not accepted.
   client.models.create({ owner: "acme", slug: "support" });
-  // @ts-expect-error The systemone alias is not part of the SDK.
+  // @ts-expect-error The systemone HTTP endpoint is exposed as decisions.create.
   client.systemone.create({ state: {} });
   return { workspace, slug };
+}
+
+export function storedDecisionContract(latest: ExampleDecision, history: DecisionRecord) {
+  const version: number = latest.version;
+  const exampleId: string = history.exampleId;
+  const error: string | null = history.error;
+  // @ts-expect-error Nested decisions have no exampleId.
+  const invalidId: string = latest.exampleId;
+  // @ts-expect-error Nested decisions have no jobId.
+  const invalidJob: string = latest.jobId;
+  // @ts-expect-error Nested decisions have no error.
+  const invalidError: string = latest.error;
+  return { version, exampleId, error, invalidId, invalidJob, invalidError };
 }

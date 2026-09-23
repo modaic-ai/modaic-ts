@@ -197,23 +197,28 @@ export interface Annotation {
   split: "train" | "test";
 }
 
-export interface DecisionRecord {
+/** Successful decision nested in an example, without history-only fields. */
+export interface ExampleDecision {
   id: string;
-  exampleId: string;
-  commitSha: string | null;
+  commitSha: string;
   model: string;
-  answers: Record<string, Answer> | null;
+  answers: Record<string, Answer>;
   request: Record<string, unknown>;
-  response: Record<string, unknown> | null;
+  response: Record<string, unknown>;
   confidence: number | null;
-  checkpoint: number | null;
-  revision: string | null;
+  version: number;
+  checkpoint: number;
+  revision: string;
   source: "batch" | "live";
-  jobId: string | null;
-  error: Record<string, unknown> | null;
   imageUrls: string[];
   createdAt: string;
-  [key: string]: unknown;
+}
+
+export interface DecisionRecord extends Omit<ExampleDecision, "response"> {
+  exampleId: string;
+  jobId: string | null;
+  response: Record<string, unknown> | null;
+  error: string | null;
 }
 
 export interface Example {
@@ -222,7 +227,7 @@ export interface Example {
   source: "ingest" | "live";
   imageUrls: string[];
   annotation: Annotation | null;
-  latestDecision: DecisionRecord | null;
+  latestDecision: ExampleDecision | null;
   decisionCount: number;
   createdAt: string;
   updatedAt: string;

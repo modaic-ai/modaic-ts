@@ -4,6 +4,19 @@ The official, HTTP-only TypeScript client for the public Modaic API. It uses
 the platform `fetch` implementation, has no runtime dependencies, and never
 invokes Git or reads or writes repository files.
 
+## Question objects
+
+Use `new Noul({ instructions: "Is this about billing?" })`,
+`new Choice({ criteria: { billing: "Payments", other: "Other requests" } })`,
+or `new Score({ criteria: ["Routine", "Urgent"] })` to define questions.
+Import these constructors from `modaic` and pass them in the `questions` map
+to `decisions.create`, `models.create`, or `models.update`. Plain question
+objects still work and can be mixed with these constructors.
+
+`Choice` requires at least one option; `Score` requires at least one rubric
+level. Empty choice criteria sent as a plain object are rejected by the API with
+`422` and code `validation_error`.
+
 ## Install
 
 ```bash
@@ -52,6 +65,10 @@ const result = await modaic.decisions.create({
 
 console.log(result.answers.priority);
 ```
+
+The API URL defaults to `https://modaic.dev/api/v1`. Set `MODAIC_API_URL` to
+override it, or pass `baseUrl` to the client. The client option takes precedence
+over the environment variable. In browsers, pass `baseUrl` explicitly.
 
 For a local server, pass the versioned API URL explicitly:
 

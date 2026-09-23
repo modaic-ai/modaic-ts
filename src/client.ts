@@ -93,7 +93,7 @@ export class Decisions {
   async create(params: CreateDecisionParams): Promise<DecisionResponse> {
     const options = decisionBody(params);
     return mapDecision(
-      await this.transport.request<WireDecisionResponse>("POST", "/decision", options),
+      await this.transport.request<WireDecisionResponse>("POST", "/systemone", options),
     );
   }
 }
