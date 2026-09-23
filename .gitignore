@@ -5,3 +5,11 @@ dist/
 .env
 .env.*
 .DS_Store
+
+# Internal skills are maintained privately, never in the public SDK.
+.agents/skills/api-verification/
+.agents/skills/modaic-docs/
+.agents/skills/docs/
+.claude/skills/api-verification
+.claude/skills/modaic-docs
+.claude/skills/docs
