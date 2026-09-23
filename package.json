@@ -1,81 +1,39 @@
 {
   "name": "modaic",
-  "version": "0.3.2",
-  "author": "Speakeasy",
-  "files": [
-    "esm",
-    "src",
-    "FUNCTIONS.md",
-    "RUNTIMES.md",
-    "USAGE.md",
-    "jsr.json"
-  ],
+  "version": "0.4.0",
+  "description": "Official TypeScript client for the Modaic API",
   "license": "MIT",
   "type": "module",
-  "main": "./esm/index.js",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "source": "./src/index.ts",
-      "types": "./esm/index.d.ts",
-      "default": "./esm/index.js"
-    },
-    "./package.json": "./package.json",
-    "./types": {
-      "source": "./src/types/index.ts",
-      "types": "./esm/types/index.d.ts",
-      "default": "./esm/types/index.js"
-    },
-    "./models/errors": {
-      "source": "./src/models/errors/index.ts",
-      "types": "./esm/models/errors/index.d.ts",
-      "default": "./esm/models/errors/index.js"
-    },
-    "./models": {
-      "source": "./src/models/index.ts",
-      "types": "./esm/models/index.d.ts",
-      "default": "./esm/models/index.js"
-    },
-    "./models/operations": {
-      "source": "./src/models/operations/index.ts",
-      "types": "./esm/models/operations/index.d.ts",
-      "default": "./esm/models/operations/index.js"
-    },
-    "./*.js": {
-      "source": "./src/*.ts",
-      "types": "./esm/*.d.ts",
-      "default": "./esm/*.js"
-    },
-    "./*": {
-      "source": "./src/*.ts",
-      "types": "./esm/*.d.ts",
-      "default": "./esm/*.js"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     }
   },
-  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/modaic-ai/modaic-ts.git"
   },
-  "scripts": {
-    "lint": "oxlint --max-warnings=0 --deny-warnings src/**/*.ts src/**/*.tsx",
-    "build": "tsgo",
-    "prepublishOnly": "npm run build",
-    "test": "bun test",
-    "test:integration": "MODAIC_INTEGRATION=1 bun test tests/**/*.integration.test.ts"
+  "engines": {
+    "node": ">=18"
   },
-  "peerDependencies": {
-    
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.tests.json",
+    "lint": "oxlint --max-warnings=0 --deny-warnings src tests",
+    "test": "bun test"
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "@types/node": "^22.0.0",
-    "@typescript/native-preview": "7.0.0-dev.20260302.1",
     "oxlint": "^1.60.0",
     "typescript": "~5.8.3"
-  },
-  "dependencies": {
-    "gray-matter": "^4.0.3",
-    "simple-git": "^3.27.0",
-    "zod": "^3.25.65 || ^4.0.0"
   }
 }

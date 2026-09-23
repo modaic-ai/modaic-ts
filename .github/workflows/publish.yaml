@@ -3,9 +3,9 @@ name: Publish
 # Publishes the package to npm when a version tag (vX.Y.Z) is pushed, then
 # cuts a matching GitHub Release with auto-generated notes.
 #
-#   Release flow (Speakeasy owns the version number):
-#     1. Merge a Speakeasy regen PR (it bumps "version" in package.json)
-#     2. git tag vX.Y.Z <merge commit> && git push origin vX.Y.Z
+#   Release flow:
+#     1. Update the version in package.json
+#     2. git tag vX.Y.Z <release commit> && git push origin vX.Y.Z
 #
 # Auth: npm trusted publishing via OIDC — no NPM_TOKEN. Requires `id-token:
 # write` below, npm CLI >= 11.5.1, and a Trusted Publisher configured on
