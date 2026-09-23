@@ -210,6 +210,17 @@ describe("regressions for model-bound resources", () => {
     expect(await requests[1]!.json()).toEqual({ message: "Only message" });
   });
 
+  test("update reports a no-op when the configuration already matches", async () => {
+    const configuration = { schemaVersion: 1, checkpoint: 3, questions };
+    const commit = { commitSha: "head", previousSha: "head", branch: "main" };
+    const { modaic, requests } = setup(() => Response.json({ ...modelJson(), configuration, commit, unchanged: true }));
+    const model = await modaic.models.update(MODEL_ID, { questions });
+    expect(requests).toHaveLength(1);
+    expect(model.unchanged).toBe(true);
+    expect(model.commit).toEqual(commit);
+    expect(model.configuration).toEqual(configuration);
+  });
+
   test("multiple handles retain their own model and client credentials", async () => {
     const requests: Request[] = [];
     const makeClient = (key: string) => new Modaic({ apiKey: key, baseUrl: "https://example.test/api/v1", fetch: async (input, init) => {

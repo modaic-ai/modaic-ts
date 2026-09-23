@@ -155,6 +155,12 @@ export interface Model extends Omit<CreatedModel, "workspace"> {
   workspace: Entity;
   configuration?: ModelConfiguration;
   commit?: CommitResult;
+  /**
+   * Set by `models.update` when the supplied model and questions already
+   * matched the stored configuration: nothing was committed, `commit`
+   * points at the current head, and the checkpoint is unchanged.
+   */
+  unchanged?: boolean;
   [key: string]: unknown;
 }
 

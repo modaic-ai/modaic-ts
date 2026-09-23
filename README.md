@@ -94,6 +94,13 @@ const batches = await model.jobs.batchDecisions.list();
 const alignments = await model.jobs.alignments.list();
 ```
 
+`models.get` includes `configuration` with the model and questions saved on
+the default branch (absent until the model has a manifest), so you can diff
+before updating. `models.update` with questions that already match is a
+no-op: it resolves with `unchanged: true`, a `commit` whose `commitSha`
+equals `previousSha`, and the stored configuration. Nothing is committed and
+the checkpoint is not reset.
+
 The bound method accepts every decision option except `model` and uses the same
 client. Pass `revision` to pin a version. `JSON.stringify(model)` contains only
 response data. The top-level `modaic.decisions.create` remains available.
