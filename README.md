@@ -108,6 +108,36 @@ differ from the stored ones rejects with `409 alignment_would_be_discarded`.
 Omit `questions` to keep the aligned instructions, or pass
 `discardAlignment: true` to replace them and reset the checkpoint to 0.
 
+`models.get` also returns `commit`, the head of the default branch. Pass
+`commit.commitSha` back as `expectedHeadSha` on `models.update` and a stale
+client rejects with `409 expected_head_mismatch` instead of overwriting
+newer commits.
+
+### Branches, tags, and rollback
+
+Every model is a Git repository, and `models` exposes its history:
+
+```typescript
+const model = await modaic.models.get("acme", "support-priority");
+
+// Name the aligned commit so production can pin to it.
+await modaic.models.createTag(model.id, { name: "v1", commitSha: model.commit!.commitSha });
+await modaic.decisions.create({ model: "acme/support-priority", revision: "v1", state: { /* ... */ } });
+
+// Undo a bad update: move main back to the aligned commit.
+const { commits } = await modaic.models.listCommits(model.id, { branch: "main" });
+await modaic.models.rollback(model.id, {
+  branch: "main",
+  targetCommitSha: commits[1]!.sha,
+  expectedHeadSha: commits[0]!.sha,
+});
+```
+
+Rollback commits the target's files back onto the branch, so `model.json`
+returns with its checkpoint and metrics intact. `listBranches`,
+`createBranch({ name, sourceRef })`, `deleteBranch`, `listTags`, and
+`deleteTag` round out the surface.
+
 The bound method accepts every decision option except `model` and uses the same
 client. Pass `revision` to pin a version. `JSON.stringify(model)` contains only
 response data. The top-level `modaic.decisions.create` remains available.
