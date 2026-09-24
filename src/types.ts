@@ -179,6 +179,13 @@ export interface UpdateModelParams {
   model?: string;
   questions?: Record<string, Question>;
   message?: string;
+  /**
+   * Required to replace questions that alignment wrote. Once a model has an
+   * alignment checkpoint, `questions` that differ from the stored ones are
+   * refused with `409 alignment_would_be_discarded` unless this is true; the
+   * update then commits the new questions and resets the checkpoint to 0.
+   */
+  discardAlignment?: boolean;
 }
 
 export interface AnnotationInput {

@@ -101,6 +101,13 @@ no-op: it resolves with `unchanged: true`, a `commit` whose `commitSha`
 equals `previousSha`, and the stored configuration. Nothing is committed and
 the checkpoint is not reset.
 
+Alignment writes its optimized instructions into the same `questions`, so a
+setup script that re-pushes the schema as authored would revert an aligned
+model. Once a model has a checkpoint, `models.update` with questions that
+differ from the stored ones rejects with `409 alignment_would_be_discarded`.
+Omit `questions` to keep the aligned instructions, or pass
+`discardAlignment: true` to replace them and reset the checkpoint to 0.
+
 The bound method accepts every decision option except `model` and uses the same
 client. Pass `revision` to pin a version. `JSON.stringify(model)` contains only
 response data. The top-level `modaic.decisions.create` remains available.
