@@ -108,7 +108,8 @@ differ from the stored ones rejects with `409 alignment_would_be_discarded`.
 Omit `questions` to keep the aligned instructions, or pass
 `discardAlignment: true` to replace them and reset the checkpoint to 0.
 
-`models.get` also returns `commit`, the head of the default branch. Pass
+`VERSION` is the SDK version, for logging alongside results. `models.get`
+also returns `commit`, the head of the default branch. Pass
 `commit.commitSha` back as `expectedHeadSha` on `models.update` and a stale
 client rejects with `409 expected_head_mismatch` instead of overwriting
 newer commits.
