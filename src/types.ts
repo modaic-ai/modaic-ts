@@ -179,6 +179,61 @@ export interface UpdateModelParams {
   model?: string;
   questions?: Record<string, Question>;
   message?: string;
+  /**
+   * Required to replace questions that alignment wrote. Once a model has an
+   * alignment checkpoint, `questions` that differ from the stored ones are
+   * refused with `409 alignment_would_be_discarded` unless this is true; the
+   * update then commits the new questions and resets the checkpoint to 0.
+   */
+  discardAlignment?: boolean;
+  /**
+   * Optimistic concurrency: the branch head you last read (`model.commit.commitSha`).
+   * If the branch has advanced since, the update is refused with
+   * `409 expected_head_mismatch` instead of overwriting newer commits.
+   */
+  expectedHeadSha?: string;
+}
+
+export interface Branch {
+  name: string;
+  headSha: string;
+  createdAt: string;
+}
+
+export interface BranchList {
+  branches: Branch[];
+}
+
+export interface Commit {
+  sha: string;
+  parentShas: string[];
+  message: string;
+  authorName: string;
+  authorEmail: string;
+  createdAt: string;
+}
+
+export interface CommitList {
+  commits: Commit[];
+}
+
+/** An immutable name for a commit, usable as a decision `revision`. */
+export interface Tag {
+  name: string;
+  commitSha: string;
+}
+
+export interface TagList {
+  tags: Tag[];
+}
+
+export interface RollbackParams {
+  branch: string;
+  /** Commit whose files become the branch head again, checkpoint and metrics included. */
+  targetCommitSha: string;
+  /** The branch's current head; a stale value is refused with `409`. */
+  expectedHeadSha: string;
+  message?: string;
 }
 
 export interface AnnotationInput {

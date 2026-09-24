@@ -210,6 +210,76 @@ describe("regressions for model-bound resources", () => {
     expect(await requests[1]!.json()).toEqual({ message: "Only message" });
   });
 
+  test("update passes discardAlignment through and surfaces the guardrail", async () => {
+    const { modaic, requests } = setup(() => Response.json(modelJson()));
+    await modaic.models.update(MODEL_ID, { questions, discardAlignment: true });
+    expect(await requests[0]!.json()).toEqual({ questions, discardAlignment: true });
+
+    const refused = setup(() =>
+      Response.json(
+        {
+          type: "https://modaic.dev/problems/alignment-would-be-discarded",
+          title: "Conflict",
+          status: 409,
+          code: "alignment_would_be_discarded",
+          detail: "The questions on main were written by alignment (checkpoint 1).",
+          details: { branch: "main", commitSha: "abc", checkpoint: 1 },
+        },
+        { status: 409 },
+      ),
+    );
+    await expect(refused.modaic.models.update(MODEL_ID, { questions })).rejects.toMatchObject({
+      status: 409,
+      code: "alignment_would_be_discarded",
+    });
+  });
+
+  test("update sends expectedHeadSha for optimistic concurrency", async () => {
+    const { modaic, requests } = setup(() => Response.json(modelJson()));
+    await modaic.models.update(MODEL_ID, { description: "x", expectedHeadSha: "head-1" });
+    expect(await requests[0]!.json()).toEqual({ description: "x", expectedHeadSha: "head-1" });
+  });
+
+  test("version control methods hit the repository routes", async () => {
+    const { modaic, requests } = setup((request) => {
+      const path = new URL(request.url).pathname;
+      if (path.endsWith("/branches") && request.method === "GET") {
+        return Response.json({ branches: [{ name: "main", headSha: "h1", createdAt: "2026-09-24T00:00:00Z" }] });
+      }
+      if (path.endsWith("/branches")) return Response.json({ branch: "release", commitSha: "h1" }, { status: 201 });
+      if (path.endsWith("/commits")) {
+        return Response.json({ commits: [{ sha: "h1", parentShas: [], message: "Create Model", authorName: "bot", authorEmail: "bot@modaic.dev", createdAt: "2026-09-24T00:00:00Z" }] });
+      }
+      if (path.endsWith("/tags") && request.method === "GET") return Response.json({ tags: [{ name: "v1", commitSha: "h1" }] });
+      if (path.endsWith("/tags")) return Response.json({ name: "v1", commitSha: "h1" }, { status: 201 });
+      if (path.endsWith("/rollbacks")) return Response.json({ commitSha: "h2", branch: "main", previousSha: "h1" }, { status: 201 });
+      if (request.method === "DELETE") return new Response(null, { status: 204 });
+      return Response.json({ code: "not_found" }, { status: 404 });
+    });
+
+    expect((await modaic.models.listBranches(MODEL_ID)).branches[0]!.headSha).toBe("h1");
+    expect(await modaic.models.createBranch(MODEL_ID, { name: "release", sourceRef: "h1" })).toEqual({ commitSha: "h1", branch: "release", previousSha: null });
+    expect((await modaic.models.listCommits(MODEL_ID, { branch: "main" })).commits[0]!.sha).toBe("h1");
+    expect((await modaic.models.listTags(MODEL_ID)).tags[0]!.name).toBe("v1");
+    expect(await modaic.models.createTag(MODEL_ID, { name: "v1", commitSha: "h1" })).toEqual({ name: "v1", commitSha: "h1" });
+    await modaic.models.deleteTag(MODEL_ID, "v1");
+    expect(await modaic.models.rollback(MODEL_ID, { branch: "main", targetCommitSha: "h1", expectedHeadSha: "h2", message: "Restore" })).toEqual({ commitSha: "h2", branch: "main", previousSha: "h1" });
+    await modaic.models.deleteBranch(MODEL_ID, "release");
+
+    const base = `/api/v1/models/${MODEL_ID}`;
+    const seen = await Promise.all(requests.map(async (r) => [r.method, new URL(r.url).pathname + new URL(r.url).search, r.method === "GET" || r.method === "DELETE" ? null : await r.json()]));
+    expect(seen).toEqual([
+      ["GET", `${base}/branches`, null],
+      ["POST", `${base}/branches`, { name: "release", sourceRef: "h1" }],
+      ["GET", `${base}/commits?branch=main`, null],
+      ["GET", `${base}/tags`, null],
+      ["POST", `${base}/tags`, { name: "v1", commitSha: "h1" }],
+      ["DELETE", `${base}/tags/v1`, null],
+      ["POST", `${base}/rollbacks`, { branch: "main", targetCommitSha: "h1", expectedHeadSha: "h2", message: "Restore" }],
+      ["DELETE", `${base}/branches/release`, null],
+    ]);
+  });
+
   test("update reports a no-op when the configuration already matches", async () => {
     const configuration = { schemaVersion: 1, checkpoint: 3, questions };
     const commit = { commitSha: "head", previousSha: "head", branch: "main" };

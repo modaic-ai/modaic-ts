@@ -7,6 +7,9 @@ import type {
   AlignmentLogs,
   BatchDecision,
   BatchDecisionList,
+  BranchList,
+  CommitList,
+  CommitResult,
   CreateAlignmentParams,
   CreateBatchDecisionParams,
   CreateDecisionParams,
@@ -23,6 +26,9 @@ import type {
   ModelJobs,
   ModelList,
   ModelSummary,
+  RollbackParams,
+  Tag,
+  TagList,
   UpdateModelParams,
   WaitOptions,
 } from "./types.js";
@@ -186,6 +192,54 @@ export class Models {
 
   async delete(modelId: string): Promise<void> {
     await this.transport.request<void>("DELETE", `/models/${segment(modelId)}`);
+  }
+
+  // Version control. Every model is a Git repository: branches carry ongoing
+  // work, tags name commits worth keeping (a good alignment, a release), and
+  // a rollback moves a branch back to an earlier commit by committing its
+  // tree again, checkpoint and metrics included.
+
+  async listBranches(modelId: string): Promise<BranchList> {
+    return this.transport.request<BranchList>("GET", `/models/${segment(modelId)}/branches`);
+  }
+
+  async createBranch(modelId: string, params: { name: string; sourceRef?: string }): Promise<CommitResult> {
+    const created = await this.transport.request<{ branch: string; commitSha?: string }>(
+      "POST",
+      `/models/${segment(modelId)}/branches`,
+      { body: params },
+    );
+    return { commitSha: created.commitSha ?? "", branch: created.branch, previousSha: null };
+  }
+
+  async deleteBranch(modelId: string, name: string): Promise<void> {
+    await this.transport.request<void>("DELETE", `/models/${segment(modelId)}/branches/${segment(name)}`);
+  }
+
+  async listCommits(modelId: string, options: { branch?: string } = {}): Promise<CommitList> {
+    return this.transport.request<CommitList>(
+      "GET",
+      `/models/${segment(modelId)}/commits`,
+      options.branch === undefined ? {} : { query: { branch: options.branch } },
+    );
+  }
+
+  async listTags(modelId: string): Promise<TagList> {
+    return this.transport.request<TagList>("GET", `/models/${segment(modelId)}/tags`);
+  }
+
+  async createTag(modelId: string, params: { name: string; commitSha: string }): Promise<Tag> {
+    return this.transport.request<Tag>("POST", `/models/${segment(modelId)}/tags`, { body: params });
+  }
+
+  async deleteTag(modelId: string, name: string): Promise<void> {
+    await this.transport.request<void>("DELETE", `/models/${segment(modelId)}/tags/${segment(name)}`);
+  }
+
+  async rollback(modelId: string, params: RollbackParams): Promise<CommitResult> {
+    return this.transport.request<CommitResult>("POST", `/models/${segment(modelId)}/rollbacks`, {
+      body: params,
+    });
   }
 }
 
