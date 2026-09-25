@@ -1,4 +1,4 @@
-import { ModaicTimeoutError } from "./errors.js";
+import { ModaicConnectionError, ModaicTimeoutError } from "./errors.js";
 import { JobProgress } from "./progress.js";
 import { type ClientOptions, segment, Transport } from "./transport.js";
 import type {
@@ -26,6 +26,7 @@ import type {
   ModelJobs,
   ModelList,
   ModelSummary,
+  ResponseSchema,
   RollbackParams,
   Tag,
   TagList,
@@ -46,11 +47,11 @@ interface WireModelSummary extends Omit<ModelSummary, "repositoryId"> {
 
 const TERMINAL_STATUSES = new Set(["completed", "failed", "cancelled"]);
 
-function decisionBody(params: CreateDecisionParams): {
+function decisionBody(params: CreateDecisionParams & { schema?: ResponseSchema<unknown> }): {
   body: Record<string, unknown>;
   headers?: Record<string, string>;
 } {
-  const { idempotencyKey, exampleId, ...rest } = params;
+  const { idempotencyKey, exampleId, schema: _schema, ...rest } = params;
   return {
     body: {
       ...rest,
@@ -78,6 +79,16 @@ function mapDecision(response: WireDecisionResponse): DecisionResponse {
   };
 }
 
+function validate<T>(schema: ResponseSchema<T>, response: DecisionResponse): T {
+  try {
+    return schema.parse(response);
+  } catch (error) {
+    throw new ModaicConnectionError("Modaic API returned an unexpected response shape.", {
+      cause: error,
+    });
+  }
+}
+
 function mapModels(response: { models: WireModelSummary[] }): ModelList {
   return {
     models: response.models.map((model) => ({
@@ -96,11 +107,16 @@ function sleep(milliseconds: number): Promise<void> {
 export class Decisions {
   constructor(private readonly transport: Transport) {}
 
-  async create(params: CreateDecisionParams): Promise<DecisionResponse> {
+  async create<T>(params: CreateDecisionParams & { schema: ResponseSchema<T> }): Promise<T>;
+  async create(params: CreateDecisionParams): Promise<DecisionResponse>;
+  async create(
+    params: CreateDecisionParams & { schema?: ResponseSchema<unknown> },
+  ): Promise<unknown> {
     const options = decisionBody(params);
-    return mapDecision(
+    const response = mapDecision(
       await this.transport.request<WireDecisionResponse>("POST", "/systemone", options),
     );
+    return params.schema ? validate(params.schema, response) : response;
   }
 }
 
@@ -113,8 +129,18 @@ class BoundDecisions {
     this.#model = model;
   }
 
-  create(params: Omit<CreateDecisionParams, "model">): Promise<DecisionResponse> {
-    return this.#decisions.create({ ...params, model: this.#model });
+  create<T>(
+    params: Omit<CreateDecisionParams, "model"> & { schema: ResponseSchema<T> },
+  ): Promise<T>;
+  create(params: Omit<CreateDecisionParams, "model">): Promise<DecisionResponse>;
+  create(
+    params: Omit<CreateDecisionParams, "model"> & { schema?: ResponseSchema<unknown> },
+  ): Promise<unknown> {
+    const { schema, ...rest } = params;
+    const merged = { ...rest, model: this.#model };
+    return schema
+      ? this.#decisions.create({ ...merged, schema })
+      : this.#decisions.create(merged);
   }
 }
 
