@@ -2,4 +2,4 @@
  * The SDK version, for logging alongside results. Kept in step with
  * package.json by a test, so a release bump that forgets one fails CI.
  */
-export const VERSION = "0.7.0";
+export const VERSION = "0.8.0";
