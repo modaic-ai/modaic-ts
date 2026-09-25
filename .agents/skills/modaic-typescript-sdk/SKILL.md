@@ -56,6 +56,13 @@ Answers are a discriminated union: narrow `answer.type` before accessing
 and confidence; score also contains a legend. Responses retain `usage`
 and optional `captured`, `exampleId`, `decisionId`, `revision`,
 and `checkpoint`. Public TypeScript properties use camelCase.
+
+To skip the narrowing, pass `schema` to `decisions.create` and the result is
+that schema's type. It validates the camelCase response the SDK returns, not
+the wire body, and is never sent to the API. Zod is not a dependency: any
+`{ parse(value: unknown): T }` object works, typed as `ResponseSchema<T>`.
+A failed validation throws `ModaicConnectionError` with the validator's
+error as `cause`.
 Do not invent a response-model parameter or named-answer properties.
 
 ## Models and examples

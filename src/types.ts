@@ -53,6 +53,17 @@ export interface TokenUsage {
   outputTokens: number;
 }
 
+/**
+ * Anything that validates an unknown value into `T`.
+ *
+ * Zod schemas satisfy this structurally, as do Valibot's and ArkType's
+ * parse-throwing wrappers and any hand-written validator, so typed responses
+ * cost the SDK no runtime dependency and tie nobody to one library.
+ */
+export interface ResponseSchema<T> {
+  parse(value: unknown): T;
+}
+
 export interface CreateDecisionParams {
   state: JsonValue;
   model: string;
@@ -112,6 +123,9 @@ export interface CommitResult {
 }
 
 export interface ModelDecisions {
+  create<T>(
+    params: Omit<CreateDecisionParams, "model"> & { schema: ResponseSchema<T> },
+  ): Promise<T>;
   create(params: Omit<CreateDecisionParams, "model">): Promise<DecisionResponse>;
 }
 

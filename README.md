@@ -79,6 +79,44 @@ const modaic = new Modaic({
 });
 ```
 
+## Typed responses
+
+`answers` is a record of a union, so reading one answer normally means a key
+lookup and a narrowing check. Pass a `schema` to validate the response and get
+the exact shape back instead:
+
+```typescript
+import { z } from "zod";
+
+const ListingReview = z.object({
+  answers: z.object({
+    photo_matches: z.object({ type: z.literal("noul"), noul: z.number() }),
+    condition: z.object({ type: z.literal("score"), score: z.number() }),
+  }),
+});
+
+const result = await modaic.decisions.create({
+  model: "modaic/mo-fast",
+  state: { listing: "Vintage leather jacket, size M" },
+  questions: { /* ... */ },
+  schema: ListingReview,
+});
+
+result.answers.photo_matches.noul; // number, no narrowing needed
+```
+
+The schema validates the response the SDK returns, in camelCase, so a `usage`
+field is `{ inputTokens, outputTokens }`. Fields the schema omits are dropped
+by Zod as usual, and `schema` is never sent to the API.
+
+Zod is not a dependency of this package. `schema` accepts any object with a
+`parse(value: unknown) => T` method, so Valibot, ArkType, and hand-written
+validators work the same way; the exported `ResponseSchema<T>` type describes
+the contract. A response that fails validation raises `ModaicConnectionError`,
+with the validator's own error kept as `cause`.
+
+`schema` works on `model.decisions.create` as well.
+
 ## Model-bound resources
 
 Models returned by `models.create`, `models.get`, and `models.update` can run
