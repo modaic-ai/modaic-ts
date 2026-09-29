@@ -38,6 +38,8 @@ Use `MODAIC_API_KEY` or `new Modaic({ apiKey })`.
 API URL precedence: explicit `baseUrl`, then `MODAIC_API_URL`, then
 `https://modaic.dev/api/v1`. Local API: `http://localhost:3001/v1`.
 `timeoutMs` uses milliseconds. Never ship private API keys to browser code.
+Use `modaic/mo-fast-1.1` for production inference. `modaic/mo-fast-1.2` is
+in development; do not select it for production until its status changes.
 
 Typesafe System One HTTP requests can migrate with the same state/questions:
 use a Modaic key and endpoint, create a saved model, and set `model` to its
