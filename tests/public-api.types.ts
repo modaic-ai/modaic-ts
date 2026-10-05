@@ -8,6 +8,7 @@ export async function publicContract(client: Modaic, created: CreatedModel, fetc
   await fetched.examples.annotate("example", { groundTruth: { refund: false } });
   await created.jobs.batchDecisions.create({ scope: "all", idempotencyKey: "key" });
   await fetched.jobs.alignments.create({ branch: "main", sourceCommitSha: "sha", maxMetricCalls: 10, idempotencyKey: "key" });
+  await fetched.jobs.alignments.create({ branch: "main", sourceCommitSha: "sha", idempotencyKey: "key" });
   // @ts-expect-error A bound model supplies its own model path.
   created.decisions.create({ state: {}, model: "other/model" });
   // @ts-expect-error Batch selection is required.

@@ -375,7 +375,8 @@ export class Alignments {
     const { idempotencyKey, maxMetricCalls, reflection, ...rest } = params;
     const body = {
       ...rest,
-      budget: { maxMetricCalls },
+      // Optional: without it the API sizes the budget to the validation split.
+      ...(maxMetricCalls !== undefined && { budget: { maxMetricCalls } }),
       reflection: { seed: 0, ...reflection },
     };
     return this.transport.request<Alignment>(

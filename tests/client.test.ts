@@ -357,6 +357,13 @@ describe("regressions for model-bound resources", () => {
     expect(requests[1]!.headers.get("idempotency-key")).toBe("alignment-123");
   });
 
+  test("alignment budget is optional and omitted from the request when unset", async () => {
+    const { modaic, requests } = setup();
+    const model = await modaic.models.get("farouk1", "support-triage");
+    await model.jobs.alignments.create({ branch: "main", sourceCommitSha: "pinned", idempotencyKey: "alignment-123" });
+    expect(await requests[1]!.json()).toEqual({ branch: "main", sourceCommitSha: "pinned", reflection: { seed: 0 } });
+  });
+
   for (const resource of ["alignments", "batchDecisions"] as const) {
     const jobJson = resource === "alignments" ? alignmentJson : batchJson;
     test.each(["completed", "failed", "cancelled"])(`${resource}.wait polls until %s and returns job details`, async status => {

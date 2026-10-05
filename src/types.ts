@@ -411,7 +411,12 @@ export interface AlignmentLogs {
 export interface CreateAlignmentParams {
   branch: string;
   sourceCommitSha: string;
-  maxMetricCalls: number;
+  /**
+   * Metric-call budget for the run. Optional: when omitted, the API sizes
+   * the budget to the validation split at launch, which is the recommended
+   * default. Set it only to override that sizing.
+   */
+  maxMetricCalls?: number;
   idempotencyKey: string;
   reflection?: {
     model?: string;
