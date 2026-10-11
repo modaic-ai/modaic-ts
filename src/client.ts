@@ -35,8 +35,17 @@ import type {
 } from "./types.js";
 
 interface WireDecisionResponse
-  extends Omit<DecisionResponse, "usage" | "exampleId" | "decisionId"> {
-  usage: { input_tokens: number; output_tokens: number };
+  extends Omit<DecisionResponse, "usage" | "thinking" | "exampleId" | "decisionId"> {
+  usage: { input_tokens: number; output_tokens: number; reasoning_tokens?: number };
+  thinking?: Record<string, {
+    max_tokens: number | null;
+    reasoning_tokens: number;
+    generated_tokens: number;
+    finish_reason: "natural" | "budget_exhausted" | "context_exhausted";
+    generation_ms: number;
+    scoring_ms: number;
+    cached_tokens: number | null;
+  }>;
   example_id?: string;
   decision_id?: string;
 }
@@ -51,10 +60,11 @@ function decisionBody(params: CreateDecisionParams & { schema?: ResponseSchema<u
   body: Record<string, unknown>;
   headers?: Record<string, string>;
 } {
-  const { idempotencyKey, exampleId, schema: _schema, ...rest } = params;
+  const { idempotencyKey, exampleId, reasoningEffort, schema: _schema, ...rest } = params;
   return {
     body: {
       ...rest,
+      ...(reasoningEffort === undefined ? {} : { reasoning_effort: reasoningEffort }),
       ...(exampleId === undefined ? {} : { example_id: exampleId }),
     },
     ...(idempotencyKey === undefined
@@ -70,7 +80,20 @@ function mapDecision(response: WireDecisionResponse): DecisionResponse {
     usage: {
       inputTokens: response.usage.input_tokens,
       outputTokens: response.usage.output_tokens,
+      ...(response.usage.reasoning_tokens === undefined
+        ? {} : { reasoningTokens: response.usage.reasoning_tokens }),
     },
+    ...(response.thinking === undefined ? {} : {
+      thinking: Object.fromEntries(Object.entries(response.thinking).map(([id, result]) => [id, {
+        maxTokens: result.max_tokens,
+        reasoningTokens: result.reasoning_tokens,
+        generatedTokens: result.generated_tokens,
+        finishReason: result.finish_reason,
+        generationMs: result.generation_ms,
+        scoringMs: result.scoring_ms,
+        cachedTokens: result.cached_tokens,
+      }])),
+    }),
     ...(response.example_id === undefined ? {} : { exampleId: response.example_id }),
     ...(response.decision_id === undefined ? {} : { decisionId: response.decision_id }),
     ...(response.checkpoint === undefined ? {} : { checkpoint: response.checkpoint }),

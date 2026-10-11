@@ -186,6 +186,58 @@ describe("regressions for model-bound resources", () => {
     quality: { type: "score", criteria: ["Poor", "Good", "Excellent"] },
   };
 
+  test("reasoning and image blocks round-trip through direct and bound decisions", async () => {
+    const image = { type: "image_url", image_url: { url: "https://example.test/photo.png" } };
+    const state = { messages: ["Check this photo", image, false, 0, null] };
+    const thinking = {
+      max_tokens: null, reasoning_tokens: 0, generated_tokens: 1,
+      finish_reason: "natural", generation_ms: 0, scoring_ms: 0.5, cached_tokens: null,
+    };
+    const { modaic, requests } = setup((request) => {
+      if (new URL(request.url).pathname.endsWith("/systemone")) {
+        return Response.json({
+          model: "mo-fast", answers: { refund: { type: "noul", noul: 0.9 } },
+          usage: { input_tokens: 10, output_tokens: 1, reasoning_tokens: 0 },
+          thinking: { refund: thinking },
+        });
+      }
+      return responseFor(request);
+    });
+    const params = { state, model: "mo-fast", questions: { refund: { type: "noul" as const } }, reasoningEffort: "low" as const };
+    const result = await modaic.decisions.create(params);
+    expect(await requests[0]!.json()).toEqual({
+      state, model: "mo-fast", questions: params.questions, reasoning_effort: "low",
+    });
+    expect(params.reasoningEffort).toBe("low");
+    expect(result.usage.reasoningTokens).toBe(0);
+    expect(result.thinking?.refund).toEqual({
+      maxTokens: null, reasoningTokens: 0, generatedTokens: 1,
+      finishReason: "natural", generationMs: 0, scoringMs: 0.5, cachedTokens: null,
+    });
+    const model = await modaic.models.get("farouk1", "support-triage");
+    const bound = await model.decisions.create({ state, reasoningEffort: "xhigh" });
+    expect(await requests[2]!.json()).toEqual({
+      state, model: "farouk1/support-triage", reasoning_effort: "xhigh",
+    });
+    expect(bound.thinking?.refund?.maxTokens).toBeNull();
+    await modaic.decisions.create({ model: "mo-fast", state, questions: params.questions });
+    expect(await requests[3]!.json()).toEqual({ model: "mo-fast", state, questions: params.questions });
+    const noReasoning = setup();
+    const plain = await noReasoning.modaic.decisions.create({ model: "mo-fast", state, questions: params.questions });
+    expect(plain.usage.reasoningTokens).toBeUndefined();
+    expect(plain.thinking).toBeUndefined();
+  });
+
+  test("image validation errors are preserved", async () => {
+    const { modaic } = setup(() => Response.json(
+      { code: "invalid_image", detail: "Invalid image" }, { status: 422 },
+    ));
+    await expect(modaic.decisions.create({
+      model: "mo-fast", state: { type: "image_url", image_url: { url: "bad" } },
+      questions: { refund: { type: "noul" } },
+    })).rejects.toMatchObject({ status: 422, code: "invalid_image" });
+  });
+
   test("create forwards all question types and options without mutating input", async () => {
     const { modaic, requests } = setup();
     const params = { workspace: "acme", slug: "support", defaultBranch: "review", description: "", model: "typesafe/jev-latest", questions };

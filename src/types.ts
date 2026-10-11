@@ -6,6 +6,8 @@ export type JsonValue =
   | JsonValue[]
   | { [key: string]: JsonValue };
 
+export type ReasoningEffort = "low" | "medium" | "high" | "xhigh";
+
 export interface NoulQuestion {
   type: "noul";
   instructions?: JsonValue;
@@ -51,6 +53,17 @@ export type Answer = NoulAnswer | ChoiceAnswer | ScoreAnswer;
 export interface TokenUsage {
   inputTokens: number;
   outputTokens: number;
+  reasoningTokens?: number;
+}
+
+export interface ThinkingResult {
+  maxTokens: number | null;
+  reasoningTokens: number;
+  generatedTokens: number;
+  finishReason: "natural" | "budget_exhausted" | "context_exhausted";
+  generationMs: number;
+  scoringMs: number;
+  cachedTokens: number | null;
 }
 
 /**
@@ -71,6 +84,7 @@ export interface CreateDecisionParams {
   revision?: string;
   exampleId?: string;
   capture?: boolean;
+  reasoningEffort?: ReasoningEffort;
   idempotencyKey?: string;
 }
 
@@ -78,6 +92,7 @@ export interface DecisionResponse {
   model: string;
   answers: Record<string, Answer>;
   usage: TokenUsage;
+  thinking?: Record<string, ThinkingResult>;
   exampleId?: string;
   decisionId?: string;
   checkpoint?: number;

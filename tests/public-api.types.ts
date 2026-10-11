@@ -5,6 +5,7 @@ export async function publicContract(client: Modaic, created: CreatedModel, fetc
   const workspace: string = created.workspace;
   const slug: string = fetched.workspace.slug;
   await created.decisions.create({ state: {}, capture: false });
+  await created.decisions.create({ state: { image: { type: "image_url", image_url: { url: "https://example.test/photo.jpg" } } }, reasoningEffort: "low" });
   await fetched.examples.annotate("example", { groundTruth: { refund: false } });
   await created.jobs.batchDecisions.create({ scope: "all", idempotencyKey: "key" });
   await fetched.jobs.alignments.create({ branch: "main", sourceCommitSha: "sha", maxMetricCalls: 10, idempotencyKey: "key" });
