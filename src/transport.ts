@@ -85,7 +85,10 @@ export class Transport {
       headers.set("authorization", `Bearer ${this.#apiKey}`);
       headers.set("accept", "application/json");
       if (options.body !== undefined) headers.set("content-type", "application/json");
-      response = await this.#fetch(url, {
+      // Call fetch detached: browsers reject it with "Illegal invocation" when
+      // its receiver is anything but the global object.
+      const fetchImplementation = this.#fetch;
+      response = await fetchImplementation(url, {
         method,
         headers,
         signal: controller.signal,
