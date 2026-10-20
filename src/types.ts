@@ -446,3 +446,173 @@ export interface WaitOptions {
   pollIntervalMs?: number;
   timeoutMs?: number;
 }
+
+export type ResourceKind = "dataset" | "artifact";
+export type TrainingType = "head_only" | "lora";
+export type FineTuneStatus =
+  | "queued"
+  | "training"
+  | "committing"
+  | "publishing"
+  | "done"
+  | "failed"
+  | "cancelled";
+
+export interface TrainingControls {
+  maxSeqLength?: number;
+  nEpochs?: number;
+  nCheckpoints?: number;
+  nEvals?: number;
+  batchSize?: number | "max";
+  gradientAccumulationSteps?: number;
+  learningRate?: number;
+  lrScheduler?: {
+    lrSchedulerType?: "constant" | "linear" | "cosine";
+    lrSchedulerArgs?: { minLrRatio?: number; numCycles?: number };
+  };
+  warmupRatio?: number;
+  maxGradNorm?: number;
+  weightDecay?: number;
+  randomSeed?: number | null;
+  earlyStoppingEnabled?: boolean;
+  earlyStoppingPatience?: number;
+  earlyStoppingMinDelta?: number;
+  earlyStoppingWarmupEvals?: number | null;
+}
+
+export interface CreateFineTuneParams extends TrainingControls {
+  model: string;
+  trainingFile: string;
+  taskId: string;
+  trainingType?: TrainingType;
+  destination?: string;
+  questions?: Record<string, Question>;
+  branch?: string;
+  sourceCommitSha?: string;
+  validationFile?: string;
+  suffix?: string;
+  fromCheckpoint?: string;
+  loraR?: number;
+  loraAlpha?: number;
+  loraDropout?: number;
+  wandbApiKey?: string;
+  wandbBaseUrl?: string;
+  wandbProjectName?: string;
+  wandbName?: string;
+  wandbEntity?: string;
+  trainVision?: false;
+  idempotencyKey?: string;
+}
+
+export interface FineTunePublication {
+  commitSha: string;
+  branch: string;
+}
+
+export interface FineTuneResult {
+  metrics: Record<string, unknown> | null;
+  evaluation: Record<string, unknown> | null;
+  servingQualification: Record<string, unknown> | null;
+  publication: FineTunePublication | null;
+}
+
+export interface FineTune {
+  id: string;
+  repositoryId: string;
+  datasetId: string;
+  trainingFile: string;
+  datasetCommitSha: string;
+  datasetSha256: string;
+  taskId: string;
+  status: FineTuneStatus;
+  branch: string;
+  sourceCommitSha: string;
+  resultCommitSha: string | null;
+  trainingType: TrainingType;
+  preset: string;
+  progress: unknown;
+  result: FineTuneResult | null;
+  error: JobError | null;
+  createdAt: string;
+  updatedAt: string;
+  startedAt: string | null;
+  finishedAt: string | null;
+}
+
+export interface FineTuneList {
+  fineTunes: FineTune[];
+}
+
+export interface FineTuneLogs {
+  logs: string[];
+  available: boolean;
+  running: boolean;
+}
+
+export interface KnowledgeBaseResource {
+  id: string;
+  name: string;
+  kind: ResourceKind;
+  path: string;
+  sha256: string;
+  sizeBytes: number;
+  commitSha: string;
+}
+
+export interface KnowledgeBaseResourcePage {
+  resources: KnowledgeBaseResource[];
+  commitSha: string | null;
+  nextCursor: string | null;
+}
+
+export interface UploadPart {
+  partNumber: number;
+  sha256: string;
+  sizeBytes: number;
+  uploaded: boolean;
+}
+
+export interface KnowledgeBaseUpload {
+  id: string;
+  name: string;
+  kind: ResourceKind;
+  sha256: string;
+  sizeBytes: number;
+  status: "pending" | "processing" | "completed" | "failed" | "cancelled" | "expired";
+  createdAt: string;
+  expiresAt: string;
+  partSizeBytes: number;
+  parts: UploadPart[];
+  result: KnowledgeBaseUploadResult | null;
+  error: JobError | null;
+}
+
+export interface KnowledgeBaseUploadResult {
+  name: string;
+  kind: ResourceKind;
+  path: string;
+  sha256: string;
+  sizeBytes: number;
+  commitSha: string;
+}
+
+export interface PreparedUploadPart {
+  partNumber: number;
+  uploadUrl: string;
+  method: "PUT";
+  headers: Record<string, string>;
+  expiresIn: number;
+}
+
+export interface CreateKnowledgeBaseUploadParams {
+  kind: ResourceKind;
+  sha256: string;
+  sizeBytes: number;
+  name?: string;
+  workspace?: string;
+}
+
+export interface KnowledgeBaseQuery {
+  workspace?: string;
+  commitSha?: string;
+}

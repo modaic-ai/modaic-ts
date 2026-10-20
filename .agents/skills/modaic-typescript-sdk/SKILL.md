@@ -113,6 +113,26 @@ browsers without stderr remain silent. Poll interval/timeout options are
 failed/cancelled jobs are returned, not treated as successful completion.
 A timeout stops waiting, not the job itself.
 
+## Knowledge base and fine-tuning
+
+Use `client.knowledgeBase.uploads` for resumable datasets and artifacts.
+`create({ kind, sha256, sizeBytes, name?, workspace? })` creates a session;
+`uploadPart(id, partNumber, data)` hashes one `Uint8Array` chunk, uploads it
+with the file-scoped grant, and confirms its receipt. Then call `complete` and
+poll `get` until `status === "completed"`. `knowledgeBase.resources` provides
+`list`, `get`, and `download`; resource names are unique across both kinds, so
+get/download do not take a kind.
+
+Use `client.fineTunes.create` with `trainingFile`, `taskId`, and
+`trainingType: "head_only" | "lora"`. Base model `mo-1.3.1` also requires
+`destination` and `questions`; an existing `workspace/model` reuses its saved
+configuration. Training controls are camelCase fields on the create request.
+LoRA also accepts `loraR` (maximum 64), `loraAlpha` (maximum 128), and
+`loraDropout`; trainable modules are not configurable. Use `list`, `get`,
+`logs`, `cancel`, and `wait` for jobs. Successful training publishes a normal
+model commit. Invoke `workspace/model` for main or
+`workspace/model@<full-commit-sha>` to pin it. Mo Fast is inference-only.
+
 ## Replay and failures
 
 `decisions.create` calls `POST /systemone`. Direct inference needs no

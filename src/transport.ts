@@ -17,6 +17,10 @@ interface RequestOptions {
   headers?: Record<string, string>;
 }
 
+export interface BinaryRequestOptions {
+  query?: Record<string, string | number | boolean | undefined>;
+}
+
 function environment(name: string): string | undefined {
   const target = globalThis as typeof globalThis & {
     process?: { env?: Record<string, string | undefined> };
@@ -68,6 +72,84 @@ export class Transport {
         if (performance.now() + delay >= deadline) throw new ModaicTimeoutError("Modaic API replay timed out.");
         await new Promise((resolve) => setTimeout(resolve, delay));
       }
+    }
+  }
+
+  async upload(url: string, headers: Record<string, string>, body: Uint8Array): Promise<string> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), this.#timeoutMs);
+    let response: Response;
+    try {
+      response = await this.#fetch(url, {
+        method: "PUT",
+        headers,
+        body,
+        redirect: "error",
+        signal: controller.signal,
+      });
+      const value = await response.json() as unknown;
+      if (!response.ok || !object(value) || typeof value.receipt !== "string") {
+        throw new ModaicConnectionError(
+          `Knowledge-base transfer returned HTTP ${response.status}.`,
+        );
+      }
+      return value.receipt;
+    } catch (error) {
+      if (error instanceof ModaicConnectionError) throw error;
+      if (controller.signal.aborted) {
+        throw new ModaicTimeoutError("Knowledge-base upload timed out.", { cause: error });
+      }
+      throw new ModaicConnectionError(
+        "Could not reach the knowledge-base transfer service.",
+        { cause: error },
+      );
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  async download(path: string, options: BinaryRequestOptions = {}): Promise<Uint8Array> {
+    const url = new URL(`${this.#baseUrl}${path}`);
+    for (const [key, value] of Object.entries(options.query ?? {})) {
+      if (value !== undefined) url.searchParams.set(key, String(value));
+    }
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), this.#timeoutMs);
+    try {
+      let response = await this.#fetch(url, {
+        method: "GET",
+        headers: { authorization: `Bearer ${this.#apiKey}`, accept: "application/octet-stream" },
+        redirect: "manual",
+        signal: controller.signal,
+      });
+      if (response.status === 307) {
+        const location = response.headers.get("location");
+        if (!location) {
+          throw new ModaicConnectionError("Modaic API returned an invalid download redirect.");
+        }
+        response = await this.#fetch(location, {
+          method: "GET",
+          headers: { accept: "application/octet-stream" },
+          redirect: "error",
+          signal: controller.signal,
+        });
+      }
+      if (!response.ok) {
+        throw new ModaicConnectionError(
+          `Knowledge-base download returned HTTP ${response.status}.`,
+        );
+      }
+      return new Uint8Array(await response.arrayBuffer());
+    } catch (error) {
+      if (error instanceof ModaicConnectionError) throw error;
+      if (controller.signal.aborted) {
+        throw new ModaicTimeoutError("Knowledge-base download timed out.", { cause: error });
+      }
+      throw new ModaicConnectionError("Could not download the knowledge-base resource.", {
+        cause: error,
+      });
+    } finally {
+      clearTimeout(timeout);
     }
   }
 

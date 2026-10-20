@@ -117,6 +117,63 @@ with the validator's own error kept as `cause`.
 
 `schema` works on `model.decisions.create` as well.
 
+## Knowledge-base uploads and fine-tuning
+
+Large training datasets and artifacts use resumable upload sessions. Compute
+the whole-file SHA-256 before creating the session, then upload each chunk. The
+SDK computes each chunk's hash, uses its short-lived transfer authorization,
+and confirms the receipt without sending your Modaic API key to the transfer
+host:
+
+```typescript
+const data = new TextEncoder().encode(trainingJsonl);
+const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", data));
+const sha256 = Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("");
+
+const upload = await modaic.knowledgeBase.uploads.create({
+  kind: "dataset",
+  name: "support-hard-labels",
+  sha256,
+  sizeBytes: data.byteLength,
+});
+for (let start = 0, part = 1; start < data.byteLength; start += upload.partSizeBytes, part++) {
+  await modaic.knowledgeBase.uploads.uploadPart(
+    upload.id,
+    part,
+    data.slice(start, start + upload.partSizeBytes),
+  );
+}
+await modaic.knowledgeBase.uploads.complete(upload.id);
+```
+
+Poll `knowledgeBase.uploads.get(upload.id)` until validation reaches
+`completed`. Resources are available through `knowledgeBase.resources.list`,
+`get`, and `download`.
+
+Start head-only or LoRA tuning with the uploaded dataset name. Training a base
+model requires a destination and questions; training an existing repository
+reuses its configuration and publishes back to that repository:
+
+```typescript
+const job = await modaic.fineTunes.create({
+  model: "mo-1.3.1",
+  destination: "acme/support-priority",
+  questions: {
+    priority: { type: "choice", criteria: { normal: "Routine", high: "Urgent" } },
+  },
+  trainingFile: "support-hard-labels",
+  taskId: "priority",
+  trainingType: "lora",
+  loraR: 8,
+  loraAlpha: 16,
+});
+const finished = await modaic.fineTunes.wait(job.id);
+```
+
+Once `finished.status === "done"`, call `acme/support-priority` normally. Pin an
+immutable published checkpoint with `acme/support-priority@<full-commit-sha>`.
+Mo Fast models are inference-only and reject fine-tuning requests.
+
 ## Model-bound resources
 
 Models returned by `models.create`, `models.get`, and `models.update` can run
@@ -211,6 +268,9 @@ cancelling the job. No additional package is needed.
 | `examples` | `ingest`, `list`, `get`, `annotate`, `listDecisions` |
 | `batchDecisions` | `create`, `list`, `get`, `cancel`, `wait` |
 | `alignments` | `create`, `list`, `get`, `logs`, `cancel`, `wait` |
+| `fineTunes` | `create`, `list`, `get`, `logs`, `cancel`, `wait` |
+| `knowledgeBase.uploads` | `create`, `get`, `preparePart`, `confirmPart`, `uploadPart`, `complete`, `cancel` |
+| `knowledgeBase.resources` | `list`, `get`, `download` |
 
 Every method returns a Promise. SDK properties use `camelCase`, including the
 few decision response fields that use `snake_case` on the wire.
