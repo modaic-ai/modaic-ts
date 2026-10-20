@@ -5,10 +5,12 @@ description: Use the Modaic TypeScript or JavaScript HTTP SDK for decisions, que
 
 # Modaic TypeScript SDK
 
-Install `modaic@^0.5.0`. ESM, Node.js 18+, or a runtime with fetch.
+Install `modaic@^0.11.0`. ESM, Node.js 18+, or a runtime with fetch.
 The SDK has no runtime dependencies and performs API requests without
-invoking Git or reading/writing model files. Every network method returns a
-Promise; use await. Read [quickstart.ts](quickstart.ts) for direct inference.
+invoking Git or reading/writing model repository files. On Node.js, the
+explicit `knowledgeBase.uploads.uploadFile(path, ...)` helper streams that
+local path into the knowledge base. Every network method returns a Promise;
+use await. Read [quickstart.ts](quickstart.ts) for direct inference.
 
 ## Configuration and questions
 
@@ -116,10 +118,16 @@ A timeout stops waiting, not the job itself.
 ## Knowledge base and fine-tuning
 
 Use `client.knowledgeBase.uploads` for resumable datasets and artifacts.
+On Node.js, prefer `uploadFile(path, params)` for a new local file: it computes
+the whole-file SHA-256, creates the session, streams server-sized parts,
+confirms receipts, completes, and waits for validation. Set
+`waitForValidation: false` for an asynchronous return and use `onProgress` for
+byte progress. It makes a best-effort cancellation if transfer fails before
+completion. Browser callers use the lower-level part methods.
 `create({ kind, sha256, sizeBytes, name?, workspace? })` creates a session;
 `uploadPart(id, partNumber, data)` hashes one `Uint8Array` chunk, uploads it
 with the file-scoped grant, and confirms its receipt. Then call `complete` and
-poll `get` until `status === "completed"`. `knowledgeBase.resources` provides
+poll `get` or call `wait` until validation is terminal. `knowledgeBase.resources` provides
 `list`, `get`, and `download`; resource names are unique across both kinds, so
 get/download do not take a kind.
 

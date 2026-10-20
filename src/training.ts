@@ -1,4 +1,4 @@
-import { ModaicTimeoutError } from "./errors.js";
+import { ModaicConnectionError, ModaicTimeoutError } from "./errors.js";
 import { segment, Transport } from "./transport.js";
 import type {
   CreateFineTuneParams,
@@ -13,7 +13,11 @@ import type {
   PreparedUploadPart,
   ResourceKind,
   TrainingControls,
+  UploadFileParams,
 } from "./types.js";
+
+const UPLOAD_TERMINAL = new Set(["completed", "failed", "cancelled", "expired"]);
+const HASH_BUFFER_BYTES = 8 * 1024 * 1024;
 
 interface WireFineTune extends Omit<FineTune, "trainingFile" | "trainingType"> {
   training_file: string;
@@ -236,6 +240,88 @@ export class KnowledgeBaseUploads {
     });
     const receipt = await this.transport.upload(prepared.uploadUrl, prepared.headers, data);
     return this.confirmPart(uploadId, partNumber, receipt, options);
+  }
+
+  async wait(
+    uploadId: string,
+    options: { workspace?: string; pollIntervalMs?: number; timeoutMs?: number } = {},
+  ): Promise<KnowledgeBaseUpload> {
+    const pollIntervalMs = options.pollIntervalMs ?? 2_000;
+    const deadline = Date.now() + (options.timeoutMs ?? Number.POSITIVE_INFINITY);
+    while (true) {
+      const upload = await this.get(
+        uploadId,
+        options.workspace === undefined ? {} : { workspace: options.workspace },
+      );
+      if (UPLOAD_TERMINAL.has(upload.status)) return upload;
+      if (Date.now() + pollIntervalMs >= deadline) {
+        throw new ModaicTimeoutError(`Timed out waiting for knowledge-base upload ${uploadId}.`);
+      }
+      await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+    }
+  }
+
+  async uploadFile(path: string | URL, params: UploadFileParams): Promise<KnowledgeBaseUpload> {
+    const [{ createHash }, { open }] = await Promise.all([
+      import("node:crypto"),
+      import("node:fs/promises"),
+    ]);
+    const hash = createHash("sha256");
+    let sizeBytes = 0;
+    const hashHandle = await open(path, "r");
+    try {
+      const buffer = new Uint8Array(HASH_BUFFER_BYTES);
+      while (true) {
+        const { bytesRead } = await hashHandle.read(buffer, 0, buffer.byteLength, null);
+        if (bytesRead === 0) break;
+        hash.update(buffer.subarray(0, bytesRead));
+        sizeBytes += bytesRead;
+      }
+    } finally {
+      await hashHandle.close();
+    }
+
+    const upload = await this.create({
+      kind: params.kind,
+      sha256: hash.digest("hex"),
+      sizeBytes,
+      ...(params.name === undefined ? {} : { name: params.name }),
+      ...(params.workspace === undefined ? {} : { workspace: params.workspace }),
+    });
+    const partCount = sizeBytes === 0 ? 0 : Math.ceil(sizeBytes / upload.partSizeBytes);
+    const workspaceOptions = params.workspace === undefined ? {} : { workspace: params.workspace };
+    let uploadedBytes = 0;
+    try {
+      params.onProgress?.({ uploadedBytes, totalBytes: sizeBytes, partNumber: 0, partCount });
+      const uploadHandle = await open(path, "r");
+      try {
+        for (let partNumber = 1; uploadedBytes < sizeBytes; partNumber++) {
+          const expected = Math.min(upload.partSizeBytes, sizeBytes - uploadedBytes);
+          const buffer = new Uint8Array(expected);
+          const { bytesRead } = await uploadHandle.read(buffer, 0, expected, null);
+          if (bytesRead === 0) {
+            throw new ModaicConnectionError("Local file changed while it was being uploaded.");
+          }
+          const chunk = bytesRead === expected ? buffer : buffer.subarray(0, bytesRead);
+          await this.uploadPart(upload.id, partNumber, chunk, workspaceOptions);
+          uploadedBytes += bytesRead;
+          params.onProgress?.({ uploadedBytes, totalBytes: sizeBytes, partNumber, partCount });
+        }
+      } finally {
+        await uploadHandle.close();
+      }
+    } catch (error) {
+      await this.cancel(upload.id, workspaceOptions).catch(() => undefined);
+      throw error;
+    }
+
+    const result = await this.complete(upload.id, workspaceOptions);
+    if (params.waitForValidation === false || UPLOAD_TERMINAL.has(result.status)) return result;
+    return this.wait(upload.id, {
+      ...workspaceOptions,
+      ...(params.pollIntervalMs === undefined ? {} : { pollIntervalMs: params.pollIntervalMs }),
+      ...(params.timeoutMs === undefined ? {} : { timeoutMs: params.timeoutMs }),
+    });
   }
 
   complete(uploadId: string, options: { workspace?: string } = {}): Promise<KnowledgeBaseUpload> {

@@ -1,4 +1,7 @@
 import { createHash } from "node:crypto";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
 
 import { Modaic } from "../src/index.js";
@@ -64,7 +67,7 @@ function uploadJson(uploaded = false) {
   };
 }
 
-function setup(handler: (request: Request) => Response) {
+function setup(handler: (request: Request) => Response | Promise<Response>) {
   const requests: Request[] = [];
   const fetcher: NonNullable<ClientOptions["fetch"]> = async (input, init) => {
     const request = new Request(input, init);
@@ -208,5 +211,64 @@ describe("knowledge-base uploads", () => {
       sizeBytes: 4,
     });
     expect(await requests[3]!.json()).toEqual({ receipt: "part-receipt" });
+  });
+
+  test("uploads a path in server-sized parts, completes, and waits for validation", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "modaic-upload-"));
+    const path = join(directory, "training.jsonl");
+    const payload = new TextEncoder().encode("abcdefghij");
+    await writeFile(path, payload);
+    const transfers: Uint8Array[] = [];
+    const progress: number[] = [];
+
+    const session = (status: string) => ({
+      ...uploadJson(),
+      sha256: createHash("sha256").update(payload).digest("hex"),
+      sizeBytes: payload.byteLength,
+      partSizeBytes: 4,
+      status,
+    });
+    const { modaic, requests } = setup(async (request) => {
+      const url = new URL(request.url);
+      if (url.host === "transfer.test") {
+        expect(request.headers.get("authorization")).toBe("Bearer part-grant");
+        transfers.push(new Uint8Array(await request.arrayBuffer()));
+        return Response.json({ receipt: `receipt-${transfers.length}` });
+      }
+      if (url.pathname.endsWith("/parts")) {
+        const body = await request.json() as { partNumber: number };
+        return Response.json({
+          partNumber: body.partNumber,
+          uploadUrl: `https://transfer.test/${body.partNumber}`,
+          method: "PUT",
+          headers: { Authorization: "Bearer part-grant" },
+          expiresIn: 300,
+        }, { status: 201 });
+      }
+      if (url.pathname.includes("/parts/")) return Response.json(session("pending"));
+      if (url.pathname.endsWith("/complete")) {
+        return Response.json(session("processing"), { status: 202 });
+      }
+      if (request.method === "GET") return Response.json(session("completed"));
+      return Response.json(session("pending"), { status: 201 });
+    });
+
+    try {
+      const result = await modaic.knowledgeBase.uploads.uploadFile(path, {
+        kind: "dataset",
+        name: "hard-labels",
+        pollIntervalMs: 0,
+        onProgress: ({ uploadedBytes }) => progress.push(uploadedBytes),
+      });
+      expect(result.status).toBe("completed");
+      expect(transfers.map((part) => new TextDecoder().decode(part)))
+        .toEqual(["abcd", "efgh", "ij"]);
+      expect(progress).toEqual([0, 4, 8, 10]);
+      const createBody = await requests[0]!.json() as { sha256: string; sizeBytes: number };
+      expect(createBody.sha256).toBe(createHash("sha256").update(payload).digest("hex"));
+      expect(createBody.sizeBytes).toBe(10);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
   });
 });

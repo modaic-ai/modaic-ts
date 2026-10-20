@@ -119,36 +119,25 @@ with the validator's own error kept as `cause`.
 
 ## Knowledge-base uploads and fine-tuning
 
-Large training datasets and artifacts use resumable upload sessions. Compute
-the whole-file SHA-256 before creating the session, then upload each chunk. The
-SDK computes each chunk's hash, uses its short-lived transfer authorization,
-and confirms the receipt without sending your Modaic API key to the transfer
-host:
+Large training datasets and artifacts use resumable upload sessions. On Node.js,
+the high-level helper streams the file twice: once to compute its whole-file
+SHA-256 and once to upload server-sized parts. It never materializes the whole
+file in memory, and it waits for validation by default:
 
 ```typescript
-const data = new TextEncoder().encode(trainingJsonl);
-const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", data));
-const sha256 = Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("");
-
-const upload = await modaic.knowledgeBase.uploads.create({
+const upload = await modaic.knowledgeBase.uploads.uploadFile("training.jsonl", {
   kind: "dataset",
   name: "support-hard-labels",
-  sha256,
-  sizeBytes: data.byteLength,
+  onProgress: ({ uploadedBytes, totalBytes }) => {
+    console.log(`${uploadedBytes}/${totalBytes}`);
+  },
 });
-for (let start = 0, part = 1; start < data.byteLength; start += upload.partSizeBytes, part++) {
-  await modaic.knowledgeBase.uploads.uploadPart(
-    upload.id,
-    part,
-    data.slice(start, start + upload.partSizeBytes),
-  );
-}
-await modaic.knowledgeBase.uploads.complete(upload.id);
 ```
 
-Poll `knowledgeBase.uploads.get(upload.id)` until validation reaches
-`completed`. Resources are available through `knowledgeBase.resources.list`,
-`get`, and `download`.
+Set `waitForValidation: false` to return as soon as completion starts, or use
+the lower-level `create`, `preparePart`, `uploadPart`, `confirmPart`, `complete`,
+and `wait` methods to resume an existing session. Resources are available
+through `knowledgeBase.resources.list`, `get`, and `download`.
 
 Start head-only or LoRA tuning with the uploaded dataset name. Training a base
 model requires a destination and questions; training an existing repository

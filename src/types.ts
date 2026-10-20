@@ -612,6 +612,23 @@ export interface CreateKnowledgeBaseUploadParams {
   workspace?: string;
 }
 
+export interface UploadFileProgress {
+  uploadedBytes: number;
+  totalBytes: number;
+  partNumber: number;
+  partCount: number;
+}
+
+export interface UploadFileParams {
+  kind: ResourceKind;
+  name?: string;
+  workspace?: string;
+  waitForValidation?: boolean;
+  pollIntervalMs?: number;
+  timeoutMs?: number;
+  onProgress?: (progress: UploadFileProgress) => void;
+}
+
 export interface KnowledgeBaseQuery {
   workspace?: string;
   commitSha?: string;
