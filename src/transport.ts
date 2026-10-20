@@ -39,9 +39,9 @@ export class Transport {
   readonly #fetch: Fetch;
 
   constructor(options: ClientOptions = {}) {
-    const apiKey = options.apiKey ?? environment("MODAIC_API_KEY");
+    const apiKey = options.apiKey ?? environment("MODAIC_TOKEN") ?? environment("MODAIC_API_KEY");
     if (!apiKey) {
-      throw new Error("Set MODAIC_API_KEY or pass apiKey to the client.");
+      throw new Error("Set MODAIC_TOKEN or MODAIC_API_KEY, or pass apiKey to the client.");
     }
     const fetchImplementation = options.fetch ?? globalThis.fetch;
     if (!fetchImplementation) {

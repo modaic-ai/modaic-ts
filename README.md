@@ -26,8 +26,12 @@ npm install modaic
 Set an API key from <https://modaic.dev/settings/keys>:
 
 ```bash
-export MODAIC_API_KEY="mdc_..."
+export MODAIC_TOKEN="mdc_..."
 ```
+
+`MODAIC_API_KEY` remains supported as a backwards-compatible alias. If both
+are set, `MODAIC_TOKEN` takes precedence; an explicit `apiKey` takes
+precedence over both.
 
 ## Quickstart
 
