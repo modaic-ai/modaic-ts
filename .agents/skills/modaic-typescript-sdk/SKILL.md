@@ -5,12 +5,10 @@ description: Use the Modaic TypeScript or JavaScript HTTP SDK for decisions, que
 
 # Modaic TypeScript SDK
 
-Install `modaic@^0.11.0`. ESM, Node.js 18+, or a runtime with fetch.
+Install `modaic` from npm. ESM, Node.js 18+, or a runtime with fetch.
 The SDK has no runtime dependencies and performs API requests without
-invoking Git or reading/writing model repository files. On Node.js, the
-explicit `knowledgeBase.uploads.uploadFile(path, ...)` helper streams that
-local path into the knowledge base. Every network method returns a Promise;
-use await. Read [quickstart.ts](quickstart.ts) for direct inference.
+invoking Git or reading/writing model files. Every network method returns a
+Promise; use await. Read [quickstart.ts](quickstart.ts) for direct inference.
 
 ## Configuration and questions
 
@@ -19,7 +17,7 @@ import { Modaic, Noul, Choice, Score } from "modaic";
 
 const client = new Modaic();
 const result = await client.decisions.create({
-  model: "typesafe/jev-latest",
+  model: "mo-fast",
   state: { description: "Waterproof hiking boots, size 42" },
   questions: {
     outdoor: new Noul({ instructions: "Is this product intended for outdoor use?" }),
@@ -37,17 +35,13 @@ if (answer?.type === "choice") console.log(answer.choice);
 ```
 
 Use `MODAIC_API_KEY` or `new Modaic({ apiKey })`.
-API URL precedence: explicit `baseUrl`, then `MODAIC_API_URL`, then
-`https://modaic.dev/api/v1`. Local API: `http://localhost:3001/v1`.
 `timeoutMs` uses milliseconds. Never ship private API keys to browser code.
-Use `modaic/mo-fast-1.1` for production inference. `modaic/mo-fast-1.2` is
-in development; do not select it for production until its status changes.
+Use `mo` or `mo-fast` for production inference.
 
 Typesafe System One HTTP requests can migrate with the same state/questions:
 use a Modaic key and endpoint, create a saved model, and set `model` to its
 `workspace/slug`. Core answers/usage remain compatible. See `modaic-api`
-for URL-joining details when retaining a Typesafe client. This SDK uses
-`decisions.create` and the versioned base above.
+for URL-joining details when retaining a Typesafe client. This SDK uses `decisions.create`.
 
 Questions may be constructor instances or plain objects and may be mixed.
 `Choice` needs at least one option; option keys cannot be empty.
@@ -73,7 +67,7 @@ Do not invent a response-model parameter or named-answer properties.
 
 ```typescript
 const model = await client.models.create({
-  workspace: "acme", slug: "support-priority", model: "typesafe/jev-latest",
+  workspace: "acme", slug: "support-priority", model: "mo-fast",
   questions: { urgent: new Noul({ instructions: "Does this require urgent action?" }) },
 });
 const decision = await model.decisions.create({
@@ -84,7 +78,28 @@ const page = await model.examples.list({ page: 1, pageSize: 20 });
 
 Creation takes questions directly; no file assembly is necessary.
 Its response has `workspace` as a slug string; `models.get("acme",
-"support-priority")` returns an entity object for workspace.
+"support-priority")` returns an entity object for workspace and a
+`configuration` with the saved `model` and `questions` (undefined only when
+the model has no manifest yet). `models.update` with identical questions is
+a no-op that resolves normally: `commit.commitSha === commit.previousSha`
+and the checkpoint is unchanged. Diff `configuration.questions` first to
+skip the call; never catch a 500 as "already up to date".
+
+If `configuration.checkpoint > 0`, alignment has rewritten the questions.
+`models.update` with different `questions` rejects with a 409 whose `code`
+is `alignment_would_be_discarded` rather than reverting the model. Keep
+aligned instructions by omitting `questions`; pass `discardAlignment: true`
+only when the user explicitly wants to replace them and reset the checkpoint.
+
+`(await models.get(...)).commit?.commitSha` is the default branch head. Pass
+it as `expectedHeadSha` to `models.update`; a stale value rejects with a 409
+whose `code` is `expected_head_mismatch`. Version control on `models`:
+`listBranches`, `createBranch(id, { name, sourceRef })`, `deleteBranch`,
+`listCommits(id, { branch })`, `listTags`, `createTag(id, { name, commitSha })`,
+`deleteTag`, and `rollback(id, { branch, targetCommitSha, expectedHeadSha,
+message? })`. Tag an alignment's result commit and use the tag as
+`revision`; restore an overwritten version with `rollback`, not by
+re-committing prompt text.
 Create/get/update results bind `model.decisions`, `model.examples`,
 `model.jobs.alignments`, and `model.jobs.batchDecisions`.
 Bound methods omit model IDs. Pass `revision` on decisions to pin a version.
@@ -93,7 +108,9 @@ Bound methods omit model IDs. Pass `revision` on decisions to pin a version.
 `annotate`, and `listDecisions`. Each ingested example has `state`,
 an optional UUID `id`, and optional
 `annotation: { groundTruth: {...}, groundReasoning: "..." }`.
-An ingested label does not run inference. `latestDecision` may be null;
+An ingested label does not run inference. The returned annotation
+carries a `split` the service assigns and preserves; it is not an input,
+so do not curate train/test membership yourself. `latestDecision` may be null;
 it does not contain the history record's `exampleId`, `jobId`, or `error`.
 
 ## Jobs and progress
@@ -102,9 +119,11 @@ it does not contain the history record's `exampleId`, `jobId`, or `error`.
 one of `exampleIds`, `examples`, or `scope: "all"`. Explicit selections
 have 1–1,000 examples. Branch defaults to main.
 
-`model.jobs.alignments.create` requires `branch`, `sourceCommitSha`,
-`maxMetricCalls`, and `idempotencyKey`; use a real source commit.
-Optional `reflection` contains `model`, `minibatchSize`, and `seed`.
+`model.jobs.alignments.create` requires `branch`, `sourceCommitSha`, and
+`idempotencyKey`; use a real source commit. `maxMetricCalls` is optional
+(modaic >= 0.9.0): when omitted the API sizes the budget to the validation
+split at launch, which is the recommended default. Optional `reflection`
+contains `model`, `minibatchSize`, and `seed`.
 
 Use `client.batchDecisions` or `client.alignments` for
 `get(id)`, `wait(id, options)`, and `cancel(id)`.
@@ -115,7 +134,42 @@ browsers without stderr remain silent. Poll interval/timeout options are
 failed/cancelled jobs are returned, not treated as successful completion.
 A timeout stops waiting, not the job itself.
 
+## Replay and failures
+
+With `modaic@^0.10.0`, for `mo-fast`, pass `reasoningEffort: "low"` (also `medium`, `high`, or
+`xhigh`) to `decisions.create` or `model.decisions.create`. Omit it for no
+reasoning; other models reject it. `result.usage.reasoningTokens` and
+`result.thinking?.[questionId]` expose optional usage and per-question
+diagnostics, not raw reasoning text; reasoning tokens are included in
+`outputTokens`. Put images in JSON `state` using
+`{ type: "image_url", image_url: { url: "https://..." } }` or a
+`data:image/...;base64,` URL. `mo` and `mo-fast` accept up to four images
+(PNG, JPEG, GIF, or WebP, 20 MB each). No separate image parameter is needed.
+
+`decisions.create` calls `POST /systemone`. Direct inference needs no
+saved model; a saved model uses `workspace/slug` and its stored questions, so call
+`model.decisions.create({ state })` without `questions`. Inline questions
+merge over the stored ones by ID for that request only; they bypass aligned
+instructions for a matching ID and cannot be labelled, so avoid them unless
+the user is deliberately experimenting. Reuse idempotency keys only for an
+identical request. Keyed decisions returning `409 decision_in_progress`
+are retried at most five times with bounded backoff; other conflicts are
+not automatically retried.
+Approved ZDR workspaces making covered direct base-model calls ignore the key:
+each retry is a new, potentially billable inference, not a replay. ZDR requires
+a separate signed agreement, approval, and technical activation; saved-model
+calls, batch jobs, and training are not covered. `capture: false` does not make
+a saved-model call ZDR. See
+[Zero Data Retention](https://docs.modaic.dev/docs/api/zero-data-retention).
+
+Capture visibility can lag the inference response. Do not add a history
+wait to the inference path. HTTP errors throw `ModaicAPIError` with
+`status`, `code`, `requestId`, `details`, and `body`.
+Network/body-read errors throw `ModaicConnectionError`; timeouts throw
+`ModaicTimeoutError`. Request timeouts cover receiving the response body.
+
 ## Knowledge base and fine-tuning
+
 
 Use `client.knowledgeBase.uploads` for resumable datasets and artifacts.
 On Node.js, prefer `uploadFile(path, params)` for a new local file: it computes
@@ -141,17 +195,5 @@ LoRA also accepts `loraR` (maximum 64), `loraAlpha` (maximum 128), and
 model commit. Invoke `workspace/model` for main or
 `workspace/model@<full-commit-sha>` to pin it. Mo Fast is inference-only.
 
-## Replay and failures
 
-`decisions.create` calls `POST /systemone`. Direct inference needs no
-saved model; a saved model uses `workspace/slug` and its stored questions.
-Inline overrides merge by question ID. Reuse idempotency keys only for an
-identical request. Keyed decisions returning `409 decision_in_progress`
-are retried at most five times with bounded backoff; other conflicts are
-not automatically retried.
-
-Capture visibility can lag the inference response. Do not add a history
-wait to the inference path. HTTP errors throw `ModaicAPIError` with
-`status`, `code`, `requestId`, `details`, and `body`.
-Network/body-read errors throw `ModaicConnectionError`; timeouts throw
-`ModaicTimeoutError`. Request timeouts cover receiving the response body.
+See https://docs.modaic.dev/docs/sdks/jobs/fine-tuning for dataset requirements.
