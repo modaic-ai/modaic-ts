@@ -196,8 +196,8 @@ to start optimization, then `get`, `cancel`, or `wait` by job ID.
 
 Use `client.fineTunes.create` with `trainingFile` and
 `trainingType: "head_only" | "lora"`. Base model `mo-1.3.1` also requires
-`destination`. The JSONL dataset supplies complete question, primitive,
-criteria, and answer contracts; training does not change saved questions in
+`destination`. The JSONL dataset supplies `instructions`, `type`, `criteria`,
+and `answer` on each inline question; training does not change saved questions in
 `model.json`. This works for head-only and LoRA. Training controls are camelCase fields on the create request.
 LoRA also accepts `loraR` (maximum 64), `loraAlpha` (maximum 128), and
 `loraDropout`; trainable modules are not configurable. Use `list`, `get`,
