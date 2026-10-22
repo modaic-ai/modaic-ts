@@ -80,10 +80,8 @@ function fineTuneBody(params: CreateFineTuneParams): {
   const {
     model,
     trainingFile,
-    taskId,
     trainingType = "head_only",
     destination,
-    questions,
     branch,
     sourceCommitSha,
     validationFile,
@@ -105,11 +103,9 @@ function fineTuneBody(params: CreateFineTuneParams): {
     body: {
       model,
       training_file: trainingFile,
-      taskId,
       training_type: trainingType,
       ...controlsBody(controls),
       ...(destination === undefined ? {} : { destination }),
-      ...(questions === undefined ? {} : { questions }),
       ...(branch === undefined ? {} : { branch }),
       ...(sourceCommitSha === undefined ? {} : { sourceCommitSha }),
       ...(validationFile === undefined ? {} : { validation_file: validationFile }),

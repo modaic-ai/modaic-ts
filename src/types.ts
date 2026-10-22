@@ -522,10 +522,8 @@ export interface TrainingControls {
 export interface CreateFineTuneParams extends TrainingControls {
   model: string;
   trainingFile: string;
-  taskId: string;
   trainingType?: TrainingType;
   destination?: string;
-  questions?: Record<string, Question>;
   branch?: string;
   sourceCommitSha?: string;
   validationFile?: string;
@@ -562,7 +560,6 @@ export interface FineTune {
   trainingFile: string;
   datasetCommitSha: string;
   datasetSha256: string;
-  taskId: string;
   status: FineTuneStatus;
   branch: string;
   sourceCommitSha: string;

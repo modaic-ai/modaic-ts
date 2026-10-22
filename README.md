@@ -147,20 +147,16 @@ through `knowledgeBase.resources.list`, `get`, `update`, and `download`.
 Listing accepts a `glob` using `*` and `?`; held-out sets use
 `kind: "eval-only-dataset"`.
 
-Start head-only or LoRA tuning with the uploaded dataset name. Training a base
-model requires a destination and questions. An existing repository may use a
-saved task or a training-only question absent from `model.json`; both modes
-leave the saved questions unchanged and publish back to that repository:
+Start head-only or LoRA tuning with the uploaded dataset name. The JSONL
+dataset defines each question and answer on the row; a base model requires a
+destination, while an existing repository publishes back to itself. Fine-tuning
+does not add the dataset questions to `model.json`:
 
 ```typescript
 const job = await modaic.fineTunes.create({
   model: "mo-1.3.1",
   destination: "acme/support-priority",
-  questions: {
-    priority: { type: "choice", criteria: { normal: "Routine", high: "Urgent" } },
-  },
   trainingFile: "support-hard-labels",
-  taskId: "priority",
   trainingType: "lora",
   loraR: 8,
   loraAlpha: 16,
