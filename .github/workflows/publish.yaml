@@ -101,9 +101,11 @@ jobs:
 
           const changed = require("node:child_process")
             .execFileSync("git", ["status", "--short"], { encoding: "utf8" })
-            .trim()
             .split("\n")
             .filter(Boolean)
+            // Porcelain status reserves the first two characters for XY state.
+            // Do not trim the output: ` M package-lock.json` begins with a
+            // meaningful space, and trimming it corrupts the first path.
             .map((line) => line.slice(3));
           const unexpected = changed.filter(
             (path) => path !== "package.json" && path !== "package-lock.json",
