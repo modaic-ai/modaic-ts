@@ -47,9 +47,11 @@ function uploadJson(uploaded = false) {
   return {
     id: UPLOAD_ID,
     name: "hard-labels",
+    description: null,
     kind: "dataset",
     sha256: SHA,
     sizeBytes: 4,
+    repos: [],
     status: "pending",
     createdAt: "2026-10-20T00:00:00Z",
     expiresAt: "2026-10-21T00:00:00Z",
@@ -187,19 +189,20 @@ describe("knowledge-base uploads", () => {
       return Response.json(uploadJson(), { status: 201 });
     });
 
-    const session = await modaic.knowledgeBase.uploads.create({
+    const session = await modaic.knowledgeBase.uploads.create("acme", {
       kind: "dataset",
       sha256: SHA,
       sizeBytes: 4,
       name: "hard-labels",
     });
     const uploaded = await modaic.knowledgeBase.uploads.uploadPart(
+      "acme",
       session.id,
       1,
       new TextEncoder().encode("data"),
     );
     expect(uploaded.parts[0]?.uploaded).toBe(true);
-    expect(await modaic.knowledgeBase.resources.download("hard-labels"))
+    expect(await modaic.knowledgeBase.resources.download("acme", "hard-labels"))
       .toEqual(new TextEncoder().encode("resource-bytes"));
 
     const apiRequests = requests.filter((request) => new URL(request.url).host === "example.test");
@@ -255,6 +258,7 @@ describe("knowledge-base uploads", () => {
 
     try {
       const result = await modaic.knowledgeBase.uploads.uploadFile(path, {
+        workspace: "acme",
         kind: "dataset",
         name: "hard-labels",
         pollIntervalMs: 0,

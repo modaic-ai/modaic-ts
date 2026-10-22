@@ -33,10 +33,10 @@ test("question constructors serialize to the existing API contract", async () =>
     });
   } });
   await client.decisions.create({ model: "typesafe/jev-latest", state: "Charged twice", questions });
-  const model = await client.models.create({ workspace: "acme", slug: "support", questions });
+  const model = await client.models.create({ workspace: "acme", slug: "support", model: "mo-fast", questions });
   await model.decisions.create({ state: "Charged twice", questions });
-  await client.models.update(model.id, { questions });
-  expect(paths.map((p) => p.split("/").at(-1))).toEqual(["systemone", "models", "systemone", "test-model"]);
+  await client.models.update("acme/support", { questions });
+  expect(paths).toEqual(["/api/v1/systemone", "/api/v1/models", "/api/v1/systemone", "/api/v1/models/acme/support"]);
 });
 
 test("score needs at least one criterion", () => {

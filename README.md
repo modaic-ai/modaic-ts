@@ -130,8 +130,10 @@ file in memory, and it waits for validation by default:
 
 ```typescript
 const upload = await modaic.knowledgeBase.uploads.uploadFile("training.jsonl", {
+  workspace: "acme",
   kind: "dataset",
   name: "support-hard-labels",
+  repos: ["support-priority"],
   onProgress: ({ uploadedBytes, totalBytes }) => {
     console.log(`${uploadedBytes}/${totalBytes}`);
   },
@@ -141,11 +143,14 @@ const upload = await modaic.knowledgeBase.uploads.uploadFile("training.jsonl", {
 Set `waitForValidation: false` to return as soon as completion starts, or use
 the lower-level `create`, `preparePart`, `uploadPart`, `confirmPart`, `complete`,
 and `wait` methods to resume an existing session. Resources are available
-through `knowledgeBase.resources.list`, `get`, and `download`.
+through `knowledgeBase.resources.list`, `get`, `update`, and `download`.
+Listing accepts a `glob` using `*` and `?`; held-out sets use
+`kind: "eval-only-dataset"`.
 
 Start head-only or LoRA tuning with the uploaded dataset name. Training a base
-model requires a destination and questions; training an existing repository
-reuses its configuration and publishes back to that repository:
+model requires a destination and questions. An existing repository may use a
+saved task or a training-only question absent from `model.json`; both modes
+leave the saved questions unchanged and publish back to that repository:
 
 ```typescript
 const job = await modaic.fineTunes.create({
@@ -263,7 +268,8 @@ cancelling the job. No additional package is needed.
 | `alignments` | `create`, `list`, `get`, `logs`, `cancel`, `wait` |
 | `fineTunes` | `create`, `list`, `get`, `logs`, `cancel`, `wait` |
 | `knowledgeBase.uploads` | `create`, `get`, `preparePart`, `confirmPart`, `uploadPart`, `complete`, `cancel` |
-| `knowledgeBase.resources` | `list`, `get`, `download` |
+| `knowledgeBase.resources` | `list`, `get`, `update`, `download` |
+| `protege` | `create`, `get`, `cancel`, `wait` |
 
 Every method returns a Promise. SDK properties use `camelCase`, including the
 few decision response fields that use `snake_case` on the wire.

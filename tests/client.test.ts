@@ -3,7 +3,7 @@ import { describe, expect, test } from "bun:test";
 import { Modaic, ModaicAPIError, ModaicTimeoutError } from "../src/index.js";
 import type { Answer, BatchSelection, ClientOptions, Question } from "../src/index.js";
 
-const MODEL_ID = "018f5f04-a793-7b21-a1f6-bc6b56789012";
+const MODEL_ID = "farouk1/support-triage";
 const EXAMPLE_ID = "31fcc86c-7f49-4daa-a8b1-577db0c8fe76";
 const JOB_ID = "9e3d5d17-a8db-4e61-b3c6-c8834f8faf12";
 
@@ -104,7 +104,7 @@ function responseFor(request: Request): Response {
   if (pathname === "/api/v1/models" && method === "POST") {
     return Response.json({ ...modelJson(), workspace: "farouk1" }, { status: 201 });
   }
-  if (pathname === "/api/v1/entities/farouk1/models/support-triage") {
+  if (pathname === "/api/v1/models/farouk1/support-triage") {
     return Response.json(modelJson());
   }
   if (pathname === `/api/v1/models/${MODEL_ID}` && method === "PATCH") {
@@ -125,13 +125,13 @@ function responseFor(request: Request): Response {
       totalPages: 1,
     });
   }
-  if (pathname === `/api/v1/models/${MODEL_ID}/examples/${EXAMPLE_ID}/decisions`) {
+  if (pathname === `/api/v1/examples/${EXAMPLE_ID}/decisions`) {
     return Response.json({ decisions: [] });
   }
-  if (pathname === `/api/v1/models/${MODEL_ID}/examples/${EXAMPLE_ID}`) {
+  if (pathname === `/api/v1/examples/${EXAMPLE_ID}`) {
     return Response.json(exampleJson());
   }
-  if (pathname === `/api/v1/models/${MODEL_ID}/examples/${EXAMPLE_ID}/annotation`) {
+  if (pathname === `/api/v1/examples/${EXAMPLE_ID}/annotation`) {
     return Response.json(exampleJson());
   }
   if (pathname === `/api/v1/models/${MODEL_ID}/batch-decisions`) {
@@ -300,8 +300,12 @@ describe("regressions for model-bound resources", () => {
       }
       if (path.endsWith("/branches")) return Response.json({ branch: "release", commitSha: "h1" }, { status: 201 });
       if (path.endsWith("/commits")) {
+        if (request.method === "POST") return Response.json({ commitSha: "h2", branch: "main", previousSha: "h1" }, { status: 201 });
         return Response.json({ commits: [{ sha: "h1", parentShas: [], message: "Create Model", authorName: "bot", authorEmail: "bot@modaic.dev", createdAt: "2026-09-24T00:00:00Z" }] });
       }
+      if (path.endsWith("/commits/h1")) return Response.json({ sha: "h1", parentShas: [], message: "Create Model", authorName: "bot", authorEmail: "bot@modaic.dev", committerName: "bot", committerEmail: "bot@modaic.dev", createdAt: "2026-09-24T00:00:00Z", verified: true, files: [], stats: { files: 0, additions: 0, deletions: 0, changes: 0 } });
+      if (path.endsWith("/files/prompts/system.md")) return Response.json({ path: "prompts/system.md", revision: "h1", contents: "Prompt" });
+      if (path.endsWith("/files")) return Response.json({ files: [{ path: "model.json", type: "blob", mode: "100644" }] });
       if (path.endsWith("/tags") && request.method === "GET") return Response.json({ tags: [{ name: "v1", commitSha: "h1" }] });
       if (path.endsWith("/tags")) return Response.json({ name: "v1", commitSha: "h1" }, { status: 201 });
       if (path.endsWith("/rollbacks")) return Response.json({ commitSha: "h2", branch: "main", previousSha: "h1" }, { status: 201 });
@@ -312,6 +316,10 @@ describe("regressions for model-bound resources", () => {
     expect((await modaic.models.listBranches(MODEL_ID)).branches[0]!.headSha).toBe("h1");
     expect(await modaic.models.createBranch(MODEL_ID, { name: "release", sourceRef: "h1" })).toEqual({ commitSha: "h1", branch: "release", previousSha: null });
     expect((await modaic.models.listCommits(MODEL_ID, { branch: "main" })).commits[0]!.sha).toBe("h1");
+    expect((await modaic.models.listFiles(MODEL_ID, { revision: "h1", path: "prompts", recursive: true })).files[0]!.path).toBe("model.json");
+    expect((await modaic.models.getFile(MODEL_ID, "prompts/system.md", { revision: "h1" })).contents).toBe("Prompt");
+    expect((await modaic.models.getCommit(MODEL_ID, "h1")).verified).toBe(true);
+    expect((await modaic.models.commit(MODEL_ID, { branch: "main", message: "Update prompt", expectedHeadSha: "h1", changes: [{ operation: "upsert", path: "prompts/system.md", contents: "Prompt" }] })).commitSha).toBe("h2");
     expect((await modaic.models.listTags(MODEL_ID)).tags[0]!.name).toBe("v1");
     expect(await modaic.models.createTag(MODEL_ID, { name: "v1", commitSha: "h1" })).toEqual({ name: "v1", commitSha: "h1" });
     await modaic.models.deleteTag(MODEL_ID, "v1");
@@ -324,6 +332,10 @@ describe("regressions for model-bound resources", () => {
       ["GET", `${base}/branches`, null],
       ["POST", `${base}/branches`, { name: "release", sourceRef: "h1" }],
       ["GET", `${base}/commits?branch=main`, null],
+      ["GET", `${base}/files?revision=h1&path=prompts&recursive=true`, null],
+      ["GET", `${base}/files/prompts/system.md?revision=h1`, null],
+      ["GET", `${base}/commits/h1`, null],
+      ["POST", `${base}/commits`, { branch: "main", message: "Update prompt", expectedHeadSha: "h1", changes: [{ operation: "upsert", path: "prompts/system.md", contents: "Prompt" }] }],
       ["GET", `${base}/tags`, null],
       ["POST", `${base}/tags`, { name: "v1", commitSha: "h1" }],
       ["DELETE", `${base}/tags/v1`, null],
@@ -355,8 +367,8 @@ describe("regressions for model-bound resources", () => {
       if (new URL(request.url).pathname.endsWith("/systemone")) return responseFor(request);
       return Response.json({ items: [], alignments: [], batchDecisions: [] });
     } });
-    const first = await makeClient("key-a").models.create({ workspace: "team-a", slug: "first" });
-    const second = await makeClient("key-b").models.create({ workspace: "team-b", slug: "second" });
+    const first = await makeClient("key-a").models.create({ workspace: "team-a", slug: "first", model: "mo-fast" });
+    const second = await makeClient("key-b").models.create({ workspace: "team-b", slug: "second", model: "mo-fast" });
     requests.length = 0;
     await Promise.all([first, second].map(async (model) => {
       await model.decisions.create({ state: {} });
@@ -368,7 +380,7 @@ describe("regressions for model-bound resources", () => {
       const owned = requests.filter(r => r.headers.get("authorization") === `Bearer ${key}`);
       expect(owned).toHaveLength(4);
       expect(await owned[0]!.json()).toEqual({ state: {}, model: `${workspace}/${id}` });
-      expect(owned.slice(1).every(r => new URL(r.url).pathname.startsWith(`/api/v1/models/${id}/`))).toBe(true);
+      expect(owned.slice(1).every(r => new URL(r.url).pathname.startsWith(`/api/v1/models/${workspace}/${id}/`))).toBe(true);
     }
     expect(JSON.stringify(first)).not.toContain("key-a");
     expect(JSON.stringify(second)).not.toContain("key-b");
@@ -436,7 +448,7 @@ describe("regressions for model-bound resources", () => {
   }
 
   test.each([401, 403, 404, 409, 422, 429, 500])("bound examples and jobs preserve HTTP %i errors without retrying", async status => {
-    const { modaic, requests } = setup(request => new URL(request.url).pathname.includes("/entities/") ? responseFor(request) : Response.json({ code: "problem", detail: "Request rejected", details: { reason: "test" } }, { status, headers: { "x-request-id": "req-123" } }));
+    const { modaic, requests } = setup(request => new URL(request.url).pathname === `/api/v1/models/${MODEL_ID}` ? responseFor(request) : Response.json({ code: "problem", detail: "Request rejected", details: { reason: "test" } }, { status, headers: { "x-request-id": "req-123" } }));
     const model = await modaic.models.get("farouk1", "support-triage");
     for (const call of [() => model.examples.list(), () => model.jobs.alignments.list(), () => model.jobs.batchDecisions.create({ scope: "all", idempotencyKey: "error-123" })]) {
       await expect(call()).rejects.toMatchObject({ status, code: "problem", requestId: "req-123", details: { reason: "test" } });
@@ -460,9 +472,9 @@ describe("regressions for model-bound resources", () => {
   test("encodes model and example path segments rather than treating them as URLs", async () => {
     const { modaic, requests } = setup(() => Response.json(modelJson()));
     await modaic.models.get("team /?", "model #/%");
-    await modaic.examples.get("model/a?", "example# /%");
-    expect(new URL(requests[0]!.url).pathname).toBe("/api/v1/entities/team%20%2F%3F/models/model%20%23%2F%25");
-    expect(new URL(requests[1]!.url).pathname).toBe("/api/v1/models/model%2Fa%3F/examples/example%23%20%2F%25");
+    await modaic.examples.get("example# /%");
+    expect(new URL(requests[0]!.url).pathname).toBe("/api/v1/models/team%20%2F%3F/model%20%23%2F%25");
+    expect(new URL(requests[1]!.url).pathname).toBe("/api/v1/examples/example%23%20%2F%25");
   });
 });
 
@@ -470,7 +482,7 @@ describe("Modaic", () => {
   test.each(["create", "get", "update"] as const)("binds examples and jobs on models.%s", async (method) => {
     const { modaic, requests } = setup();
     const model = method === "create"
-      ? await modaic.models.create({ workspace: "farouk1", slug: "support-triage" })
+      ? await modaic.models.create({ workspace: "farouk1", slug: "support-triage", model: "mo-fast" })
       : method === "get"
         ? await modaic.models.get("farouk1", "support-triage")
         : await modaic.models.update(MODEL_ID, { description: "Updated" });
@@ -496,9 +508,9 @@ describe("Modaic", () => {
 
     await modaic.examples.ingest(MODEL_ID, examples);
     await modaic.examples.list(MODEL_ID, { page: 2, pageSize: 5 });
-    await modaic.examples.get(MODEL_ID, EXAMPLE_ID);
-    await modaic.examples.annotate(MODEL_ID, EXAMPLE_ID, annotation);
-    await modaic.examples.listDecisions(MODEL_ID, EXAMPLE_ID);
+    await modaic.examples.get(EXAMPLE_ID);
+    await modaic.examples.annotate(EXAMPLE_ID, annotation);
+    await modaic.examples.listDecisions(EXAMPLE_ID);
     await modaic.batchDecisions.create(MODEL_ID, batch);
     await modaic.batchDecisions.list(MODEL_ID, { limit: 7 });
     await modaic.alignments.create(MODEL_ID, alignment);
@@ -522,7 +534,7 @@ describe("Modaic", () => {
   test.each(["create", "get", "update"] as const)("binds decisions on models.%s without serializing client state", async (method) => {
     const { modaic, requests } = setup();
     const model = method === "create"
-      ? await modaic.models.create({ workspace: "farouk1", slug: "support-triage" })
+      ? await modaic.models.create({ workspace: "farouk1", slug: "support-triage", model: "mo-fast" })
       : method === "get"
         ? await modaic.models.get("farouk1", "support-triage")
         : await modaic.models.update(MODEL_ID, { description: "Updated" });
@@ -579,8 +591,8 @@ describe("Modaic", () => {
         criteria: { normal: "Routine issue", high: "Urgent blocker" },
       },
     };
-    for (const model of [undefined, "typesafe/jev-latest"]) {
-      const params = { workspace: "acme", slug: "support-priority", questions, ...(model && { model }) };
+    for (const model of ["mo-fast", "typesafe/jev-latest"]) {
+      const params = { workspace: "acme", slug: "support-priority", questions, model };
       const modelResponse = await modaic.models.create(params);
       expect(modelResponse.id).toBe(MODEL_ID);
       expect(modelResponse.workspace).toBe("farouk1");
@@ -606,7 +618,7 @@ describe("Modaic", () => {
     expect(result.exampleId).toBe(EXAMPLE_ID);
     expect(result.usage.inputTokens).toBe(10);
     expect((await modaic.models.list()).models[0]?.repositoryId).toBe(MODEL_ID);
-    await modaic.models.create({ workspace: "farouk1", slug: "support-triage" });
+    await modaic.models.create({ workspace: "farouk1", slug: "support-triage", model: "mo-fast" });
     await modaic.models.get("farouk1", "support-triage");
     await modaic.models.update(MODEL_ID, { description: null, model: "typesafe/jev-latest" });
     await modaic.models.delete(MODEL_ID);
@@ -618,11 +630,11 @@ describe("Modaic", () => {
       },
     ]);
     await modaic.examples.list(MODEL_ID);
-    await modaic.examples.get(MODEL_ID, EXAMPLE_ID);
-    await modaic.examples.annotate(MODEL_ID, EXAMPLE_ID, {
+    await modaic.examples.get(EXAMPLE_ID);
+    await modaic.examples.annotate(EXAMPLE_ID, {
       groundTruth: { refund: true },
     });
-    await modaic.examples.listDecisions(MODEL_ID, EXAMPLE_ID);
+    await modaic.examples.listDecisions(EXAMPLE_ID);
 
     await modaic.batchDecisions.create(MODEL_ID, {
       exampleIds: [EXAMPLE_ID],

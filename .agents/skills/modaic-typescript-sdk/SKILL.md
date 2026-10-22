@@ -76,7 +76,8 @@ const decision = await model.decisions.create({
 const page = await model.examples.list({ page: 1, pageSize: 20 });
 ```
 
-Creation takes questions directly; no file assembly is necessary.
+Creation requires a base `model` and takes optional questions directly; omit
+questions to create a general model. No file assembly is necessary.
 Its response has `workspace` as a slug string; `models.get("acme",
 "support-priority")` returns an entity object for workspace and a
 `configuration` with the saved `model` and `questions` (undefined only when
@@ -94,15 +95,18 @@ only when the user explicitly wants to replace them and reset the checkpoint.
 `(await models.get(...)).commit?.commitSha` is the default branch head. Pass
 it as `expectedHeadSha` to `models.update`; a stale value rejects with a 409
 whose `code` is `expected_head_mismatch`. Version control on `models`:
-`listBranches`, `createBranch(id, { name, sourceRef })`, `deleteBranch`,
-`listCommits(id, { branch })`, `listTags`, `createTag(id, { name, commitSha })`,
-`deleteTag`, and `rollback(id, { branch, targetCommitSha, expectedHeadSha,
+`listBranches`, `createBranch(repo, { name, sourceRef })`, `deleteBranch`,
+`listCommits(repo, { branch })`, `listTags`, `createTag(repo, { name, commitSha })`,
+`deleteTag`, and `rollback(repo, { branch, targetCommitSha, expectedHeadSha,
 message? })`. Tag an alignment's result commit and use the tag as
 `revision`; restore an overwritten version with `rollback`, not by
 re-committing prompt text.
 Create/get/update results bind `model.decisions`, `model.examples`,
 `model.jobs.alignments`, and `model.jobs.batchDecisions`.
-Bound methods omit model IDs. Pass `revision` on decisions to pin a version.
+Bound methods omit model paths. Collection methods on top-level examples,
+alignments, and batch decisions take `workspace/model`; example item methods
+take only the globally unique example ID. Pass `revision` on decisions to pin
+a version.
 
 `model.examples` provides `ingest([...])`, `list`, `get`,
 `annotate`, and `listDecisions`. Each ingested example has `state`,
@@ -147,11 +151,11 @@ diagnostics, not raw reasoning text; reasoning tokens are included in
 (PNG, JPEG, GIF, or WebP, 20 MB each). No separate image parameter is needed.
 
 `decisions.create` calls `POST /systemone`. Direct inference needs no
-saved model; a saved model uses `workspace/slug` and its stored questions, so call
-`model.decisions.create({ state })` without `questions`. Inline questions
-merge over the stored ones by ID for that request only; they bypass aligned
-instructions for a matching ID and cannot be labelled, so avoid them unless
-the user is deliberately experimenting. Reuse idempotency keys only for an
+saved model. A task-specific model has stored questions and must be called
+without request questions; supplying them returns
+`task_specific_model_questions_forbidden`. A general model has no stored
+questions and must be called with questions; omitting them returns
+`questions_required` (422). Reuse idempotency keys only for an
 identical request. Keyed decisions returning `409 decision_in_progress`
 are retried at most five times with bounded backoff; other conflicts are
 not automatically retried.
@@ -171,24 +175,30 @@ Network/body-read errors throw `ModaicConnectionError`; timeouts throw
 ## Knowledge base and fine-tuning
 
 
-Use `client.knowledgeBase.uploads` for resumable datasets and artifacts.
-On Node.js, prefer `uploadFile(path, params)` for a new local file: it computes
+Use `client.knowledgeBase.uploads` for resumable datasets, eval-only datasets,
+and artifacts. On Node.js, prefer `uploadFile(path, { workspace, name, kind })`
+for a new local file: it computes
 the whole-file SHA-256, creates the session, streams server-sized parts,
 confirms receipts, completes, and waits for validation. Set
 `waitForValidation: false` for an asynchronous return and use `onProgress` for
 byte progress. It makes a best-effort cancellation if transfer fails before
 completion. Browser callers use the lower-level part methods.
-`create({ kind, sha256, sizeBytes, name?, workspace? })` creates a session;
-`uploadPart(id, partNumber, data)` hashes one `Uint8Array` chunk, uploads it
+`create(workspace, { kind, sha256, sizeBytes, name, repos? })` creates a session;
+`uploadPart(workspace, id, partNumber, data)` hashes one `Uint8Array` chunk, uploads it
 with the file-scoped grant, and confirms its receipt. Then call `complete` and
 poll `get` or call `wait` until validation is terminal. `knowledgeBase.resources` provides
-`list`, `get`, and `download`; resource names are unique across both kinds, so
-get/download do not take a kind.
+`list`, `get`, `update`, and `download`; listing accepts `glob`, and update can
+replace repository links and/or the description. Resource names are unique
+across all kinds, so get/download do not take a kind.
+
+Use `client.protege.create({ prompt, repo: "workspace/model", evalOnlyDataset })`
+to start optimization, then `get`, `cancel`, or `wait` by job ID.
 
 Use `client.fineTunes.create` with `trainingFile`, `taskId`, and
 `trainingType: "head_only" | "lora"`. Base model `mo-1.3.1` also requires
-`destination` and `questions`; an existing `workspace/model` reuses its saved
-configuration. Training controls are camelCase fields on the create request.
+`destination` and `questions`; an existing `workspace/model` may reuse its saved
+task or pass a training-only `questions[taskId]` without changing `model.json`.
+This works for head-only and LoRA. Training controls are camelCase fields on the create request.
 LoRA also accepts `loraR` (maximum 64), `loraAlpha` (maximum 128), and
 `loraDropout`; trainable modules are not configurable. Use `list`, `get`,
 `logs`, `cancel`, and `wait` for jobs. Successful training publishes a normal
