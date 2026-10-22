@@ -144,9 +144,16 @@ export interface ModelDecisions {
   create(params: Omit<CreateDecisionParams, "model">): Promise<DecisionResponse>;
 }
 
+export interface ExampleSummary {
+  total: number;
+  graded: number;
+  commitShas: string[];
+}
+
 export interface ModelExamples {
   ingest(examples: ExampleInput[]): Promise<ExampleIngestResponse>;
   list(options?: { page?: number; pageSize?: number }): Promise<ExamplePage>;
+  summary(): Promise<ExampleSummary>;
   get(exampleId: string): Promise<Example>;
   annotate(exampleId: string, annotation: {
     groundTruth?: Record<string, JsonValue>;
@@ -198,7 +205,7 @@ export interface CreateModelParams {
   slug: string;
   description?: string;
   defaultBranch?: string;
-  model?: string;
+  model: string;
   questions?: Record<string, Question>;
 }
 
@@ -245,6 +252,38 @@ export interface Commit {
 export interface CommitList {
   commits: Commit[];
 }
+
+export interface CommitDetails extends Commit {
+  committerName: string;
+  committerEmail: string;
+  verified: boolean;
+  files: Array<{
+    path: string;
+    status: "added" | "modified" | "deleted" | "renamed" | "copied" | "type_changed" | "unmerged" | "unknown";
+    previousPath?: string;
+  }>;
+  stats: { files: number; additions: number; deletions: number; changes: number };
+}
+
+export interface RepositoryFile {
+  path: string;
+  type: "blob" | "tree" | "symlink" | "submodule";
+  mode: string;
+}
+
+export interface RepositoryFileList {
+  files: RepositoryFile[];
+}
+
+export interface RepositoryFileContents {
+  path: string;
+  revision: string | null;
+  contents: string;
+}
+
+export type RepositoryFileChange =
+  | { operation: "upsert"; path: string; contents: string }
+  | { operation: "delete"; path: string };
 
 /** An immutable name for a commit, usable as a decision `revision`. */
 export interface Tag {
@@ -447,7 +486,7 @@ export interface WaitOptions {
   timeoutMs?: number;
 }
 
-export type ResourceKind = "dataset" | "artifact";
+export type ResourceKind = "dataset" | "eval-only-dataset" | "artifact";
 export type TrainingType = "head_only" | "lora";
 export type FineTuneStatus =
   | "queued"
@@ -483,13 +522,12 @@ export interface TrainingControls {
 export interface CreateFineTuneParams extends TrainingControls {
   model: string;
   trainingFile: string;
-  taskId: string;
   trainingType?: TrainingType;
   destination?: string;
-  questions?: Record<string, Question>;
   branch?: string;
   sourceCommitSha?: string;
   validationFile?: string;
+  evalOnlyDataset?: string;
   suffix?: string;
   fromCheckpoint?: string;
   loraR?: number;
@@ -523,7 +561,6 @@ export interface FineTune {
   trainingFile: string;
   datasetCommitSha: string;
   datasetSha256: string;
-  taskId: string;
   status: FineTuneStatus;
   branch: string;
   sourceCommitSha: string;
@@ -549,18 +586,20 @@ export interface FineTuneLogs {
   running: boolean;
 }
 
-export interface KnowledgeBaseResource {
+export interface Resource {
   id: string;
   name: string;
+  description: string | null;
   kind: ResourceKind;
   path: string;
   sha256: string;
   sizeBytes: number;
+  repos: string[];
   commitSha: string;
 }
 
-export interface KnowledgeBaseResourcePage {
-  resources: KnowledgeBaseResource[];
+export interface ResourcePage {
+  resources: Resource[];
   commitSha: string | null;
   nextCursor: string | null;
 }
@@ -572,27 +611,31 @@ export interface UploadPart {
   uploaded: boolean;
 }
 
-export interface KnowledgeBaseUpload {
+export interface Upload {
   id: string;
   name: string;
+  description: string | null;
   kind: ResourceKind;
   sha256: string;
   sizeBytes: number;
+  repos: string[];
   status: "pending" | "processing" | "completed" | "failed" | "cancelled" | "expired";
   createdAt: string;
   expiresAt: string;
   partSizeBytes: number;
   parts: UploadPart[];
-  result: KnowledgeBaseUploadResult | null;
+  result: UploadResult | null;
   error: JobError | null;
 }
 
-export interface KnowledgeBaseUploadResult {
+export interface UploadResult {
   name: string;
+  description: string | null;
   kind: ResourceKind;
   path: string;
   sha256: string;
   sizeBytes: number;
+  repos: string[];
   commitSha: string;
 }
 
@@ -604,12 +647,13 @@ export interface PreparedUploadPart {
   expiresIn: number;
 }
 
-export interface CreateKnowledgeBaseUploadParams {
+export interface CreateUploadParams {
+  name: string;
   kind: ResourceKind;
   sha256: string;
   sizeBytes: number;
-  name?: string;
-  workspace?: string;
+  description?: string;
+  repos?: string[];
 }
 
 export interface UploadFileProgress {
@@ -620,16 +664,22 @@ export interface UploadFileProgress {
 }
 
 export interface UploadFileParams {
+  workspace: string;
+  name: string;
   kind: ResourceKind;
-  name?: string;
-  workspace?: string;
+  description?: string;
+  repos?: string[];
   waitForValidation?: boolean;
   pollIntervalMs?: number;
   timeoutMs?: number;
   onProgress?: (progress: UploadFileProgress) => void;
 }
 
-export interface KnowledgeBaseQuery {
-  workspace?: string;
+export interface ResourceQuery {
   commitSha?: string;
+}
+
+export interface ProtegeJob {
+  id: string;
+  status: "running" | "succeeded" | "failed" | "cancelled";
 }

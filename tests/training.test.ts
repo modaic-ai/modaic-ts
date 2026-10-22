@@ -21,7 +21,6 @@ function fineTuneJson() {
     training_file: "hard-labels",
     datasetCommitSha: COMMIT,
     datasetSha256: SHA,
-    taskId: "color",
     status: "done",
     branch: "main",
     sourceCommitSha: COMMIT,
@@ -47,9 +46,11 @@ function uploadJson(uploaded = false) {
   return {
     id: UPLOAD_ID,
     name: "hard-labels",
+    description: null,
     kind: "dataset",
     sha256: SHA,
     sizeBytes: 4,
+    repos: [],
     status: "pending",
     createdAt: "2026-10-20T00:00:00Z",
     expiresAt: "2026-10-21T00:00:00Z",
@@ -102,10 +103,6 @@ describe("fine-tuning", () => {
       destination: "acme/color-model",
       trainingFile: "hard-labels",
       trainingType: "lora",
-      taskId: "color",
-      questions: {
-        color: { type: "choice", criteria: { red: "Red", blue: "Blue" } },
-      },
       nEpochs: 2,
       nEvals: 3,
       batchSize: "max",
@@ -113,6 +110,7 @@ describe("fine-tuning", () => {
       earlyStoppingEnabled: true,
       earlyStoppingPatience: 1,
       validationFile: "validation",
+      evalOnlyDataset: "heldout",
       loraR: 8,
       loraAlpha: 16,
       loraDropout: 0.05,
@@ -128,10 +126,6 @@ describe("fine-tuning", () => {
       destination: "acme/color-model",
       training_file: "hard-labels",
       training_type: "lora",
-      taskId: "color",
-      questions: {
-        color: { type: "choice", criteria: { red: "Red", blue: "Blue" } },
-      },
       n_epochs: 2,
       n_evals: 3,
       batch_size: "max",
@@ -139,6 +133,7 @@ describe("fine-tuning", () => {
       early_stopping_enabled: true,
       early_stopping_patience: 1,
       validation_file: "validation",
+      eval_only_dataset: "heldout",
       lora_r: 8,
       lora_alpha: 16,
       lora_dropout: 0.05,
@@ -154,7 +149,7 @@ describe("fine-tuning", () => {
   });
 });
 
-describe("knowledge-base uploads", () => {
+describe("resource uploads", () => {
   test("uploads a hashed part and never sends the API token to transfer hosts", async () => {
     const { modaic, requests } = setup((request) => {
       const url = new URL(request.url);
@@ -187,19 +182,20 @@ describe("knowledge-base uploads", () => {
       return Response.json(uploadJson(), { status: 201 });
     });
 
-    const session = await modaic.knowledgeBase.uploads.create({
+    const session = await modaic.uploads.create("acme", {
       kind: "dataset",
       sha256: SHA,
       sizeBytes: 4,
       name: "hard-labels",
     });
-    const uploaded = await modaic.knowledgeBase.uploads.uploadPart(
+    const uploaded = await modaic.uploads.uploadPart(
+      "acme",
       session.id,
       1,
       new TextEncoder().encode("data"),
     );
     expect(uploaded.parts[0]?.uploaded).toBe(true);
-    expect(await modaic.knowledgeBase.resources.download("hard-labels"))
+    expect(await modaic.resources.download("acme", "hard-labels"))
       .toEqual(new TextEncoder().encode("resource-bytes"));
 
     const apiRequests = requests.filter((request) => new URL(request.url).host === "example.test");
@@ -254,7 +250,8 @@ describe("knowledge-base uploads", () => {
     });
 
     try {
-      const result = await modaic.knowledgeBase.uploads.uploadFile(path, {
+      const result = await modaic.uploads.uploadFile(path, {
+        workspace: "acme",
         kind: "dataset",
         name: "hard-labels",
         pollIntervalMs: 0,

@@ -24,10 +24,10 @@ test.each(["get", "list", "annotate", "ingest"] as const)("%s preserves the nest
   const client = new Modaic({ apiKey: "test", fetch: async () => Response.json(bodies[method]) });
   let result: Example;
   switch (method) {
-    case "get": result = await client.examples.get("model", "example-1"); break;
-    case "annotate": result = await client.examples.annotate("model", "example-1", { groundTruth: { refund: true } }); break;
-    case "ingest": result = (await client.examples.ingest("model", [{ state: {} }])).examples[0]!; break;
-    case "list": result = (await client.examples.list("model")).items[0]!; break;
+    case "get": result = await client.examples.get("example-1"); break;
+    case "annotate": result = await client.examples.annotate("example-1", { groundTruth: { refund: true } }); break;
+    case "ingest": result = (await client.examples.ingest("acme/model", [{ state: {} }])).examples[0]!; break;
+    case "list": result = (await client.examples.list("acme/model")).items[0]!; break;
   }
   expect(result.latestDecision).toEqual(latest);
   expect(result.latestDecision).not.toHaveProperty("exampleId");
@@ -39,5 +39,5 @@ test.each([null, "Provider request failed"])("history keeps its distinct shape (
   const record: DecisionRecord = { ...latest, exampleId: example.id, jobId: null, error,
     response: error ? null : latest.response, answers: error ? {} : latest.answers };
   const client = new Modaic({ apiKey: "test", fetch: async () => Response.json({ decisions: [record] }) });
-  expect((await client.examples.listDecisions("model", example.id)).decisions).toEqual([record]);
+  expect((await client.examples.listDecisions(example.id)).decisions).toEqual([record]);
 });

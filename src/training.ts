@@ -2,14 +2,14 @@ import { ModaicConnectionError, ModaicTimeoutError } from "./errors.js";
 import { segment, Transport } from "./transport.js";
 import type {
   CreateFineTuneParams,
-  CreateKnowledgeBaseUploadParams,
+  CreateUploadParams,
   FineTune,
   FineTuneList,
   FineTuneLogs,
-  KnowledgeBaseQuery,
-  KnowledgeBaseResource,
-  KnowledgeBaseResourcePage,
-  KnowledgeBaseUpload,
+  ResourceQuery,
+  Resource,
+  ResourcePage,
+  Upload,
   PreparedUploadPart,
   ResourceKind,
   TrainingControls,
@@ -80,13 +80,12 @@ function fineTuneBody(params: CreateFineTuneParams): {
   const {
     model,
     trainingFile,
-    taskId,
     trainingType = "head_only",
     destination,
-    questions,
     branch,
     sourceCommitSha,
     validationFile,
+    evalOnlyDataset,
     suffix,
     fromCheckpoint,
     loraR,
@@ -105,14 +104,13 @@ function fineTuneBody(params: CreateFineTuneParams): {
     body: {
       model,
       training_file: trainingFile,
-      taskId,
       training_type: trainingType,
       ...controlsBody(controls),
       ...(destination === undefined ? {} : { destination }),
-      ...(questions === undefined ? {} : { questions }),
       ...(branch === undefined ? {} : { branch }),
       ...(sourceCommitSha === undefined ? {} : { sourceCommitSha }),
       ...(validationFile === undefined ? {} : { validation_file: validationFile }),
+      ...(evalOnlyDataset === undefined ? {} : { eval_only_dataset: evalOnlyDataset }),
       ...(suffix === undefined ? {} : { suffix }),
       ...(fromCheckpoint === undefined ? {} : { from_checkpoint: fromCheckpoint }),
       ...(loraR === undefined ? {} : { lora_r: loraR }),
@@ -180,8 +178,12 @@ export class FineTunes {
   }
 }
 
-function query(options: KnowledgeBaseQuery = {}): Record<string, string | undefined> {
-  return { workspace: options.workspace, commitSha: options.commitSha };
+function workspacePath(workspace: string, suffix: string): string {
+  return `/workspaces/${segment(workspace)}${suffix}`;
+}
+
+function query(options: ResourceQuery = {}): Record<string, string | undefined> {
+  return { commitSha: options.commitSha };
 }
 
 async function digest(data: Uint8Array): Promise<string> {
@@ -189,79 +191,73 @@ async function digest(data: Uint8Array): Promise<string> {
   return Array.from(new Uint8Array(result), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-export class KnowledgeBaseUploads {
+export class Uploads {
   constructor(private readonly transport: Transport) {}
 
-  create(params: CreateKnowledgeBaseUploadParams): Promise<KnowledgeBaseUpload> {
-    return this.transport.request("POST", "/knowledge-base/uploads", { body: params });
+  create(workspace: string, params: CreateUploadParams): Promise<Upload> {
+    return this.transport.request("POST", workspacePath(workspace, "/uploads"), { body: params });
   }
 
-  get(uploadId: string, options: { workspace?: string } = {}): Promise<KnowledgeBaseUpload> {
-    return this.transport.request("GET", `/knowledge-base/uploads/${segment(uploadId)}`, {
-      query: { workspace: options.workspace },
-    });
+  get(workspace: string, uploadId: string): Promise<Upload> {
+    return this.transport.request("GET", workspacePath(workspace, `/uploads/${segment(uploadId)}`));
   }
 
   preparePart(
+    workspace: string,
     uploadId: string,
-    params: { partNumber: number; sha256: string; sizeBytes: number; workspace?: string },
+    params: { partNumber: number; sha256: string; sizeBytes: number },
   ): Promise<PreparedUploadPart> {
-    const { workspace, ...body } = params;
-    return this.transport.request("POST", `/knowledge-base/uploads/${segment(uploadId)}/parts`, {
-      body,
-      query: { workspace },
+    return this.transport.request("POST", workspacePath(workspace, `/uploads/${segment(uploadId)}/parts`), {
+      body: params,
     });
   }
 
   confirmPart(
+    workspace: string,
     uploadId: string,
     partNumber: number,
     receipt: string,
-    options: { workspace?: string } = {},
-  ): Promise<KnowledgeBaseUpload> {
+  ): Promise<Upload> {
     return this.transport.request(
       "PUT",
-      `/knowledge-base/uploads/${segment(uploadId)}/parts/${partNumber}`,
-      { body: { receipt }, query: { workspace: options.workspace } },
+      workspacePath(workspace, `/uploads/${segment(uploadId)}/parts/${partNumber}`),
+      { body: { receipt } },
     );
   }
 
   async uploadPart(
+    workspace: string,
     uploadId: string,
     partNumber: number,
     data: Uint8Array,
-    options: { workspace?: string } = {},
-  ): Promise<KnowledgeBaseUpload> {
-    const prepared = await this.preparePart(uploadId, {
+  ): Promise<Upload> {
+    const prepared = await this.preparePart(workspace, uploadId, {
       partNumber,
       sha256: await digest(data),
       sizeBytes: data.byteLength,
-      ...(options.workspace === undefined ? {} : { workspace: options.workspace }),
     });
     const receipt = await this.transport.upload(prepared.uploadUrl, prepared.headers, data);
-    return this.confirmPart(uploadId, partNumber, receipt, options);
+    return this.confirmPart(workspace, uploadId, partNumber, receipt);
   }
 
   async wait(
+    workspace: string,
     uploadId: string,
-    options: { workspace?: string; pollIntervalMs?: number; timeoutMs?: number } = {},
-  ): Promise<KnowledgeBaseUpload> {
+    options: { pollIntervalMs?: number; timeoutMs?: number } = {},
+  ): Promise<Upload> {
     const pollIntervalMs = options.pollIntervalMs ?? 2_000;
     const deadline = Date.now() + (options.timeoutMs ?? Number.POSITIVE_INFINITY);
     while (true) {
-      const upload = await this.get(
-        uploadId,
-        options.workspace === undefined ? {} : { workspace: options.workspace },
-      );
+      const upload = await this.get(workspace, uploadId);
       if (UPLOAD_TERMINAL.has(upload.status)) return upload;
       if (Date.now() + pollIntervalMs >= deadline) {
-        throw new ModaicTimeoutError(`Timed out waiting for knowledge-base upload ${uploadId}.`);
+        throw new ModaicTimeoutError(`Timed out waiting for resource upload ${uploadId}.`);
       }
       await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
     }
   }
 
-  async uploadFile(path: string | URL, params: UploadFileParams): Promise<KnowledgeBaseUpload> {
+  async uploadFile(path: string | URL, params: UploadFileParams): Promise<Upload> {
     const [{ createHash }, { open }] = await Promise.all([
       import("node:crypto"),
       import("node:fs/promises"),
@@ -281,15 +277,15 @@ export class KnowledgeBaseUploads {
       await hashHandle.close();
     }
 
-    const upload = await this.create({
+    const upload = await this.create(params.workspace, {
+      name: params.name,
       kind: params.kind,
       sha256: hash.digest("hex"),
       sizeBytes,
-      ...(params.name === undefined ? {} : { name: params.name }),
-      ...(params.workspace === undefined ? {} : { workspace: params.workspace }),
+      ...(params.description === undefined ? {} : { description: params.description }),
+      ...(params.repos === undefined ? {} : { repos: params.repos }),
     });
     const partCount = sizeBytes === 0 ? 0 : Math.ceil(sizeBytes / upload.partSizeBytes);
-    const workspaceOptions = params.workspace === undefined ? {} : { workspace: params.workspace };
     let uploadedBytes = 0;
     try {
       params.onProgress?.({ uploadedBytes, totalBytes: sizeBytes, partNumber: 0, partCount });
@@ -303,7 +299,7 @@ export class KnowledgeBaseUploads {
             throw new ModaicConnectionError("Local file changed while it was being uploaded.");
           }
           const chunk = bytesRead === expected ? buffer : buffer.subarray(0, bytesRead);
-          await this.uploadPart(upload.id, partNumber, chunk, workspaceOptions);
+          await this.uploadPart(params.workspace, upload.id, partNumber, chunk);
           uploadedBytes += bytesRead;
           params.onProgress?.({ uploadedBytes, totalBytes: sizeBytes, partNumber, partCount });
         }
@@ -311,62 +307,60 @@ export class KnowledgeBaseUploads {
         await uploadHandle.close();
       }
     } catch (error) {
-      await this.cancel(upload.id, workspaceOptions).catch(() => undefined);
+      await this.cancel(params.workspace, upload.id).catch(() => undefined);
       throw error;
     }
 
-    const result = await this.complete(upload.id, workspaceOptions);
+    const result = await this.complete(params.workspace, upload.id);
     if (params.waitForValidation === false || UPLOAD_TERMINAL.has(result.status)) return result;
-    return this.wait(upload.id, {
-      ...workspaceOptions,
+    return this.wait(params.workspace, upload.id, {
       ...(params.pollIntervalMs === undefined ? {} : { pollIntervalMs: params.pollIntervalMs }),
       ...(params.timeoutMs === undefined ? {} : { timeoutMs: params.timeoutMs }),
     });
   }
 
-  complete(uploadId: string, options: { workspace?: string } = {}): Promise<KnowledgeBaseUpload> {
-    return this.transport.request("POST", `/knowledge-base/uploads/${segment(uploadId)}/complete`, {
-      query: { workspace: options.workspace },
-    });
+  complete(workspace: string, uploadId: string): Promise<Upload> {
+    return this.transport.request("POST", workspacePath(workspace, `/uploads/${segment(uploadId)}/complete`));
   }
 
-  cancel(uploadId: string, options: { workspace?: string } = {}): Promise<KnowledgeBaseUpload> {
-    return this.transport.request("DELETE", `/knowledge-base/uploads/${segment(uploadId)}`, {
-      query: { workspace: options.workspace },
-    });
+  cancel(workspace: string, uploadId: string): Promise<Upload> {
+    return this.transport.request("DELETE", workspacePath(workspace, `/uploads/${segment(uploadId)}`));
   }
 }
 
-export class KnowledgeBaseResources {
+export class Resources {
   constructor(private readonly transport: Transport) {}
 
   list(
-    options: KnowledgeBaseQuery & { kind?: ResourceKind; cursor?: string } = {},
-  ): Promise<KnowledgeBaseResourcePage> {
-    return this.transport.request("GET", "/knowledge-base/resources", {
-      query: { ...query(options), kind: options.kind, cursor: options.cursor },
+    workspace: string,
+    options: ResourceQuery & { kind?: ResourceKind; glob?: string; cursor?: string } = {},
+  ): Promise<ResourcePage> {
+    return this.transport.request("GET", workspacePath(workspace, "/resources"), {
+      query: { ...query(options), kind: options.kind, glob: options.glob, cursor: options.cursor },
     });
   }
 
-  get(name: string, options: KnowledgeBaseQuery = {}): Promise<KnowledgeBaseResource> {
-    return this.transport.request("GET", `/knowledge-base/resources/${segment(name)}`, {
+  get(workspace: string, name: string, options: ResourceQuery = {}): Promise<Resource> {
+    return this.transport.request("GET", workspacePath(workspace, `/resources/${segment(name)}`), {
       query: query(options),
     });
   }
 
-  download(name: string, options: KnowledgeBaseQuery = {}): Promise<Uint8Array> {
-    return this.transport.download(`/knowledge-base/resources/${segment(name)}/content`, {
+  download(workspace: string, name: string, options: ResourceQuery = {}): Promise<Uint8Array> {
+    return this.transport.download(workspacePath(workspace, `/resources/${segment(name)}/content`), {
       query: query(options),
     });
   }
-}
 
-export class KnowledgeBase {
-  readonly uploads: KnowledgeBaseUploads;
-  readonly resources: KnowledgeBaseResources;
-
-  constructor(transport: Transport) {
-    this.uploads = new KnowledgeBaseUploads(transport);
-    this.resources = new KnowledgeBaseResources(transport);
+  update(
+    workspace: string,
+    name: string,
+    params: { description?: string | null; repos?: string[] },
+  ): Promise<Resource> {
+    return this.transport.request(
+      "PATCH",
+      workspacePath(workspace, `/resources/${segment(name)}`),
+      { body: params },
+    );
   }
 }
