@@ -147,7 +147,7 @@ describe("fine-tuning", () => {
   });
 });
 
-describe("knowledge-base uploads", () => {
+describe("resource uploads", () => {
   test("uploads a hashed part and never sends the API token to transfer hosts", async () => {
     const { modaic, requests } = setup((request) => {
       const url = new URL(request.url);
@@ -180,20 +180,20 @@ describe("knowledge-base uploads", () => {
       return Response.json(uploadJson(), { status: 201 });
     });
 
-    const session = await modaic.knowledgeBase.uploads.create("acme", {
+    const session = await modaic.uploads.create("acme", {
       kind: "dataset",
       sha256: SHA,
       sizeBytes: 4,
       name: "hard-labels",
     });
-    const uploaded = await modaic.knowledgeBase.uploads.uploadPart(
+    const uploaded = await modaic.uploads.uploadPart(
       "acme",
       session.id,
       1,
       new TextEncoder().encode("data"),
     );
     expect(uploaded.parts[0]?.uploaded).toBe(true);
-    expect(await modaic.knowledgeBase.resources.download("acme", "hard-labels"))
+    expect(await modaic.resources.download("acme", "hard-labels"))
       .toEqual(new TextEncoder().encode("resource-bytes"));
 
     const apiRequests = requests.filter((request) => new URL(request.url).host === "example.test");
@@ -248,7 +248,7 @@ describe("knowledge-base uploads", () => {
     });
 
     try {
-      const result = await modaic.knowledgeBase.uploads.uploadFile(path, {
+      const result = await modaic.uploads.uploadFile(path, {
         workspace: "acme",
         kind: "dataset",
         name: "hard-labels",

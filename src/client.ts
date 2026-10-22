@@ -1,7 +1,7 @@
 import { ModaicConnectionError, ModaicTimeoutError } from "./errors.js";
 import { JobProgress } from "./progress.js";
 import { type ClientOptions, segment, Transport } from "./transport.js";
-import { FineTunes, KnowledgeBase } from "./training.js";
+import { FineTunes, Resources, Uploads } from "./training.js";
 import type {
   Alignment,
   AlignmentList,
@@ -564,7 +564,8 @@ export class Modaic {
   readonly batchDecisions: BatchDecisions;
   readonly alignments: Alignments;
   readonly fineTunes: FineTunes;
-  readonly knowledgeBase: KnowledgeBase;
+  readonly uploads: Uploads;
+  readonly resources: Resources;
   readonly protege: Protege;
 
   constructor(options: ClientOptions = {}) {
@@ -575,7 +576,8 @@ export class Modaic {
     this.batchDecisions = new BatchDecisions(transport);
     this.alignments = new Alignments(transport);
     this.fineTunes = new FineTunes(transport);
-    this.knowledgeBase = new KnowledgeBase(transport);
+    this.uploads = new Uploads(transport);
+    this.resources = new Resources(transport);
     this.protege = new Protege(transport);
   }
 }

@@ -172,10 +172,10 @@ wait to the inference path. HTTP errors throw `ModaicAPIError` with
 Network/body-read errors throw `ModaicConnectionError`; timeouts throw
 `ModaicTimeoutError`. Request timeouts cover receiving the response body.
 
-## Knowledge base and fine-tuning
+## Workspace resources and fine-tuning
 
 
-Use `client.knowledgeBase.uploads` for resumable datasets, eval-only datasets,
+Use `client.uploads` for resumable datasets, eval-only datasets,
 and artifacts. On Node.js, prefer `uploadFile(path, { workspace, name, kind })`
 for a new local file: it computes
 the whole-file SHA-256, creates the session, streams server-sized parts,
@@ -186,7 +186,7 @@ completion. Browser callers use the lower-level part methods.
 `create(workspace, { kind, sha256, sizeBytes, name, repos? })` creates a session;
 `uploadPart(workspace, id, partNumber, data)` hashes one `Uint8Array` chunk, uploads it
 with the file-scoped grant, and confirms its receipt. Then call `complete` and
-poll `get` or call `wait` until validation is terminal. `knowledgeBase.resources` provides
+poll `get` or call `wait` until validation is terminal. `resources` provides
 `list`, `get`, `update`, and `download`; listing accepts `glob`, and update can
 replace repository links and/or the description. Resource names are unique
 across all kinds, so get/download do not take a kind.
@@ -197,8 +197,7 @@ to start optimization, then `get`, `cancel`, or `wait` by job ID.
 Use `client.fineTunes.create` with `trainingFile` and
 `trainingType: "head_only" | "lora"`. Base model `mo-1.3.1` also requires
 `destination`. The JSONL dataset supplies `instructions`, `type`, `criteria`,
-and `answer` on each inline question; training does not change saved questions in
-`model.json`. Rows may also contain up to ten named PNG/JPEG/WebP assets as raw
+and `answer` on each inline question. Rows may also contain up to ten named PNG/JPEG/WebP assets as raw
 base64 or public HTTPS URLs. Asset IDs are placeholders inside state,
 instructions, and criteria strings; URL contents are snapshotted when training
 starts. The current `mo` training base is text-only and returns

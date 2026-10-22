@@ -90,17 +90,17 @@ export class Transport {
       const value = await response.json() as unknown;
       if (!response.ok || !object(value) || typeof value.receipt !== "string") {
         throw new ModaicConnectionError(
-          `Knowledge-base transfer returned HTTP ${response.status}.`,
+          `Resource transfer returned HTTP ${response.status}.`,
         );
       }
       return value.receipt;
     } catch (error) {
       if (error instanceof ModaicConnectionError) throw error;
       if (controller.signal.aborted) {
-        throw new ModaicTimeoutError("Knowledge-base upload timed out.", { cause: error });
+        throw new ModaicTimeoutError("Resource upload timed out.", { cause: error });
       }
       throw new ModaicConnectionError(
-        "Could not reach the knowledge-base transfer service.",
+        "Could not reach the resource transfer service.",
         { cause: error },
       );
     } finally {
@@ -136,16 +136,16 @@ export class Transport {
       }
       if (!response.ok) {
         throw new ModaicConnectionError(
-          `Knowledge-base download returned HTTP ${response.status}.`,
+          `Resource download returned HTTP ${response.status}.`,
         );
       }
       return new Uint8Array(await response.arrayBuffer());
     } catch (error) {
       if (error instanceof ModaicConnectionError) throw error;
       if (controller.signal.aborted) {
-        throw new ModaicTimeoutError("Knowledge-base download timed out.", { cause: error });
+        throw new ModaicTimeoutError("Resource download timed out.", { cause: error });
       }
-      throw new ModaicConnectionError("Could not download the knowledge-base resource.", {
+      throw new ModaicConnectionError("Could not download the resource.", {
         cause: error,
       });
     } finally {

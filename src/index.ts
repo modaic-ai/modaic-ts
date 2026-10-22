@@ -8,7 +8,7 @@ export {
   Models,
   Protege,
 } from "./client.js";
-export { FineTunes, KnowledgeBase, KnowledgeBaseResources, KnowledgeBaseUploads } from "./training.js";
+export { FineTunes, Resources, Uploads } from "./training.js";
 export type { ClientOptions } from "./client.js";
 export { Choice, Noul, Score } from "./questions.js";
 export { VERSION } from "./version.js";

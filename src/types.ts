@@ -585,7 +585,7 @@ export interface FineTuneLogs {
   running: boolean;
 }
 
-export interface KnowledgeBaseResource {
+export interface Resource {
   id: string;
   name: string;
   description: string | null;
@@ -597,8 +597,8 @@ export interface KnowledgeBaseResource {
   commitSha: string;
 }
 
-export interface KnowledgeBaseResourcePage {
-  resources: KnowledgeBaseResource[];
+export interface ResourcePage {
+  resources: Resource[];
   commitSha: string | null;
   nextCursor: string | null;
 }
@@ -610,7 +610,7 @@ export interface UploadPart {
   uploaded: boolean;
 }
 
-export interface KnowledgeBaseUpload {
+export interface Upload {
   id: string;
   name: string;
   description: string | null;
@@ -623,11 +623,11 @@ export interface KnowledgeBaseUpload {
   expiresAt: string;
   partSizeBytes: number;
   parts: UploadPart[];
-  result: KnowledgeBaseUploadResult | null;
+  result: UploadResult | null;
   error: JobError | null;
 }
 
-export interface KnowledgeBaseUploadResult {
+export interface UploadResult {
   name: string;
   description: string | null;
   kind: ResourceKind;
@@ -646,7 +646,7 @@ export interface PreparedUploadPart {
   expiresIn: number;
 }
 
-export interface CreateKnowledgeBaseUploadParams {
+export interface CreateUploadParams {
   name: string;
   kind: ResourceKind;
   sha256: string;
@@ -674,7 +674,7 @@ export interface UploadFileParams {
   onProgress?: (progress: UploadFileProgress) => void;
 }
 
-export interface KnowledgeBaseQuery {
+export interface ResourceQuery {
   commitSha?: string;
 }
 

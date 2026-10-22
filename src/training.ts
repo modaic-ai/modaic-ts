@@ -2,14 +2,14 @@ import { ModaicConnectionError, ModaicTimeoutError } from "./errors.js";
 import { segment, Transport } from "./transport.js";
 import type {
   CreateFineTuneParams,
-  CreateKnowledgeBaseUploadParams,
+  CreateUploadParams,
   FineTune,
   FineTuneList,
   FineTuneLogs,
-  KnowledgeBaseQuery,
-  KnowledgeBaseResource,
-  KnowledgeBaseResourcePage,
-  KnowledgeBaseUpload,
+  ResourceQuery,
+  Resource,
+  ResourcePage,
+  Upload,
   PreparedUploadPart,
   ResourceKind,
   TrainingControls,
@@ -180,7 +180,7 @@ function workspacePath(workspace: string, suffix: string): string {
   return `/workspaces/${segment(workspace)}${suffix}`;
 }
 
-function query(options: KnowledgeBaseQuery = {}): Record<string, string | undefined> {
+function query(options: ResourceQuery = {}): Record<string, string | undefined> {
   return { commitSha: options.commitSha };
 }
 
@@ -189,14 +189,14 @@ async function digest(data: Uint8Array): Promise<string> {
   return Array.from(new Uint8Array(result), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-export class KnowledgeBaseUploads {
+export class Uploads {
   constructor(private readonly transport: Transport) {}
 
-  create(workspace: string, params: CreateKnowledgeBaseUploadParams): Promise<KnowledgeBaseUpload> {
+  create(workspace: string, params: CreateUploadParams): Promise<Upload> {
     return this.transport.request("POST", workspacePath(workspace, "/uploads"), { body: params });
   }
 
-  get(workspace: string, uploadId: string): Promise<KnowledgeBaseUpload> {
+  get(workspace: string, uploadId: string): Promise<Upload> {
     return this.transport.request("GET", workspacePath(workspace, `/uploads/${segment(uploadId)}`));
   }
 
@@ -215,7 +215,7 @@ export class KnowledgeBaseUploads {
     uploadId: string,
     partNumber: number,
     receipt: string,
-  ): Promise<KnowledgeBaseUpload> {
+  ): Promise<Upload> {
     return this.transport.request(
       "PUT",
       workspacePath(workspace, `/uploads/${segment(uploadId)}/parts/${partNumber}`),
@@ -228,7 +228,7 @@ export class KnowledgeBaseUploads {
     uploadId: string,
     partNumber: number,
     data: Uint8Array,
-  ): Promise<KnowledgeBaseUpload> {
+  ): Promise<Upload> {
     const prepared = await this.preparePart(workspace, uploadId, {
       partNumber,
       sha256: await digest(data),
@@ -242,20 +242,20 @@ export class KnowledgeBaseUploads {
     workspace: string,
     uploadId: string,
     options: { pollIntervalMs?: number; timeoutMs?: number } = {},
-  ): Promise<KnowledgeBaseUpload> {
+  ): Promise<Upload> {
     const pollIntervalMs = options.pollIntervalMs ?? 2_000;
     const deadline = Date.now() + (options.timeoutMs ?? Number.POSITIVE_INFINITY);
     while (true) {
       const upload = await this.get(workspace, uploadId);
       if (UPLOAD_TERMINAL.has(upload.status)) return upload;
       if (Date.now() + pollIntervalMs >= deadline) {
-        throw new ModaicTimeoutError(`Timed out waiting for knowledge-base upload ${uploadId}.`);
+        throw new ModaicTimeoutError(`Timed out waiting for resource upload ${uploadId}.`);
       }
       await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
     }
   }
 
-  async uploadFile(path: string | URL, params: UploadFileParams): Promise<KnowledgeBaseUpload> {
+  async uploadFile(path: string | URL, params: UploadFileParams): Promise<Upload> {
     const [{ createHash }, { open }] = await Promise.all([
       import("node:crypto"),
       import("node:fs/promises"),
@@ -317,34 +317,34 @@ export class KnowledgeBaseUploads {
     });
   }
 
-  complete(workspace: string, uploadId: string): Promise<KnowledgeBaseUpload> {
+  complete(workspace: string, uploadId: string): Promise<Upload> {
     return this.transport.request("POST", workspacePath(workspace, `/uploads/${segment(uploadId)}/complete`));
   }
 
-  cancel(workspace: string, uploadId: string): Promise<KnowledgeBaseUpload> {
+  cancel(workspace: string, uploadId: string): Promise<Upload> {
     return this.transport.request("DELETE", workspacePath(workspace, `/uploads/${segment(uploadId)}`));
   }
 }
 
-export class KnowledgeBaseResources {
+export class Resources {
   constructor(private readonly transport: Transport) {}
 
   list(
     workspace: string,
-    options: KnowledgeBaseQuery & { kind?: ResourceKind; glob?: string; cursor?: string } = {},
-  ): Promise<KnowledgeBaseResourcePage> {
+    options: ResourceQuery & { kind?: ResourceKind; glob?: string; cursor?: string } = {},
+  ): Promise<ResourcePage> {
     return this.transport.request("GET", workspacePath(workspace, "/resources"), {
       query: { ...query(options), kind: options.kind, glob: options.glob, cursor: options.cursor },
     });
   }
 
-  get(workspace: string, name: string, options: KnowledgeBaseQuery = {}): Promise<KnowledgeBaseResource> {
+  get(workspace: string, name: string, options: ResourceQuery = {}): Promise<Resource> {
     return this.transport.request("GET", workspacePath(workspace, `/resources/${segment(name)}`), {
       query: query(options),
     });
   }
 
-  download(workspace: string, name: string, options: KnowledgeBaseQuery = {}): Promise<Uint8Array> {
+  download(workspace: string, name: string, options: ResourceQuery = {}): Promise<Uint8Array> {
     return this.transport.download(workspacePath(workspace, `/resources/${segment(name)}/content`), {
       query: query(options),
     });
@@ -354,21 +354,11 @@ export class KnowledgeBaseResources {
     workspace: string,
     name: string,
     params: { description?: string | null; repos?: string[] },
-  ): Promise<KnowledgeBaseResource> {
+  ): Promise<Resource> {
     return this.transport.request(
       "PATCH",
       workspacePath(workspace, `/resources/${segment(name)}`),
       { body: params },
     );
-  }
-}
-
-export class KnowledgeBase {
-  readonly uploads: KnowledgeBaseUploads;
-  readonly resources: KnowledgeBaseResources;
-
-  constructor(transport: Transport) {
-    this.uploads = new KnowledgeBaseUploads(transport);
-    this.resources = new KnowledgeBaseResources(transport);
   }
 }
