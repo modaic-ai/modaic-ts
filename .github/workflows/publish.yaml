@@ -4,8 +4,10 @@ name: Publish
 # cuts a matching GitHub Release with auto-generated notes.
 #
 #   Release flow:
-#     1. Update the version in package.json
-#     2. git tag vX.Y.Z <release commit> && git push origin vX.Y.Z
+#     1. git tag vX.Y.Z <release commit> && git push origin vX.Y.Z
+#
+# The tag is the release version. The workflow applies it to package.json and
+# package-lock.json only in its temporary checkout before building/publishing.
 #
 # Auth: npm trusted publishing via OIDC — no NPM_TOKEN. Requires `id-token:
 # write` below, npm CLI >= 11.5.1, and a Trusted Publisher configured on
@@ -36,6 +38,28 @@ jobs:
         with:
           ref: ${{ github.event.inputs.ref || github.ref }}
 
+      - name: Resolve release version
+        id: release
+        env:
+          INPUT_REF: ${{ github.event.inputs.ref }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            RELEASE_REF="$GITHUB_REF_NAME"
+          else
+            RELEASE_REF="$INPUT_REF"
+          fi
+
+          RELEASE_TAG="${RELEASE_REF#refs/tags/}"
+          if [[ ! "$RELEASE_TAG" =~ ^v([0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?)$ ]]; then
+            echo "::error::Release ref must be a semantic version tag such as v0.12.0; received '$RELEASE_REF'"
+            exit 1
+          fi
+
+          RELEASE_VERSION="${BASH_REMATCH[1]}"
+          echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$RELEASE_VERSION" >> "$GITHUB_OUTPUT"
+          echo "Publishing $RELEASE_TAG as npm version $RELEASE_VERSION"
+
       # Node 24 (setup-node@v6) ships npm >= 11.5.1, which OIDC trusted
       # publishing requires. Do NOT set `registry-url`: it writes an .npmrc with
       # a placeholder `_authToken` (NODE_AUTH_TOKEN=XXXXX-XXXXX-…) that npm uses
@@ -49,16 +73,46 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Verify tag matches package.json version
-        if: github.event_name == 'push'
+      - name: Apply release version
+        env:
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
         run: |
-          PKG_VERSION="$(node -p "require('./package.json').version")"
-          TAG_VERSION="${GITHUB_REF_NAME#v}"
-          echo "package.json=$PKG_VERSION  tag=$TAG_VERSION"
-          if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
-            echo "::error::Tag v$TAG_VERSION does not match package.json version $PKG_VERSION"
-            exit 1
-          fi
+          npm version "$RELEASE_VERSION" \
+            --no-git-tag-version \
+            --allow-same-version \
+            --ignore-scripts
+
+          node - <<'NODE'
+          const expected = process.env.RELEASE_VERSION;
+          const packageJson = require("./package.json");
+          const packageLock = require("./package-lock.json");
+          const versions = {
+            "package.json": packageJson.version,
+            "package-lock.json": packageLock.version,
+            "package-lock.json root package": packageLock.packages?.[""]?.version,
+          };
+
+          for (const [source, actual] of Object.entries(versions)) {
+            if (actual !== expected) {
+              console.error(`::error::${source} has version ${actual}; expected ${expected}`);
+              process.exitCode = 1;
+            }
+          }
+
+          const changed = require("node:child_process")
+            .execFileSync("git", ["status", "--short"], { encoding: "utf8" })
+            .trim()
+            .split("\n")
+            .filter(Boolean)
+            .map((line) => line.slice(3));
+          const unexpected = changed.filter(
+            (path) => path !== "package.json" && path !== "package-lock.json",
+          );
+          if (unexpected.length > 0) {
+            console.error(`::error::npm version modified unexpected files: ${unexpected.join(", ")}`);
+            process.exitCode = 1;
+          }
+          NODE
 
       - name: Skip if version already on npm
         id: check
@@ -76,6 +130,27 @@ jobs:
         if: steps.check.outputs.skip == 'false'
         run: npm run build
 
+      - name: Verify package tarball metadata
+        if: steps.check.outputs.skip == 'false'
+        env:
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          npm pack --dry-run --json > "$RUNNER_TEMP/npm-pack.json"
+          node - "$RUNNER_TEMP/npm-pack.json" <<'NODE'
+          const fs = require("node:fs");
+          const packageJson = require("./package.json");
+          const [pack] = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+          const expectedVersion = process.env.RELEASE_VERSION;
+
+          if (pack.name !== packageJson.name || pack.version !== expectedVersion) {
+            console.error(
+              `::error::Tarball is ${pack.name}@${pack.version}; expected ${packageJson.name}@${expectedVersion}`,
+            );
+            process.exit(1);
+          }
+          console.log(`Verified ${pack.filename}: ${pack.name}@${pack.version}`);
+          NODE
+
       - name: Publish to npm
         if: steps.check.outputs.skip == 'false'
         run: |
@@ -83,15 +158,16 @@ jobs:
           npm publish --access public
 
       - name: Create GitHub Release
-        if: github.event_name == 'push' && steps.check.outputs.skip == 'false'
+        if: success()
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
         run: |
-          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            echo "Release $GITHUB_REF_NAME already exists — skipping."
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Release $RELEASE_TAG already exists — skipping."
           else
-            gh release create "$GITHUB_REF_NAME" \
-              --title "$GITHUB_REF_NAME" \
+            gh release create "$RELEASE_TAG" \
+              --title "$RELEASE_TAG" \
               --generate-notes \
               --verify-tag
           fi
