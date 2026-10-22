@@ -152,12 +152,15 @@ dataset defines each question and answer on the row; a base model requires a
 destination, while an existing repository publishes back to itself:
 
 ```jsonl
-{"state":"Duplicate charge","questions":{"route":{"instructions":"Route?","type":"choice","criteria":{"support":"Support","payments":"Payments"},"answer":{"support":0.1,"payments":0.9}},"severity":{"instructions":"Severity?","type":"score","criteria":["low","high"],"answer":1}},"split":"train"}
+{"state":"Duplicate charge","questions":{"route":{"instructions":"Route?","type":"choice","criteria":{"support":"Support","payments":"Payments"},"answer":{"support":0.1,"payments":0.9}},"severity":{"instructions":"Severity?","type":"score","criteria":["low","high"],"answer":1}}}
 ```
 
 Keyed criteria use string hard labels or probability objects with exactly the
 same keys. Positional criteria use zero-based integer labels or probability
 arrays of the same length. Soft-label probabilities must sum to 1.
+Rows do not contain split labels. Use `validationFile` and `evalOnlyDataset`
+for separate uploaded validation and held-out files; omitted partitions are
+selected deterministically from the training file.
 
 ```typescript
 const job = await modaic.fineTunes.create({

@@ -527,6 +527,7 @@ export interface CreateFineTuneParams extends TrainingControls {
   branch?: string;
   sourceCommitSha?: string;
   validationFile?: string;
+  evalOnlyDataset?: string;
   suffix?: string;
   fromCheckpoint?: string;
   loraR?: number;
