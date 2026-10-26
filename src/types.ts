@@ -498,7 +498,6 @@ export type FineTuneStatus =
   | "cancelled";
 
 export interface TrainingControls {
-  maxSeqLength?: number;
   nEpochs?: number;
   nCheckpoints?: number;
   nEvals?: number;

@@ -32,7 +32,6 @@ function mapFineTune(value: WireFineTune): FineTune {
 function controlsBody(params: TrainingControls): Record<string, unknown> {
   const body: Record<string, unknown> = {};
   const keys: [keyof TrainingControls, string][] = [
-    ["maxSeqLength", "max_seq_length"],
     ["nEpochs", "n_epochs"],
     ["nCheckpoints", "n_checkpoints"],
     ["nEvals", "n_evals"],
