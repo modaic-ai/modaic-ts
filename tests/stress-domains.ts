@@ -9,7 +9,7 @@ interface FixtureExample {
 }
 interface Domain {
   slug: string; mode: string; description: string; keys: [string, string, string];
-  questions: Record<string, Question>; examples: FixtureExample[];
+  questions: Record<string, Extract<Question, {type: "noul" | "choice" | "score"}>>; examples: FixtureExample[];
 }
 interface Row {
   name: string; id: string; expected: Record<string, JsonValue>; passed?: boolean;
@@ -32,6 +32,7 @@ function validate(result: DecisionResponse, questions: Record<string, Question>)
     assert.equal(answer.type, question.type);
     if (answer.type === "noul") assert(answer.noul >= 0 && answer.noul <= 1);
     else {
+      assert(answer.type === "choice" || answer.type === "score", "Categorical workload received a noncategorical answer");
       assert(answer.confidence >= 0 && answer.confidence <= 1);
       const probabilities = Object.values(answer.probabilities);
       assert(probabilities.every((p) => p >= 0 && p <= 1));

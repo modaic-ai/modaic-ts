@@ -10,7 +10,7 @@ export {
 } from "./client.js";
 export { FineTunes, Resources, Uploads } from "./training.js";
 export type { ClientOptions } from "./client.js";
-export { Choice, Noul, Score } from "./questions.js";
+export { Box, Span, Choice, Noul, Score } from "./questions.js";
 export { VERSION } from "./version.js";
 export {
   ModaicAPIError,

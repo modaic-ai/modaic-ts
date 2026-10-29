@@ -75,10 +75,11 @@ function decisionBody(params: CreateDecisionParams & { schema?: ResponseSchema<u
   body: Record<string, unknown>;
   headers?: Record<string, string>;
 } {
-  const { idempotencyKey, exampleId, reasoningEffort, schema: _schema, ...rest } = params;
+  const { idempotencyKey, exampleId, reasoningEffort, assets, schema: _schema, ...rest } = params;
   return {
     body: {
       ...rest,
+      ...(assets === undefined ? {} : { assets: Object.fromEntries(Object.entries(assets).map(([id, asset]) => [id, { type: asset.type, format: asset.format, data_base64: asset.dataBase64 }])) }),
       ...(reasoningEffort === undefined ? {} : { reasoning_effort: reasoningEffort }),
       ...(exampleId === undefined ? {} : { example_id: exampleId }),
     },

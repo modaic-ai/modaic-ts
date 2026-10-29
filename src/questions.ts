@@ -1,4 +1,22 @@
-import type { ChoiceQuestion, JsonValue, NoulQuestion, ScoreQuestion } from "./types.js";
+import type { BoxQuestion, SpanQuestion, ChoiceQuestion, JsonValue, NoulQuestion, ScoreQuestion } from "./types.js";
+
+export class Span implements SpanQuestion {
+  readonly type = "span" as const;
+  instructions: string;
+  constructor(options: Omit<SpanQuestion, "type">) {
+    if (!options.instructions.trim() || "criteria" in options) throw new Error("Span requires instructions and rejects criteria.");
+    this.instructions = options.instructions;
+  }
+}
+
+export class Box implements BoxQuestion {
+  readonly type = "box" as const;
+  instructions: string;
+  constructor(options: Omit<BoxQuestion, "type">) {
+    if (!options.instructions.length || "criteria" in options) throw new Error("Box requires instructions and rejects criteria.");
+    this.instructions = options.instructions;
+  }
+}
 
 export class Noul implements NoulQuestion {
   readonly type = "noul" as const;
