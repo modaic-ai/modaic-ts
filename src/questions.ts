@@ -1,10 +1,10 @@
-import type { BoxQuestion, SpanQuestion, ChoiceQuestion, JsonValue, NoulQuestion, ScoreQuestion } from "./types.js";
+import type { BoxQuestion, ExtractionQuestion, ChoiceQuestion, JsonValue, NoulQuestion, ScoreQuestion } from "./types.js";
 
-export class Span implements SpanQuestion {
-  readonly type = "span" as const;
+export class Extraction implements ExtractionQuestion {
+  readonly type = "extraction" as const;
   instructions: string;
-  constructor(options: Omit<SpanQuestion, "type">) {
-    if (!options.instructions.trim() || "criteria" in options) throw new Error("Span requires instructions and rejects criteria.");
+  constructor(options: Omit<ExtractionQuestion, "type">) {
+    if (!options.instructions.trim() || "criteria" in options) throw new Error("Extraction requires instructions and rejects criteria.");
     this.instructions = options.instructions;
   }
 }

@@ -26,8 +26,8 @@ export interface ScoreQuestion {
   criteria: JsonValue[];
 }
 
-export interface SpanQuestion {
-  type: "span";
+export interface ExtractionQuestion {
+  type: "extraction";
   instructions: string;
   criteria?: never;
 }
@@ -38,7 +38,7 @@ export interface BoxQuestion {
   criteria?: never;
 }
 
-export type Question = NoulQuestion | ChoiceQuestion | ScoreQuestion | SpanQuestion | BoxQuestion;
+export type Question = NoulQuestion | ChoiceQuestion | ScoreQuestion | ExtractionQuestion | BoxQuestion;
 
 export interface NoulAnswer {
   type: "noul";
@@ -60,9 +60,9 @@ export interface ScoreAnswer {
   confidence: number;
 }
 
-export interface SpanAnswer {
-  type: "span";
-  span: { start: number; end: number; text: string };
+export interface ExtractionAnswer {
+  type: "extraction";
+  extraction: { start: number; end: number; text: string };
   confidence: number;
 }
 
@@ -72,7 +72,7 @@ export interface BoxAnswer {
   confidence: number;
 }
 
-export type Answer = NoulAnswer | ChoiceAnswer | ScoreAnswer | SpanAnswer | BoxAnswer;
+export type Answer = NoulAnswer | ChoiceAnswer | ScoreAnswer | ExtractionAnswer | BoxAnswer;
 
 export interface TokenUsage {
   inputTokens: number;
