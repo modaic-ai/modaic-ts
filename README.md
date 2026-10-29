@@ -44,7 +44,7 @@ const result = await modaic.decisions.create({
   state: {
     ticket: "I was charged twice for order 4832. Please refund one charge.",
   },
-  model: "typesafe/jev-latest",
+  model: "mo-latest",
   questions: {
     needs_refund: {
       type: "noul",
@@ -100,7 +100,7 @@ const ListingReview = z.object({
 });
 
 const result = await modaic.decisions.create({
-  model: "modaic/mo-fast",
+  model: "mo-latest",
   state: { listing: "Vintage leather jacket, size M" },
   questions: { /* ... */ },
   schema: ListingReview,
@@ -176,7 +176,7 @@ const finished = await modaic.fineTunes.wait(job.id);
 
 Once `finished.status === "done"`, call `acme/support-priority` normally. Pin an
 immutable published checkpoint with `acme/support-priority@<full-commit-sha>`.
-Mo Fast models are inference-only and reject fine-tuning requests.
+Fine-tuning requires `mo-1.3.1`.
 
 ## Model-bound resources
 
@@ -300,4 +300,4 @@ UTF-16 code units and end is exclusive. Box answers contain
 Pass inline `assets` to decisions.create, mapping an asset ID to
 `{type: "image", format: "png", dataBase64: "..."}`. Reference IDs in
 state, instructions or supported criteria; no separate upload is required.
-The `mo` alias continues to select Mo 1.3, not Mo 2.0.
+`mo-latest` selects `mo-2.0`.
