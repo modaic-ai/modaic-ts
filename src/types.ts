@@ -26,7 +26,19 @@ export interface ScoreQuestion {
   criteria: JsonValue[];
 }
 
-export type Question = NoulQuestion | ChoiceQuestion | ScoreQuestion;
+export interface ExtractionQuestion {
+  type: "extraction";
+  instructions: string;
+  criteria?: never;
+}
+
+export interface BoxQuestion {
+  type: "box";
+  instructions: string;
+  criteria?: never;
+}
+
+export type Question = NoulQuestion | ChoiceQuestion | ScoreQuestion | ExtractionQuestion | BoxQuestion;
 
 export interface NoulAnswer {
   type: "noul";
@@ -48,7 +60,19 @@ export interface ScoreAnswer {
   confidence: number;
 }
 
-export type Answer = NoulAnswer | ChoiceAnswer | ScoreAnswer;
+export interface ExtractionAnswer {
+  type: "extraction";
+  extraction: { start: number; end: number; text: string };
+  confidence: number;
+}
+
+export interface BoxAnswer {
+  type: "box";
+  box: { top: number; bottom: number; left: number; right: number };
+  confidence: number;
+}
+
+export type Answer = NoulAnswer | ChoiceAnswer | ScoreAnswer | ExtractionAnswer | BoxAnswer;
 
 export interface TokenUsage {
   inputTokens: number;
@@ -78,6 +102,7 @@ export interface ResponseSchema<T> {
 }
 
 export interface CreateDecisionParams {
+  assets?: Record<string, { type?: "image"; format: "png" | "jpg" | "jpeg"; dataBase64: string }>;
   state: JsonValue;
   model: string;
   questions?: Record<string, Question>;

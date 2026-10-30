@@ -3,7 +3,7 @@ import { Choice, Modaic, Noul, Score } from "modaic";
 
 export async function classify(client: Modaic) {
   return client.decisions.create({
-    model: "typesafe/jev-latest",
+    model: "mo-latest",
     state: { description: "Waterproof hiking boots, size 42" },
     questions: {
       outdoor: new Noul({ instructions: "Is this product intended for outdoor use?" }),

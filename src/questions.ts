@@ -1,4 +1,22 @@
-import type { ChoiceQuestion, JsonValue, NoulQuestion, ScoreQuestion } from "./types.js";
+import type { BoxQuestion, ExtractionQuestion, ChoiceQuestion, JsonValue, NoulQuestion, ScoreQuestion } from "./types.js";
+
+export class Extraction implements ExtractionQuestion {
+  readonly type = "extraction" as const;
+  instructions: string;
+  constructor(options: Omit<ExtractionQuestion, "type">) {
+    if (!options.instructions.trim() || "criteria" in options) throw new Error("Extraction requires instructions and rejects criteria.");
+    this.instructions = options.instructions;
+  }
+}
+
+export class Box implements BoxQuestion {
+  readonly type = "box" as const;
+  instructions: string;
+  constructor(options: Omit<BoxQuestion, "type">) {
+    if (!options.instructions.length || "criteria" in options) throw new Error("Box requires instructions and rejects criteria.");
+    this.instructions = options.instructions;
+  }
+}
 
 export class Noul implements NoulQuestion {
   readonly type = "noul" as const;

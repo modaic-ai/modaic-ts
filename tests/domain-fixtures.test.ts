@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { Choice, Noul, Score, type Question, type JsonValue } from "../src/index.js";
 
 const fixture = JSON.parse(readFileSync(new URL("./fixtures/domain-stress.json", import.meta.url), "utf8")) as {
-  domains: { slug: string; keys: [string, string, string]; questions: Record<string, Question>;
+  domains: { slug: string; keys: [string, string, string]; questions: Record<string, Extract<Question, {type: "noul" | "choice" | "score"}>>;
     examples: { name: string; state: JsonValue; groundTruth: Record<string, JsonValue>; rationale: string }[] }[];
 };
 
