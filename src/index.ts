@@ -14,7 +14,7 @@ export {
   Box,
   Choice,
   Datetime,
-  Extraction,
+  Span,
   Noul,
   Number,
   Score,

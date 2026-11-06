@@ -54,8 +54,8 @@ export interface DatetimeQuestion {
   criteria: { format: DatetimeFormat };
 }
 
-export interface ExtractionQuestion {
-  type: "extraction";
+export interface SpanQuestion {
+  type: "span";
   instructions: string;
   criteria?: never;
 }
@@ -73,7 +73,7 @@ export type Question =
   | NumberQuestion
   | TextQuestion
   | DatetimeQuestion
-  | ExtractionQuestion
+  | SpanQuestion
   | BoxQuestion;
 
 export interface NoulAnswer {
@@ -118,9 +118,11 @@ export interface DatetimeAnswer {
   confidence: number;
 }
 
-export interface ExtractionAnswer {
-  type: "extraction";
-  extraction: { start: number; end: number; text: string };
+export interface SpanAnswer {
+  type: "span";
+  start: number;
+  end: number;
+  span: string;
   confidence: number;
 }
 
@@ -137,7 +139,7 @@ export type Answer =
   | NumberAnswer
   | TextAnswer
   | DatetimeAnswer
-  | ExtractionAnswer
+  | SpanAnswer
   | BoxAnswer;
 
 export interface TokenUsage {

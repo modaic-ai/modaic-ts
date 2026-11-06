@@ -3,7 +3,7 @@ import type {
   ChoiceQuestion,
   DatetimeFormat,
   DatetimeQuestion,
-  ExtractionQuestion,
+  SpanQuestion,
   JsonValue,
   NoulQuestion,
   NumberQuestion,
@@ -59,11 +59,11 @@ export class Datetime implements DatetimeQuestion {
   }
 }
 
-export class Extraction implements ExtractionQuestion {
-  readonly type = "extraction" as const;
+export class Span implements SpanQuestion {
+  readonly type = "span" as const;
   instructions: string;
-  constructor(options: Omit<ExtractionQuestion, "type">) {
-    if (!options.instructions.trim() || "criteria" in options) throw new Error("Extraction requires instructions and rejects criteria.");
+  constructor(options: Omit<SpanQuestion, "type">) {
+    if (!options.instructions.trim() || "criteria" in options) throw new Error("Span requires instructions and rejects criteria.");
     this.instructions = options.instructions;
   }
 }
