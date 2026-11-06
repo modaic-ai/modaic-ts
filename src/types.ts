@@ -107,6 +107,7 @@ export interface NumberAnswer {
 export interface TextAnswer {
   type: "text";
   text: string;
+  probabilities: Record<string, number>;
   confidence: number;
 }
 
