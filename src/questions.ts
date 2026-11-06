@@ -1,4 +1,63 @@
-import type { BoxQuestion, ExtractionQuestion, ChoiceQuestion, JsonValue, NoulQuestion, ScoreQuestion } from "./types.js";
+import type {
+  BoxQuestion,
+  ChoiceQuestion,
+  DatetimeFormat,
+  DatetimeQuestion,
+  ExtractionQuestion,
+  JsonValue,
+  NoulQuestion,
+  NumberQuestion,
+  ScoreQuestion,
+  TextQuestion,
+} from "./types.js";
+
+const DATETIME_FORMATS: ReadonlySet<DatetimeFormat> = new Set([
+  "YYYY",
+  "YYYY-MM",
+  "YYYY-MM-DD",
+  "HH",
+  "HH:MM",
+  "HH:MM:SS",
+  "YYYY-MM-DDTHH",
+  "YYYY-MM-DDTHH:MM",
+  "YYYY-MM-DDTHH:MM:SS",
+]);
+
+function instructions(value: string, primitive: string): string {
+  if (!value.trim()) throw new Error(`${primitive} requires nonempty instructions.`);
+  return value;
+}
+
+export class Number implements NumberQuestion {
+  readonly type = "number" as const;
+  instructions: string;
+  criteria?: Exclude<NumberQuestion["criteria"], undefined>;
+  constructor(options: Omit<NumberQuestion, "type">) {
+    this.instructions = instructions(options.instructions, "Number");
+    if (options.criteria !== undefined) this.criteria = options.criteria;
+  }
+}
+
+export class Text implements TextQuestion {
+  readonly type = "text" as const;
+  instructions: string;
+  constructor(options: Omit<TextQuestion, "type">) {
+    this.instructions = instructions(options.instructions, "Text");
+  }
+}
+
+export class Datetime implements DatetimeQuestion {
+  readonly type = "datetime" as const;
+  instructions: string;
+  criteria: DatetimeQuestion["criteria"];
+  constructor(options: Omit<DatetimeQuestion, "type">) {
+    this.instructions = instructions(options.instructions, "Datetime");
+    if (!DATETIME_FORMATS.has(options.criteria.format)) {
+      throw new Error("Datetime format is unsupported.");
+    }
+    this.criteria = options.criteria;
+  }
+}
 
 export class Extraction implements ExtractionQuestion {
   readonly type = "extraction" as const;

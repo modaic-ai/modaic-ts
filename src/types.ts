@@ -26,6 +26,34 @@ export interface ScoreQuestion {
   criteria: JsonValue[];
 }
 
+export interface NumberQuestion {
+  type: "number";
+  instructions: string;
+  criteria?: { min?: string; max?: string; step?: string };
+}
+
+export interface TextQuestion {
+  type: "text";
+  instructions: string;
+}
+
+export type DatetimeFormat =
+  | "YYYY"
+  | "YYYY-MM"
+  | "YYYY-MM-DD"
+  | "HH"
+  | "HH:MM"
+  | "HH:MM:SS"
+  | "YYYY-MM-DDTHH"
+  | "YYYY-MM-DDTHH:MM"
+  | "YYYY-MM-DDTHH:MM:SS";
+
+export interface DatetimeQuestion {
+  type: "datetime";
+  instructions: string;
+  criteria: { format: DatetimeFormat };
+}
+
 export interface ExtractionQuestion {
   type: "extraction";
   instructions: string;
@@ -38,7 +66,15 @@ export interface BoxQuestion {
   criteria?: never;
 }
 
-export type Question = NoulQuestion | ChoiceQuestion | ScoreQuestion | ExtractionQuestion | BoxQuestion;
+export type Question =
+  | NoulQuestion
+  | ChoiceQuestion
+  | ScoreQuestion
+  | NumberQuestion
+  | TextQuestion
+  | DatetimeQuestion
+  | ExtractionQuestion
+  | BoxQuestion;
 
 export interface NoulAnswer {
   type: "noul";
@@ -60,6 +96,26 @@ export interface ScoreAnswer {
   confidence: number;
 }
 
+export interface NumberAnswer {
+  type: "number";
+  number: number;
+  probabilities: Record<string, number>;
+  variance: number;
+}
+
+export interface TextAnswer {
+  type: "text";
+  text: string;
+  confidence: number;
+}
+
+export interface DatetimeAnswer {
+  type: "datetime";
+  datetime: string;
+  probabilities: Record<string, number>;
+  confidence: number;
+}
+
 export interface ExtractionAnswer {
   type: "extraction";
   extraction: { start: number; end: number; text: string };
@@ -72,7 +128,15 @@ export interface BoxAnswer {
   confidence: number;
 }
 
-export type Answer = NoulAnswer | ChoiceAnswer | ScoreAnswer | ExtractionAnswer | BoxAnswer;
+export type Answer =
+  | NoulAnswer
+  | ChoiceAnswer
+  | ScoreAnswer
+  | NumberAnswer
+  | TextAnswer
+  | DatetimeAnswer
+  | ExtractionAnswer
+  | BoxAnswer;
 
 export interface TokenUsage {
   inputTokens: number;

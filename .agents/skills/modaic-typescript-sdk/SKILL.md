@@ -15,7 +15,7 @@ Promise; use await. Read [quickstart.ts](quickstart.ts) for direct inference.
 ## Configuration and questions
 
 ```typescript
-import { Modaic, Noul, Choice, Score } from "modaic";
+import { Choice, Datetime, Modaic, Noul, Number, Score, Text } from "modaic";
 
 const client = new Modaic();
 const result = await client.decisions.create({
@@ -29,6 +29,12 @@ const result = await client.decisions.create({
     specificity: new Score({ criteria: [
       "No identifiable product", "Product category only", "Specific product with useful details",
     ] }),
+    itemCount: new Number({ instructions: "How many items are listed?" }),
+    listedOn: new Datetime({
+      instructions: "When was this product listed?",
+      criteria: { format: "YYYY-MM-DD" },
+    }),
+    summary: new Text({ instructions: "Summarize the listing in five words." }),
   },
   idempotencyKey: "catalog-item-42-v1",
 });
@@ -52,8 +58,9 @@ fractional outputs. Instructions are optional JSON and may be null.
 Preserve false, zero, null, arrays, and Unicode in inputs and annotations.
 
 Answers are a discriminated union: narrow `answer.type` before accessing
-`noul`, `choice`, or `score`. Choice/score answers contain probabilities
-and confidence; score also contains a legend. Responses retain `usage`
+`noul`, `choice`, `score`, `number`, `datetime`, or `text`. Choice/score
+answers contain probabilities and confidence; score also contains a legend.
+Responses retain `usage`
 and optional `captured`, `exampleId`, `decisionId`, `revision`,
 and `checkpoint`. Public TypeScript properties use camelCase.
 
@@ -211,6 +218,37 @@ model commit. Invoke `workspace/model` for main or
 
 
 See https://docs.modaic.dev/docs/sdks/jobs/fine-tuning for dataset requirements.
+
+## Mo 2.0 numbers, datetimes, and text
+
+Select `mo-2.0` explicitly. `Number` accepts nonempty instructions and optional
+exact-decimal `min`, `max`, and `step` criteria. The selected answer is in
+`number`; `probabilities` contains possible alternatives when the model is
+unsure, and `variance` describes predictive numeric uncertainty independently
+of that alternatives map. A one-value map can therefore have nonzero variance.
+
+`Datetime` requires `criteria: { format }`. Supported local formats are
+`YYYY`, `YYYY-MM`, `YYYY-MM-DD`, `HH`, `HH:MM`, `HH:MM:SS`,
+`YYYY-MM-DDTHH`, `YYYY-MM-DDTHH:MM`, and `YYYY-MM-DDTHH:MM:SS`.
+The answer uses `datetime`, plus `confidence` and `probabilities` containing
+possible alternative complete values. Timezones are not supported.
+
+`Text` takes nonempty instructions and returns `text` plus `confidence`.
+Constructor instances and plain question objects both work.
+
+```typescript
+const questions = {
+  weightKg: new Number({
+    instructions: "What is the package weight in kilograms?",
+    criteria: { min: "0", max: "25", step: "0.1" },
+  }),
+  inspectionAt: new Datetime({
+    instructions: "When was the package inspected?",
+    criteria: { format: "YYYY-MM-DDTHH:MM:SS" },
+  }),
+  summary: new Text({ instructions: "Summarize the inspection." }),
+};
+```
 
 ## Mo 2.0 extraction and boxes
 

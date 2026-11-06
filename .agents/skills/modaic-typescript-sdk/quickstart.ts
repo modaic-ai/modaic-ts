@@ -1,5 +1,5 @@
 // Direct inference. Run with MODAIC_API_KEY and bun; makes a billable API call.
-import { Choice, Modaic, Noul, Score } from "modaic";
+import { Choice, Datetime, Modaic, Noul, Number, Score, Text } from "modaic";
 
 export async function classify(client: Modaic) {
   return client.decisions.create({
@@ -13,6 +13,12 @@ export async function classify(client: Modaic) {
       specificity: new Score({ criteria: [
         "No identifiable product", "Product category only", "Specific product with useful details",
       ] }),
+      itemCount: new Number({ instructions: "How many items are listed?" }),
+      listedOn: new Datetime({
+        instructions: "When was this product listed?",
+        criteria: { format: "YYYY-MM-DD" },
+      }),
+      summary: new Text({ instructions: "Summarize the listing in five words." }),
     },
   });
 }
