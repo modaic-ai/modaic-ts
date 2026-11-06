@@ -47,7 +47,8 @@ test("number, datetime, and text preserve their public contract", async () => {
       summary: { type: "text", instructions: "Summarize." },
     });
     return Response.json({ model: "mo-2.0", usage: { input_tokens: 5, output_tokens: 2 }, answers: {
-      weight: { type: "number", number: 12.4, probabilities: { "12.4": 1 }, variance: 0.16 },
+      weight: { type: "number", number: 12.4, probabilities: { "12.4": 1 }, variance: 0.16,
+        confidence: 0.91 },
       inspected: { type: "datetime", datetime: "2024-02-29",
         probabilities: { "2024-02-29": 0.75, "2024-03-01": 0.25 }, confidence: 0.82 },
       summary: { type: "text", text: "Inspection complete", confidence: 0.94 },
@@ -61,7 +62,10 @@ test("number, datetime, and text preserve their public contract", async () => {
   const weight = result.answers.weight;
   const inspected = result.answers.inspected;
   const summary = result.answers.summary;
-  if (weight?.type === "number") expect(weight.number).toBe(12.4);
+  if (weight?.type === "number") {
+    expect(weight.number).toBe(12.4);
+    expect(weight.confidence).toBe(0.91);
+  }
   if (inspected?.type === "datetime") expect(inspected.datetime).toBe("2024-02-29");
   if (summary?.type === "text") expect(summary.text).toBe("Inspection complete");
 });

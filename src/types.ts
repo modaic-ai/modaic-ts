@@ -101,6 +101,7 @@ export interface NumberAnswer {
   number: number;
   probabilities: Record<string, number>;
   variance: number;
+  confidence: number;
 }
 
 export interface TextAnswer {
