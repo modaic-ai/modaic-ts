@@ -235,9 +235,8 @@ probabilities and is separate from both fields.
 The answer uses `datetime`, plus `confidence` and `probabilities` containing
 possible alternative complete values. Timezones are not supported.
 
-`Text` takes nonempty instructions and returns `text`, a `probabilities`
-distribution over possible complete answers, and `confidence`. Constructor
-instances and plain question objects both work.
+`Text` takes nonempty instructions and returns `text` plus `confidence`.
+Constructor instances and plain question objects both work.
 
 ```typescript
 const questions = {

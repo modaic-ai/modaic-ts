@@ -51,8 +51,7 @@ test("number, datetime, and text preserve their public contract", async () => {
         confidence: 0.91 },
       inspected: { type: "datetime", datetime: "2024-02-29",
         probabilities: { "2024-02-29": 0.75, "2024-03-01": 0.25 }, confidence: 0.82 },
-      summary: { type: "text", text: "Inspection complete",
-        probabilities: { "Inspection complete": 0.75, "Inspection finished": 0.25 }, confidence: 0.94 },
+      summary: { type: "text", text: "Inspection complete", confidence: 0.94 },
     }});
   }});
   const result = await client.decisions.create({ model: "mo-2.0", state: "12.4 kg on leap day", questions: {
@@ -68,10 +67,7 @@ test("number, datetime, and text preserve their public contract", async () => {
     expect(weight.confidence).toBe(0.91);
   }
   if (inspected?.type === "datetime") expect(inspected.datetime).toBe("2024-02-29");
-  if (summary?.type === "text") {
-    expect(summary.text).toBe("Inspection complete");
-    expect(summary.probabilities["Inspection complete"]).toBe(0.75);
-  }
+  if (summary?.type === "text") expect(summary.text).toBe("Inspection complete");
 });
 
 test("structured primitive constructors reject empty instructions and unsupported formats", () => {
