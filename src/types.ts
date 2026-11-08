@@ -1,4 +1,4 @@
-import type { Nullable, Choice, Noul, Score, Text, Span, Datetime, Number, Box } from "./questions.js";
+import type { Nullable, Choice, Noul, Score, Text, Span, Datetime, Number, Box, Extraction } from "./questions.js";
 export type JsonValue =
   | null
   | boolean
@@ -34,7 +34,7 @@ export interface DatetimeQuestion {
   instructions: string;
   criteria: { format: DatetimeFormat };
 }
-export interface BoxQuestion { type: "box"; instructions: string }
+export interface BoxQuestion { type: "box"; instructions: string; criteria?: never }
 export interface BoxCoordinates { top: number; bottom: number; left: number; right: number }
 export interface BoxAnswer extends AnswerMetadata { type: "box"; box: BoxCoordinates; confidence: number | null }
 export interface TextQuestion { type: "text"; instructions: string }
@@ -45,12 +45,17 @@ export interface SpanAnswer extends AnswerMetadata { type: "span"; start: number
 export interface DatetimeAnswer extends AnswerMetadata {
   type: "datetime"; datetime: string; probabilities: Record<string, number>; confidence: number;
 }
+export interface ExtractionQuestion {
+  type: "extraction";
+  instructions: string;
+  criteria?: never;
+}
 
 export interface NumberQuestion {
   type: "number"; instructions: string; criteria?: { min?: string; max?: string; step?: string };
 }
 export interface NumberAnswer extends AnswerMetadata { type: "number"; value: number; probabilities: Record<string, number>; variance: number }
-export type Question = NoulQuestion | ChoiceQuestion | ScoreQuestion | DatetimeQuestion | TextQuestion | SpanQuestion | NumberQuestion | BoxQuestion;
+export type Question = NoulQuestion | ChoiceQuestion | ScoreQuestion | DatetimeQuestion | TextQuestion | SpanQuestion | NumberQuestion | BoxQuestion | ExtractionQuestion;
 export type QuestionInput = Question | Nullable;
 export type AnswerFor<Q> = Q extends Nullable<infer Inner> ? AnswerFor<Inner> | null
   : Q extends NoulQuestion ? Noul
@@ -60,7 +65,8 @@ export type AnswerFor<Q> = Q extends Nullable<infer Inner> ? AnswerFor<Inner> | 
   : Q extends SpanQuestion ? Span
   : Q extends DatetimeQuestion ? Q extends Datetime ? Q : Datetime
   : Q extends NumberQuestion ? Number
-  : Q extends BoxQuestion ? Box : never;
+  : Q extends BoxQuestion ? Box
+  : Q extends ExtractionQuestion ? Extraction : never;
 export type InferredDecisionResponse<Q extends Record<string, QuestionInput>> =
   Omit<DecisionResponse, "answers"> & { answers: { [K in keyof Q]: AnswerFor<Q[K]> } };
 
@@ -85,7 +91,13 @@ export interface ScoreAnswer extends AnswerMetadata {
   confidence: number;
 }
 
-export type Answer = NoulAnswer | ChoiceAnswer | ScoreAnswer | DatetimeAnswer | TextAnswer | SpanAnswer | NumberAnswer | BoxAnswer;
+export interface ExtractionAnswer extends AnswerMetadata {
+  type: "extraction";
+  extraction: { start: number; end: number; text: string };
+  confidence: number;
+}
+
+export type Answer = NoulAnswer | ChoiceAnswer | ScoreAnswer | DatetimeAnswer | TextAnswer | SpanAnswer | NumberAnswer | BoxAnswer | ExtractionAnswer;
 
 export interface TokenUsage {
   inputTokens: number;
@@ -116,6 +128,7 @@ export interface ResponseSchema<T> {
 
 export type DecisionQuestions = Record<string, QuestionInput>;
 export interface CreateDecisionParams<Q extends DecisionQuestions = Record<string, Question>> {
+  assets?: Record<string, { type?: "image"; format: "png" | "jpg" | "jpeg"; dataBase64: string }>;
   state: JsonValue;
   model: string;
   questions?: Q;
@@ -188,9 +201,16 @@ export interface ModelDecisions {
   create(params: Omit<CreateDecisionParams<DecisionQuestions>, "model">): Promise<DecisionResponse<Answer | null>>;
 }
 
+export interface ExampleSummary {
+  total: number;
+  graded: number;
+  commitShas: string[];
+}
+
 export interface ModelExamples {
   ingest(examples: ExampleInput[]): Promise<ExampleIngestResponse>;
   list(options?: { page?: number; pageSize?: number }): Promise<ExamplePage>;
+  summary(): Promise<ExampleSummary>;
   get(exampleId: string): Promise<Example>;
   annotate(exampleId: string, annotation: {
     groundTruth?: Record<string, JsonValue>;
@@ -242,7 +262,7 @@ export interface CreateModelParams {
   slug: string;
   description?: string;
   defaultBranch?: string;
-  model?: string;
+  model: string;
   questions?: Record<string, Question>;
 }
 
@@ -289,6 +309,38 @@ export interface Commit {
 export interface CommitList {
   commits: Commit[];
 }
+
+export interface CommitDetails extends Commit {
+  committerName: string;
+  committerEmail: string;
+  verified: boolean;
+  files: Array<{
+    path: string;
+    status: "added" | "modified" | "deleted" | "renamed" | "copied" | "type_changed" | "unmerged" | "unknown";
+    previousPath?: string;
+  }>;
+  stats: { files: number; additions: number; deletions: number; changes: number };
+}
+
+export interface RepositoryFile {
+  path: string;
+  type: "blob" | "tree" | "symlink" | "submodule";
+  mode: string;
+}
+
+export interface RepositoryFileList {
+  files: RepositoryFile[];
+}
+
+export interface RepositoryFileContents {
+  path: string;
+  revision: string | null;
+  contents: string;
+}
+
+export type RepositoryFileChange =
+  | { operation: "upsert"; path: string; contents: string }
+  | { operation: "delete"; path: string };
 
 /** An immutable name for a commit, usable as a decision `revision`. */
 export interface Tag {
@@ -491,7 +543,7 @@ export interface WaitOptions {
   timeoutMs?: number;
 }
 
-export type ResourceKind = "dataset" | "artifact";
+export type ResourceKind = "dataset" | "eval-only-dataset" | "artifact";
 export type TrainingType = "head_only" | "lora";
 export type FineTuneStatus =
   | "queued"
@@ -503,7 +555,6 @@ export type FineTuneStatus =
   | "cancelled";
 
 export interface TrainingControls {
-  maxSeqLength?: number;
   nEpochs?: number;
   nCheckpoints?: number;
   nEvals?: number;
@@ -527,13 +578,12 @@ export interface TrainingControls {
 export interface CreateFineTuneParams extends TrainingControls {
   model: string;
   trainingFile: string;
-  taskId: string;
   trainingType?: TrainingType;
   destination?: string;
-  questions?: Record<string, Question>;
   branch?: string;
   sourceCommitSha?: string;
   validationFile?: string;
+  evalOnlyDataset?: string;
   suffix?: string;
   fromCheckpoint?: string;
   loraR?: number;
@@ -567,7 +617,6 @@ export interface FineTune {
   trainingFile: string;
   datasetCommitSha: string;
   datasetSha256: string;
-  taskId: string;
   status: FineTuneStatus;
   branch: string;
   sourceCommitSha: string;
@@ -593,18 +642,20 @@ export interface FineTuneLogs {
   running: boolean;
 }
 
-export interface KnowledgeBaseResource {
+export interface Resource {
   id: string;
   name: string;
+  description: string | null;
   kind: ResourceKind;
   path: string;
   sha256: string;
   sizeBytes: number;
+  repos: string[];
   commitSha: string;
 }
 
-export interface KnowledgeBaseResourcePage {
-  resources: KnowledgeBaseResource[];
+export interface ResourcePage {
+  resources: Resource[];
   commitSha: string | null;
   nextCursor: string | null;
 }
@@ -616,27 +667,31 @@ export interface UploadPart {
   uploaded: boolean;
 }
 
-export interface KnowledgeBaseUpload {
+export interface Upload {
   id: string;
   name: string;
+  description: string | null;
   kind: ResourceKind;
   sha256: string;
   sizeBytes: number;
+  repos: string[];
   status: "pending" | "processing" | "completed" | "failed" | "cancelled" | "expired";
   createdAt: string;
   expiresAt: string;
   partSizeBytes: number;
   parts: UploadPart[];
-  result: KnowledgeBaseUploadResult | null;
+  result: UploadResult | null;
   error: JobError | null;
 }
 
-export interface KnowledgeBaseUploadResult {
+export interface UploadResult {
   name: string;
+  description: string | null;
   kind: ResourceKind;
   path: string;
   sha256: string;
   sizeBytes: number;
+  repos: string[];
   commitSha: string;
 }
 
@@ -648,12 +703,13 @@ export interface PreparedUploadPart {
   expiresIn: number;
 }
 
-export interface CreateKnowledgeBaseUploadParams {
+export interface CreateUploadParams {
+  name: string;
   kind: ResourceKind;
   sha256: string;
   sizeBytes: number;
-  name?: string;
-  workspace?: string;
+  description?: string;
+  repos?: string[];
 }
 
 export interface UploadFileProgress {
@@ -664,16 +720,22 @@ export interface UploadFileProgress {
 }
 
 export interface UploadFileParams {
+  workspace: string;
+  name: string;
   kind: ResourceKind;
-  name?: string;
-  workspace?: string;
+  description?: string;
+  repos?: string[];
   waitForValidation?: boolean;
   pollIntervalMs?: number;
   timeoutMs?: number;
   onProgress?: (progress: UploadFileProgress) => void;
 }
 
-export interface KnowledgeBaseQuery {
-  workspace?: string;
+export interface ResourceQuery {
   commitSha?: string;
+}
+
+export interface ProtegeJob {
+  id: string;
+  status: "running" | "succeeded" | "failed" | "cancelled";
 }

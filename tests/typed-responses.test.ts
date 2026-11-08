@@ -65,7 +65,7 @@ test("the schema validates on bound model decisions too", async () => {
             },
       ),
   });
-  const model = await modaic.models.create({ workspace: "acme", slug: "listings" });
+  const model = await modaic.models.create({ workspace: "acme", slug: "listings", model: "mo-fast" });
   const result = await model.decisions.create({ state: {}, schema: ListingReview });
   expect(result.answers.photo_matches.noul).toBe(0.94);
 });

@@ -10,6 +10,8 @@ export async function publicContract(client: Modaic, created: CreatedModel, fetc
   await created.jobs.batchDecisions.create({ scope: "all", idempotencyKey: "key" });
   await fetched.jobs.alignments.create({ branch: "main", sourceCommitSha: "sha", maxMetricCalls: 10, idempotencyKey: "key" });
   await fetched.jobs.alignments.create({ branch: "main", sourceCommitSha: "sha", idempotencyKey: "key" });
+  // @ts-expect-error Fine-tuning derives the maximum sequence length from the dataset.
+  await client.fineTunes.create({ model: "mo-1.3.1", trainingFile: "dataset", maxSeqLength: 4096 });
   // @ts-expect-error A bound model supplies its own model path.
   created.decisions.create({ state: {}, model: "other/model" });
   // @ts-expect-error Batch selection is required.

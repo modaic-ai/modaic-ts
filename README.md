@@ -44,7 +44,7 @@ const result = await modaic.decisions.create({
   state: {
     ticket: "I was charged twice for order 4832. Please refund one charge.",
   },
-  model: "typesafe/jev-latest",
+  model: "mo-latest",
   questions: {
     needs_refund: {
       type: "noul",
@@ -100,7 +100,7 @@ const ListingReview = z.object({
 });
 
 const result = await modaic.decisions.create({
-  model: "modaic/mo-fast",
+  model: "mo-latest",
   state: { listing: "Vintage leather jacket, size M" },
   questions: { /* ... */ },
   schema: ListingReview,
@@ -121,7 +121,7 @@ with the validator's own error kept as `cause`.
 
 `schema` works on `model.decisions.create` as well.
 
-## Knowledge-base uploads and fine-tuning
+## Workspace uploads and fine-tuning
 
 Large training datasets and artifacts use resumable upload sessions. On Node.js,
 the high-level helper streams the file twice: once to compute its whole-file
@@ -129,9 +129,11 @@ SHA-256 and once to upload server-sized parts. It never materializes the whole
 file in memory, and it waits for validation by default:
 
 ```typescript
-const upload = await modaic.knowledgeBase.uploads.uploadFile("training.jsonl", {
+const upload = await modaic.uploads.uploadFile("training.jsonl", {
+  workspace: "acme",
   kind: "dataset",
   name: "support-hard-labels",
+  repos: ["support-priority"],
   onProgress: ({ uploadedBytes, totalBytes }) => {
     console.log(`${uploadedBytes}/${totalBytes}`);
   },
@@ -141,21 +143,30 @@ const upload = await modaic.knowledgeBase.uploads.uploadFile("training.jsonl", {
 Set `waitForValidation: false` to return as soon as completion starts, or use
 the lower-level `create`, `preparePart`, `uploadPart`, `confirmPart`, `complete`,
 and `wait` methods to resume an existing session. Resources are available
-through `knowledgeBase.resources.list`, `get`, and `download`.
+through `resources.list`, `get`, `update`, and `download`.
+Listing accepts a `glob` using `*` and `?`; held-out sets use
+`kind: "eval-only-dataset"`.
 
-Start head-only or LoRA tuning with the uploaded dataset name. Training a base
-model requires a destination and questions; training an existing repository
-reuses its configuration and publishes back to that repository:
+Start head-only or LoRA tuning with the uploaded dataset name. The JSONL
+dataset defines each question and answer on the row; a base model requires a
+destination, while an existing repository publishes back to itself:
+
+```jsonl
+{"state":"Duplicate charge","questions":{"route":{"instructions":"Route?","type":"choice","criteria":{"support":"Support","payments":"Payments"},"answer":{"support":0.1,"payments":0.9}},"severity":{"instructions":"Severity?","type":"score","criteria":["low","high"],"answer":1}}}
+```
+
+Keyed criteria use string hard labels or probability objects with exactly the
+same keys. Positional criteria use zero-based integer labels or probability
+arrays of the same length. Soft-label probabilities must sum to 1.
+Rows do not contain split labels. Use `validationFile` and `evalOnlyDataset`
+for separate uploaded validation and held-out files; omitted partitions are
+selected deterministically from the training file.
 
 ```typescript
 const job = await modaic.fineTunes.create({
   model: "mo-1.3.1",
   destination: "acme/support-priority",
-  questions: {
-    priority: { type: "choice", criteria: { normal: "Routine", high: "Urgent" } },
-  },
   trainingFile: "support-hard-labels",
-  taskId: "priority",
   trainingType: "lora",
   loraR: 8,
   loraAlpha: 16,
@@ -165,7 +176,7 @@ const finished = await modaic.fineTunes.wait(job.id);
 
 Once `finished.status === "done"`, call `acme/support-priority` normally. Pin an
 immutable published checkpoint with `acme/support-priority@<full-commit-sha>`.
-Mo Fast models are inference-only and reject fine-tuning requests.
+Fine-tuning requires `mo-1.3.1`.
 
 ## Model-bound resources
 
@@ -262,8 +273,9 @@ cancelling the job. No additional package is needed.
 | `batchDecisions` | `create`, `list`, `get`, `cancel`, `wait` |
 | `alignments` | `create`, `list`, `get`, `logs`, `cancel`, `wait` |
 | `fineTunes` | `create`, `list`, `get`, `logs`, `cancel`, `wait` |
-| `knowledgeBase.uploads` | `create`, `get`, `preparePart`, `confirmPart`, `uploadPart`, `complete`, `cancel` |
-| `knowledgeBase.resources` | `list`, `get`, `download` |
+| `uploads` | `create`, `get`, `preparePart`, `confirmPart`, `uploadPart`, `complete`, `cancel` |
+| `resources` | `list`, `get`, `update`, `download` |
+| `protege` | `create`, `get`, `cancel`, `wait` |
 
 Every method returns a Promise. SDK properties use `camelCase`, including the
 few decision response fields that use `snake_case` on the wire.
@@ -381,3 +393,20 @@ responses are supported, including when a custom response schema is supplied.
 Box `.confidence` is `number | null`, matching the shared TypeSafe response
 contract. JavaScript object keys remain strings at runtime; Score maps support
 numeric property indexing as normal JavaScript objects do.
+## Mo 2.0 extraction and boxes
+
+`Extraction` also supports nullable composition and unified answer objects.
+Use `.extraction.text`, `.extraction.start`, and `.extraction.end` for the current
+Mo 2.0 contract. The separate legacy `Span` API above does not replace or change
+this wire contract; use `Extraction` for current Mo 2.0 substring extraction.
+
+Select `mo-2.0` explicitly. `Extraction` (`type: "extraction"`) extracts an exact
+substring from a string state; `Box` (`type: "box"`) localizes an image region.
+Both require nonempty string instructions and reject criteria.
+Extraction answers contain `extraction: {start, end, text}` and confidence; offsets count
+UTF-16 code units and end is exclusive. Box answers contain
+`box: {top, bottom, left, right}` normalized to [0, 1], and confidence.
+Pass inline `assets` to decisions.create, mapping an asset ID to
+`{type: "image", format: "png", dataBase64: "..."}`. Reference IDs in
+state, instructions or supported criteria; no separate upload is required.
+`mo-latest` selects `mo-2.0`.

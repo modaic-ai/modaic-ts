@@ -60,10 +60,10 @@ test("custom base URL, trailing slash, and headers apply to bound resources", as
     if (request.method === "POST") return Response.json({ id: "model-1", workspace: "acme", slug: "support" });
     return Response.json({ items: [], page: 1, pageSize: 30, total: 0, totalPages: 0 });
   } });
-  const model = await modaic.models.create({ workspace: "acme", slug: "support" });
+  const model = await modaic.models.create({ workspace: "acme", slug: "support", model: "mo-fast" });
   await model.examples.list();
   expect(requests[0]!.url).toBe("https://example.test/v1/models");
-  expect(requests[1]!.url).toBe("https://example.test/v1/models/model-1/examples?page=1&pageSize=30");
+  expect(requests[1]!.url).toBe("https://example.test/v1/models/acme/support/examples?page=1&pageSize=30");
   for (const request of requests) {
     expect(request.headers.get("authorization")).toBe("Bearer test-key");
     expect(request.headers.get("accept")).toBe("application/json");
@@ -79,7 +79,7 @@ test("204 responses support model deletion and job cancellation", async () => {
     requests.push(new Request(input, init));
     return new Response(null, { status: 204 });
   } });
-  expect(await modaic.models.delete("model-1")).toBeUndefined();
+  expect(await modaic.models.delete("acme/model-1")).toBeUndefined();
   expect(await modaic.alignments.cancel("job-1")).toBeUndefined();
   expect(await modaic.batchDecisions.cancel("job-2")).toBeUndefined();
   expect(requests).toHaveLength(3);

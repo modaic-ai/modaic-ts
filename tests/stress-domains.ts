@@ -9,7 +9,7 @@ interface FixtureExample {
 }
 interface Domain {
   slug: string; mode: string; description: string; keys: [string, string, string];
-  questions: Record<string, Question>; examples: FixtureExample[];
+  questions: Record<string, Extract<Question, {type: "noul" | "choice" | "score"}>>; examples: FixtureExample[];
 }
 interface Row {
   name: string; id: string; expected: Record<string, JsonValue>; passed?: boolean;

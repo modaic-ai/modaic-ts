@@ -1,4 +1,4 @@
-import type { ChoiceQuestion, JsonValue, NoulQuestion, ScoreQuestion, Question, TextQuestion, SpanQuestion, DatetimeQuestion, DatetimeFormat, Answer, NumberQuestion, BoxQuestion, BoxCoordinates } from "./types.js";
+import type { ChoiceQuestion, JsonValue, NoulQuestion, ScoreQuestion, Question, TextQuestion, SpanQuestion, DatetimeQuestion, DatetimeFormat, Answer, NumberQuestion, BoxQuestion, BoxCoordinates, ExtractionQuestion, ExtractionAnswer } from "./types.js";
 
 
 const answerData = new WeakMap<object, Answer>();
@@ -37,9 +37,10 @@ export function questionBody(value: Question): Question {
 export function hydrateAnswer(answer: Answer, name: string, definition?: Question): Answer {
   if (answer instanceof Primitive) return answer;
   const constructors = { noul: Noul, choice: Choice, score: Score, text: Text, span: Span,
-    number: Number, datetime: Datetime, box: Box };
+    number: Number, datetime: Datetime, box: Box, extraction: Extraction };
   const required: Record<Answer["type"], Record<string, "number" | "string" | "object">> = {
     noul: { noul: "number" },
+    extraction: { extraction: "object", confidence: "number" },
     box: { box: "object", confidence: "number" },
     choice: { choice: "string", probabilities: "object", confidence: "number" },
     score: { score: "number", legend: "object", probabilities: "object", confidence: "number" },
@@ -248,10 +249,24 @@ export class Box extends Primitive implements BoxQuestion {
   instructions: string;
   constructor(options: { instructions: string; name?: string }) {
     super(options.name);
+    if ("criteria" in options) throw new Error("Box rejects criteria.");
     instructions(options.instructions);
     this.instructions = options.instructions;
   }
   get box(): BoxCoordinates { return answered(this, "box").box; }
   get confidence(): number | null { return answered(this, "box").confidence; }
   nullable(threshold = 0.5): Nullable<this> { return new Nullable(this, threshold); }
+}
+
+export class Extraction extends Primitive implements ExtractionQuestion {
+  readonly type = "extraction" as const;
+  instructions: string;
+  get extraction(): ExtractionAnswer["extraction"] { return answered(this, "extraction").extraction; }
+  get confidence(): number { return answered(this, "extraction").confidence; }
+  nullable(threshold = 0.5): Nullable<this> { return new Nullable(this, threshold); }
+  constructor(options: Omit<ExtractionQuestion, "type"> & { name?: string }) {
+    super(options.name);
+    if (!options.instructions.trim() || "criteria" in options) throw new Error("Extraction requires instructions and rejects criteria.");
+    this.instructions = options.instructions;
+  }
 }

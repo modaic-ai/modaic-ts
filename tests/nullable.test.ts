@@ -85,7 +85,7 @@ test("bound decisions preserve inference and nullable behavior", async () => {
       defaultBranch: "main", visibility: "private", createdAt: "2026-11-07", updatedAt: "2026-11-07",
     },
   ) });
-  const model = await client.models.create({ workspace: "acme", slug: "review" });
+  const model = await client.models.create({ workspace: "acme", slug: "review", model: "mo-latest" });
   const result = await model.decisions.create({ state: {}, questions });
   const probability: number = result.answers.relevant.noul;
   const country: "fr" | "us" | undefined = result.answers.country?.choice;
