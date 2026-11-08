@@ -48,10 +48,7 @@ import type {
 } from "./types.js";
 
 interface WireDecisionResponse
-  extends Omit<DecisionResponse, "usage" | "thinking" | "exampleId" | "decisionId" | "answers"> {
-  answers: Record<string, Answer | {
-    type: "extraction"; extraction: { start: number; end: number; text: string }; confidence: number;
-  }>;
+  extends Omit<DecisionResponse, "usage" | "thinking" | "exampleId" | "decisionId"> {
   usage: { input_tokens: number; output_tokens: number; reasoning_tokens?: number };
   thinking?: Record<string, {
     max_tokens: number | null;
@@ -90,9 +87,6 @@ function decisionBody(params: AnyDecisionParams & { schema?: ResponseSchema<unkn
   return {
     body: {
       ...rest,
-      ...(rest.questions === undefined ? {} : { questions: Object.fromEntries(
-        Object.entries(rest.questions).map(([id, value]) => [id, wireQuestion(value as Question, id)]),
-      ) }),
       ...(assets === undefined ? {} : { assets: Object.fromEntries(Object.entries(assets).map(([id, asset]) => [id, { type: asset.type, format: asset.format, data_base64: asset.dataBase64 }])) }),
       ...(reasoningEffort === undefined ? {} : { reasoning_effort: reasoningEffort }),
       ...(exampleId === undefined ? {} : { example_id: exampleId }),
@@ -106,12 +100,7 @@ function decisionBody(params: AnyDecisionParams & { schema?: ResponseSchema<unkn
 function mapDecision(response: WireDecisionResponse): DecisionResponse {
   return {
     model: response.model,
-    answers: Object.fromEntries(Object.entries(response.answers).map(([name, answer]) => {
-      if (answer.type !== "extraction") return [name, answer];
-      const { extraction, ...rest } = answer;
-      if (!extraction || typeof extraction !== "object") throw new ModaicConnectionError("Malformed extraction answer.");
-      return [name, { ...rest, type: "span", span: extraction.text, start: extraction.start, end: extraction.end }];
-    })),
+    answers: response.answers,
     usage: {
       inputTokens: response.usage.input_tokens,
       outputTokens: response.usage.output_tokens,
@@ -672,18 +661,6 @@ function resolveNullable(response: DecisionResponse, gates: Map<string, { id: st
 function modelBody<T extends { questions?: Record<string, Question> }>(params: T): T {
   if (!params.questions) return params;
   return { ...params, questions: Object.fromEntries(Object.entries(params.questions).map(
-    ([name, question]) => [name, wireQuestion(questionBody(question), name)],
+    ([name, question]) => [name, questionBody(question)],
   )) };
-}
-
-function wireQuestion(question: Question, name: string): object {
-  if (question.type === "span") return { ...question, type: "extraction" };
-  if (name.startsWith("__modaic_answerable_") && question.type === "noul" &&
-      question.instructions && typeof question.instructions === "object" && !Array.isArray(question.instructions)) {
-    const original = question.instructions.question;
-    if (original && typeof original === "object" && !Array.isArray(original) && original.type === "span") {
-      return { ...question, instructions: { ...question.instructions, question: { ...original, type: "extraction" } } };
-    }
-  }
-  return question;
 }

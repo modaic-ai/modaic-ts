@@ -1,4 +1,4 @@
-import type { ChoiceQuestion, JsonValue, NoulQuestion, ScoreQuestion, Question, TextQuestion, SpanQuestion, DatetimeQuestion, DatetimeFormat, Answer, NumberQuestion, BoxQuestion, BoxCoordinates } from "./types.js";
+import type { ChoiceQuestion, JsonValue, NoulQuestion, ScoreQuestion, Question, TextQuestion, SpanQuestion, DatetimeQuestion, DatetimeFormat, Answer, NumberQuestion, BoxQuestion, BoxCoordinates, SpanAnswer } from "./types.js";
 
 
 const answerData = new WeakMap<object, Answer>();
@@ -44,7 +44,7 @@ export function hydrateAnswer(answer: Answer, name: string, definition?: Questio
     choice: { choice: "string", probabilities: "object", confidence: "number" },
     score: { score: "number", legend: "object", probabilities: "object", confidence: "number" },
     text: { text: "string", confidence: "number" },
-    span: { span: "string", start: "number", end: "number", confidence: "number" },
+    span: { span: "object", probabilities: "object", confidence: "number" },
     number: { value: "number", probabilities: "object", variance: "number" },
     datetime: { datetime: "string", probabilities: "object", confidence: "number" },
   };
@@ -56,14 +56,25 @@ export function hydrateAnswer(answer: Answer, name: string, definition?: Questio
         (type === "number" && !globalThis.Number.isFinite(value)) ||
         (type === "object" && Array.isArray(value))) throw new Error(`Invalid answer field ${key}`);
   }
-  if (answer.type === "span" && (!globalThis.Number.isInteger(answer.start) ||
-      !globalThis.Number.isInteger(answer.end) || answer.start < 0 || answer.end <= answer.start || answer.span.length === 0)) {
-    throw new Error("Invalid span boundaries");
+  if (answer.type === "span" && (!globalThis.Number.isInteger(answer.span.start) ||
+      !globalThis.Number.isInteger(answer.span.end) || answer.span.start < 0 ||
+      answer.span.end <= answer.span.start || typeof answer.span.text !== "string" || answer.span.text.length === 0)) {
+    throw new Error("Invalid span value");
   }
   if (answer.type === "box") {
     const { top, bottom, left, right } = answer.box;
     if (![top, bottom, left, right].every(value => typeof value === "number" && globalThis.Number.isFinite(value) && value >= 0 && value <= 1) ||
         top >= bottom || left >= right || (answer.confidence !== null && (answer.confidence < 0 || answer.confidence > 1))) throw new Error("Invalid box boundaries");
+  }
+  if (answer.type === "span") {
+    for (const candidate of Object.values(answer.probabilities)) {
+      if (!candidate || typeof candidate !== "object" ||
+          typeof candidate.text !== "string" || candidate.text.length === 0 ||
+          !globalThis.Number.isInteger(candidate.start) || !globalThis.Number.isInteger(candidate.end) ||
+          candidate.start < 0 || candidate.end <= candidate.start ||
+          typeof candidate.probability !== "number" || !globalThis.Number.isFinite(candidate.probability) ||
+          candidate.probability < 0 || candidate.probability > 1) throw new Error("Invalid span probability");
+    }
   }
   const constructor = (definition && definitionConstructors.get(definition)) ?? constructors[answer.type];
   if (!constructor) throw new Error("Unknown answer type");
@@ -174,9 +185,8 @@ export class Text extends Primitive implements TextQuestion {
 }
 
 export class Span extends Primitive implements SpanQuestion {
-  get span(): string { return answered(this, "span").span; }
-  get start(): number { return answered(this, "span").start; }
-  get end(): number { return answered(this, "span").end; }
+  get probabilities(): SpanAnswer["probabilities"] { return answered(this, "span").probabilities; }
+  get span(): SpanAnswer["span"] { return answered(this, "span").span; }
   get confidence(): number { return answered(this, "span").confidence; }
   readonly type = "span" as const;
   instructions: string;

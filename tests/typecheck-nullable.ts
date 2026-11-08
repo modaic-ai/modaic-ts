@@ -29,11 +29,12 @@ export async function dictionaryTypes(client: Modaic): Promise<void> {
     severity: new Score({ criteria: ["Low", "High"] }),
     nullable: new Span({ instructions: "Find" }).nullable(),
   } });
-  const start: number = result.answers.evidence.start;
-  const value: string = result.answers.evidence.span;
+  const start: number = result.answers.evidence.span.start;
+  const value: string = result.answers.evidence.span.text;
+  const probability: number = result.answers.evidence.probabilities["0"]!.probability;
   const code: "fr" | "us" = result.answers.country.choice;
   const severity: number = result.answers.severity.score;
   // @ts-expect-error Nullable dictionary answers need a null check.
-  const unsafe: number = result.answers.nullable.start;
-  void start; void value; void code; void severity; void unsafe;
+  const unsafe: number = result.answers.nullable.span.start;
+  void start; void value; void probability; void code; void severity; void unsafe;
 }

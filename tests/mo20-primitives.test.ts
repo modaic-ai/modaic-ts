@@ -1,18 +1,21 @@
 import { expect, test } from "bun:test";
 import { Box, Modaic, Span } from "../src/index.js";
 
-test("Span translates API extraction into flat public answer fields", async () => {
+test("Span preserves the nested public answer", async () => {
   const client = new Modaic({ apiKey: "test", fetch: async (_url, init) => {
     const body = JSON.parse(init?.body as string);
-    expect(body.questions.owner).toEqual({ type: "extraction", instructions: "Who?" });
+    expect(body.questions.owner).toEqual({ type: "span", instructions: "Who?" });
     return Response.json({ model: "mo-2.0", usage: { input_tokens: 5, output_tokens: 0 }, answers: {
-      owner: { type: "extraction", extraction: { start: 3, end: 8, text: "Alice" }, confidence: 0.9 },
+      owner: { type: "span", span: { start: 3, end: 8, text: "Alice" }, probabilities: {"0": { start: 3, end: 8, text: "Alice" , probability: 0.9}}, confidence: 0.9 },
     }});
   }});
   const result = await client.decisions.create({ model: "mo-2.0", state: "😀 Alice", questions: { owner: new Span({ instructions: "Who?" }) } });
   const answer = result.answers.owner;
+  const probability: number = answer.probabilities["0"]!.probability;
+  expect(probability).toBe(0.9);
+  expect(answer.probabilities["0"]?.text).toBe("Alice");
   expect(answer?.type).toBe("span");
-  if (answer?.type === "span") expect([answer.start, answer.end, answer.span]).toEqual([3, 8, "Alice"]);
+  if (answer?.type === "span") expect([answer.span.start, answer.span.end, answer.span.text]).toEqual([3, 8, "Alice"]);
 });
 
 test("Mo 2.0 primitives preserve question shape and reject criteria", () => {
@@ -40,14 +43,14 @@ test("inline assets retain IDs and map only the asset byte field to wire casing"
   expect(result.answers.region?.type).toBe("box");
 });
 
-test("Span translates extraction through nullable inference", async () => {
+test("Span preserves its nested value through nullable inference", async () => {
   for (const probability of [0.4, 0.5]) {
     const client = new Modaic({ apiKey: "test", fetch: async (_url, init) => {
       const body = JSON.parse(init?.body as string);
-      expect(body.questions.owner).toEqual({ type: "extraction", instructions: "Who?" });
-      expect(body.questions.__modaic_answerable_owner.instructions.question.type).toBe("extraction");
+      expect(body.questions.owner).toEqual({ type: "span", instructions: "Who?" });
+      expect(body.questions.__modaic_answerable_owner.instructions.question.type).toBe("span");
       return Response.json({ model: "mo-2.0", usage: { input_tokens: 5, output_tokens: 0 }, answers: {
-        owner: { type: "extraction", extraction: { start: 3, end: 8, text: "Alice" }, confidence: 0.9 },
+        owner: { type: "span", span: { start: 3, end: 8, text: "Alice" }, probabilities: {"0": { start: 3, end: 8, text: "Alice" , probability: 0.9}}, confidence: 0.9 },
         __modaic_answerable_owner: { type: "noul", noul: probability },
       }});
     }});
@@ -58,27 +61,27 @@ test("Span translates extraction through nullable inference", async () => {
     if (probability < 0.5) expect(owner).toBeNull();
     else {
       expect(owner).toBeInstanceOf(Span);
-      expect(owner?.span).toBe("Alice");
+      expect(owner?.span.text).toBe("Alice");
       expect(owner?.name).toBe("owner");
       expect(owner?.toQuestion()).toEqual({ type: "span", instructions: "Who?" });
     }
   }
 });
 
-test("saved-model extraction is projected before optional schema validation", async () => {
+test("saved-model span stays nested before optional schema validation", async () => {
   const client = new Modaic({ apiKey: "test", fetch: async () => Response.json({
     model: "acme/review", usage: { input_tokens: 5, output_tokens: 0 }, answers: {
-      owner: { type: "extraction", extraction: { start: 3, end: 8, text: "Alice" }, confidence: 0.9 },
+      owner: { type: "span", span: { start: 3, end: 8, text: "Alice" }, probabilities: {"0": { start: 3, end: 8, text: "Alice" , probability: 0.9}}, confidence: 0.9 },
     },
   }) });
   const result = await client.decisions.create({ model: "acme/review", state: "😀 Alice", schema: {
     parse(value: unknown): Span {
       const answer = (value as { answers: { owner: Span } }).answers.owner;
       expect(answer).toBeInstanceOf(Span);
-      expect(answer.span).toBe("Alice");
+      expect(answer.span.text).toBe("Alice");
       expect("extraction" in answer).toBe(false);
       return answer;
     },
   } });
-  expect(result.start).toBe(3);
+  expect(result.span.start).toBe(3);
 });

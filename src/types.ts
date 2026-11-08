@@ -41,7 +41,9 @@ export interface TextQuestion { type: "text"; instructions: string }
 export interface SpanQuestion { type: "span"; instructions: string }
 export interface AnswerMetadata { readonly name?: string | undefined; readonly instructions?: JsonValue | undefined }
 export interface TextAnswer extends AnswerMetadata { type: "text"; text: string; confidence: number }
-export interface SpanAnswer extends AnswerMetadata { type: "span"; start: number; end: number; span: string; confidence: number }
+export interface SpanValue { text: string; start: number; end: number }
+export interface SpanProbability extends SpanValue { probability: number }
+export interface SpanAnswer extends AnswerMetadata { type: "span"; span: SpanValue; probabilities: Record<string, SpanProbability>; confidence: number }
 export interface DatetimeAnswer extends AnswerMetadata {
   type: "datetime"; datetime: string; probabilities: Record<string, number>; confidence: number;
 }

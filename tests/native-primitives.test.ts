@@ -14,13 +14,13 @@ test("native text, span, and datetime infer their answers and compose nullabilit
   const client = new Modaic({ apiKey: "test", fetch: async (_url, init) => {
     const wire = JSON.parse(String(init?.body));
     expect(wire.questions.when.criteria.format).toBe("YYYY-MM-DD");
-    expect(wire.questions.quote.type).toBe("extraction");
+    expect(wire.questions.quote.type).toBe("span");
     expect(wire.questions.summary.type).toBe("text");
     return Response.json({ model: "mo-2.0", answers: {
       when: { type: "datetime", datetime: "2024-02-29", probabilities: { "2024-02-29": 1 }, confidence: 1 },
       __modaic_answerable_when: { type: "noul", noul: 0.9 },
       summary: { type: "text", text: "", confidence: 1 },
-      quote: { type: "span", span: "Paris", start: 0, end: 5, confidence: 1 },
+      quote: { type: "span", span: { text: "Paris", start: 0, end: 5 }, probabilities: {"0": { text: "Paris", start: 0, end: 5 , probability: 1}}, confidence: 1 },
       __modaic_answerable_quote: { type: "noul", noul: 0.1 },
     }, usage: { input_tokens: 1, output_tokens: 1 } });
   }});
@@ -31,7 +31,7 @@ test("native text, span, and datetime infer their answers and compose nullabilit
   }});
   const when: string | undefined = result.answers.when?.datetime;
   const summary: string = result.answers.summary.text;
-  const start: number | undefined = result.answers.quote?.start;
+  const start: number | undefined = result.answers.quote?.span.start;
   expect(when).toBe("2024-02-29");
   expect(summary).toBe("");
   expect(start).toBeUndefined();

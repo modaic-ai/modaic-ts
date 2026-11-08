@@ -341,7 +341,7 @@ const questions = {
 };
 ```
 
-The inferred answers expose `.text`, `.span`/`.start`/`.end`, and `.datetime`
+The inferred answers expose `.text`, `.span.text`/`.span.start`/`.span.end`, and `.datetime`
 respectively. Datetime answers retain strings rather than converting local times
 to JavaScript Date objects. The selected `format` is serialized as
 `criteria.format`. Allowed formats: `YYYY`, `YYYY-MM`, `YYYY-MM-DD`, `HH`,
@@ -352,7 +352,7 @@ to JavaScript Date objects. The selected `format` is serialized as
 ### Unified primitives
 
 Answers are public primitive instances. Use `Choice.choice`, `Score.score`,
-`Span.span`/`.start`/`.end`, `Text.text`, `Number.value`, `Noul.noul`, and
+`Span.span.text`/`.span.start`/`.span.end`, `Text.text`, `Number.value`, `Noul.noul`, and
 `Datetime.datetime`. Structural `*Answer` types remain available.
 
 ```typescript
@@ -360,8 +360,8 @@ const result = await client.decisions.create({
   model: "mo-2.0", state: "The event is in Paris.",
   questions: { evidence: new Span({ instructions: "Find the city name" }) },
 });
-result.answers.evidence.span;
-result.answers.evidence.start;
+result.answers.evidence.span.text;
+result.answers.evidence.span.start;
 result.answers.evidence.name; // "evidence", inferred from the key.
 ```
 
@@ -398,7 +398,7 @@ numeric property indexing as normal JavaScript objects do.
 Select `mo-2.0` explicitly. `Span` extracts an exact
 substring from a string state; `Box` (`type: "box"`) localizes an image region.
 Both require nonempty string instructions and reject criteria.
-Span answers expose `.span`, `.start`, `.end`, and `.confidence`; offsets count
+Span answers expose `.span.text`, `.span.start`, `.span.end`, and `.confidence`; offsets count
 UTF-16 code units and end is exclusive. Box answers contain
 `box: {top, bottom, left, right}` normalized to [0, 1], and confidence.
 Pass inline `assets` to decisions.create, mapping an asset ID to
@@ -406,7 +406,9 @@ Pass inline `assets` to decisions.create, mapping an asset ID to
 state, instructions or supported criteria; no separate upload is required.
 `mo-latest` selects `mo-2.0`.
 
-Span is the only public substring-extraction class. The SDK translates Span
-questions to API `type: "extraction"` and flattens nested wire answers
-`extraction: {start, end, text}` into `.start`, `.end`, and `.span` before
-response validation. Signature and dictionary requests use the same mapping.
+Span answers contain a nested value: `.span.text`, `.span.start`, and `.span.end`.
+The API and SDK use the same `type: "span"` contract.
+
+Span `.probabilities` is a dictionary keyed by string IDs. Currently it contains
+only `"0"`, with `text`, `start`, `end`, and `probability` equal to the answer
+confidence. Python entries expose attributes; TypeScript entries expose properties.
