@@ -1,4 +1,4 @@
-import type { Nullable, Choice, Noul, Score, Text, Span, Datetime, Number, Box, Extraction } from "./questions.js";
+import type { Nullable, Choice, Noul, Score, Text, Span, Datetime, Number, Box } from "./questions.js";
 export type JsonValue =
   | null
   | boolean
@@ -45,17 +45,12 @@ export interface SpanAnswer extends AnswerMetadata { type: "span"; start: number
 export interface DatetimeAnswer extends AnswerMetadata {
   type: "datetime"; datetime: string; probabilities: Record<string, number>; confidence: number;
 }
-export interface ExtractionQuestion {
-  type: "extraction";
-  instructions: string;
-  criteria?: never;
-}
 
 export interface NumberQuestion {
   type: "number"; instructions: string; criteria?: { min?: string; max?: string; step?: string };
 }
 export interface NumberAnswer extends AnswerMetadata { type: "number"; value: number; probabilities: Record<string, number>; variance: number }
-export type Question = NoulQuestion | ChoiceQuestion | ScoreQuestion | DatetimeQuestion | TextQuestion | SpanQuestion | NumberQuestion | BoxQuestion | ExtractionQuestion;
+export type Question = NoulQuestion | ChoiceQuestion | ScoreQuestion | DatetimeQuestion | TextQuestion | SpanQuestion | NumberQuestion | BoxQuestion;
 export type QuestionInput = Question | Nullable;
 export type AnswerFor<Q> = Q extends Nullable<infer Inner> ? AnswerFor<Inner> | null
   : Q extends NoulQuestion ? Noul
@@ -66,7 +61,7 @@ export type AnswerFor<Q> = Q extends Nullable<infer Inner> ? AnswerFor<Inner> | 
   : Q extends DatetimeQuestion ? Q extends Datetime ? Q : Datetime
   : Q extends NumberQuestion ? Number
   : Q extends BoxQuestion ? Box
-  : Q extends ExtractionQuestion ? Extraction : never;
+  : never;
 export type InferredDecisionResponse<Q extends Record<string, QuestionInput>> =
   Omit<DecisionResponse, "answers"> & { answers: { [K in keyof Q]: AnswerFor<Q[K]> } };
 
@@ -91,13 +86,8 @@ export interface ScoreAnswer extends AnswerMetadata {
   confidence: number;
 }
 
-export interface ExtractionAnswer extends AnswerMetadata {
-  type: "extraction";
-  extraction: { start: number; end: number; text: string };
-  confidence: number;
-}
 
-export type Answer = NoulAnswer | ChoiceAnswer | ScoreAnswer | DatetimeAnswer | TextAnswer | SpanAnswer | NumberAnswer | BoxAnswer | ExtractionAnswer;
+export type Answer = NoulAnswer | ChoiceAnswer | ScoreAnswer | DatetimeAnswer | TextAnswer | SpanAnswer | NumberAnswer | BoxAnswer;
 
 export interface TokenUsage {
   inputTokens: number;

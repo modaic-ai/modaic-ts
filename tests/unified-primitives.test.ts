@@ -13,7 +13,8 @@ const cases = [
 
 for (const [question, answer, attribute, expected] of cases) {
   test(`unified ${question.type} dictionary result preserves metadata and request shape`, async () => {
-    const wire = question.toQuestion();
+    const definition = question.toQuestion();
+    const wire = definition.type === "span" ? { ...definition, type: "extraction" } : definition;
     const client = new Modaic({ apiKey: "test", fetch: async (_url, init) => {
       expect(JSON.parse(String(init?.body)).questions).toEqual({ evidence: wire });
       return Response.json({ model: "mo-2.0", answers: { evidence: answer }, usage: { input_tokens: 1, output_tokens: 1 } });
@@ -89,7 +90,7 @@ test("direct instances and classes are rejected before HTTP", async () => {
 test("dictionary key overrides an optional constructor name", async () => {
   const question = new Span({ name: "other", instructions: "Find" });
   const client = new Modaic({ apiKey: "test", fetch: async (_url, init) => {
-    expect(JSON.parse(String(init?.body)).questions).toEqual({ evidence: { type: "span", instructions: "Find" } });
+    expect(JSON.parse(String(init?.body)).questions).toEqual({ evidence: { type: "extraction", instructions: "Find" } });
     return Response.json({ model: "mo-2.0", answers: { evidence: { type: "span", span: "Paris", start: 0, end: 5, confidence: 1 } }, usage: { input_tokens: 1, output_tokens: 1 } });
   } });
   const result = await client.decisions.create({ model: "mo-2.0", state: "Paris", questions: { evidence: question } });

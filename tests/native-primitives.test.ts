@@ -14,7 +14,7 @@ test("native text, span, and datetime infer their answers and compose nullabilit
   const client = new Modaic({ apiKey: "test", fetch: async (_url, init) => {
     const wire = JSON.parse(String(init?.body));
     expect(wire.questions.when.criteria.format).toBe("YYYY-MM-DD");
-    expect(wire.questions.quote.type).toBe("span");
+    expect(wire.questions.quote.type).toBe("extraction");
     expect(wire.questions.summary.type).toBe("text");
     return Response.json({ model: "mo-2.0", answers: {
       when: { type: "datetime", datetime: "2024-02-29", probabilities: { "2024-02-29": 1 }, confidence: 1 },
