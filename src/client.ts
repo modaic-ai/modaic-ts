@@ -1,3 +1,4 @@
+import { Nullable, questionBody, hydrateAnswer } from "./questions.js";
 import { ModaicConnectionError, ModaicTimeoutError } from "./errors.js";
 import { JobProgress } from "./progress.js";
 import { type ClientOptions, segment, Transport } from "./transport.js";
@@ -28,6 +29,11 @@ import type {
   ModelList,
   ModelSummary,
   ResponseSchema,
+  Answer,
+  QuestionInput,
+  DecisionQuestions,
+  Question,
+  InferredDecisionResponse,
   RollbackParams,
   Tag,
   TagList,
@@ -57,7 +63,9 @@ interface WireModelSummary extends Omit<ModelSummary, "repositoryId"> {
 
 const TERMINAL_STATUSES = new Set(["completed", "failed", "cancelled"]);
 
-function decisionBody(params: CreateDecisionParams & { schema?: ResponseSchema<unknown> }): {
+type AnyDecisionParams = CreateDecisionParams<DecisionQuestions>;
+
+function decisionBody(params: AnyDecisionParams & { schema?: ResponseSchema<unknown> }): {
   body: Record<string, unknown>;
   headers?: Record<string, string>;
 } {
@@ -103,7 +111,7 @@ function mapDecision(response: WireDecisionResponse): DecisionResponse {
   };
 }
 
-function validate<T>(schema: ResponseSchema<T>, response: DecisionResponse): T {
+function validate<T>(schema: ResponseSchema<T>, response: unknown): T {
   try {
     return schema.parse(response);
   } catch (error) {
@@ -131,15 +139,28 @@ function sleep(milliseconds: number): Promise<void> {
 export class Decisions {
   constructor(private readonly transport: Transport) {}
 
-  async create<T>(params: CreateDecisionParams & { schema: ResponseSchema<T> }): Promise<T>;
+  async create<T>(params: AnyDecisionParams & { schema: ResponseSchema<T> }): Promise<T>;
+  async create<const Q extends Record<string, QuestionInput>>(
+    params: Omit<CreateDecisionParams, "questions"> & { questions: Q; schema?: never },
+  ): Promise<InferredDecisionResponse<Q>>;
+
   async create(params: CreateDecisionParams): Promise<DecisionResponse>;
+  async create(params: AnyDecisionParams): Promise<DecisionResponse<Answer | null>>;
   async create(
-    params: CreateDecisionParams & { schema?: ResponseSchema<unknown> },
+    params: AnyDecisionParams & { schema?: ResponseSchema<unknown> },
   ): Promise<unknown> {
-    const options = decisionBody(params);
+    const { questions, gates, definitions } = expandQuestions(params.questions);
+    const options = decisionBody({ ...params, ...(questions === undefined ? {} : { questions }) });
     const response = mapDecision(
       await this.transport.request<WireDecisionResponse>("POST", "/systemone", options),
     );
+    resolveNullable(response, gates);
+    for (const [name, answer] of Object.entries(response.answers)) {
+      if (answer !== null) {
+        try { response.answers[name] = hydrateAnswer(answer, name, definitions?.[name]); }
+        catch (cause) { throw new ModaicConnectionError("Modaic API returned an unexpected answer shape.", { cause }); }
+      }
+    }
     return params.schema ? validate(params.schema, response) : response;
   }
 }
@@ -154,11 +175,15 @@ class BoundDecisions {
   }
 
   create<T>(
-    params: Omit<CreateDecisionParams, "model"> & { schema: ResponseSchema<T> },
+    params: Omit<AnyDecisionParams, "model"> & { schema: ResponseSchema<T> },
   ): Promise<T>;
+  create<const Q extends Record<string, QuestionInput>>(
+    params: Omit<CreateDecisionParams, "model" | "questions"> & { questions: Q; schema?: never },
+  ): Promise<InferredDecisionResponse<Q>>;
   create(params: Omit<CreateDecisionParams, "model">): Promise<DecisionResponse>;
+  create(params: Omit<AnyDecisionParams, "model">): Promise<DecisionResponse<Answer | null>>;
   create(
-    params: Omit<CreateDecisionParams, "model"> & { schema?: ResponseSchema<unknown> },
+    params: Omit<AnyDecisionParams, "model"> & { schema?: ResponseSchema<unknown> },
   ): Promise<unknown> {
     const { schema, ...rest } = params;
     const merged = { ...rest, model: this.#model };
@@ -214,7 +239,7 @@ export class Models {
 
   async create(params: CreateModelParams): Promise<CreatedModel> {
     return bindModel(
-      await this.transport.request<CreatedModel>("POST", "/models", { body: params }),
+      await this.transport.request<CreatedModel>("POST", "/models", { body: modelBody(params) }),
       this.transport,
     );
   }
@@ -230,7 +255,8 @@ export class Models {
   }
 
   async update(modelId: string, params: UpdateModelParams): Promise<Model> {
-    const { branch, ...body } = params;
+    const { branch, ...rest } = params;
+    const body = modelBody(rest);
     return bindModel(
       await this.transport.request<Model>("PATCH", `/models/${segment(modelId)}`, {
         body,
@@ -480,3 +506,56 @@ export class Modaic {
 
 export { type ClientOptions };
 export { Modaic as ModaicClient };
+
+function expandQuestions(input: DecisionQuestions | undefined): {
+  questions: Record<string, Question> | undefined;
+  definitions: Record<string, Question> | undefined;
+  gates: Map<string, { id: string; threshold: number }>;
+} {
+  const gates = new Map<string, { id: string; threshold: number }>();
+  if (input === undefined) return { questions: undefined, definitions: undefined, gates };
+  if (input === null || typeof input !== "object" || Array.isArray(input) ||
+      input instanceof Nullable || typeof Reflect.get(input, "type") === "string") {
+    throw new TypeError("questions must be a dictionary");
+  }
+  const questions = input;
+  const wire: Record<string, Question> = Object.create(null);
+  const definitions: Record<string, Question> = Object.create(null);
+  for (const [id, value] of Object.entries(questions)) {
+    const question = questionBody(value instanceof Nullable ? value.question : value);
+    definitions[id] = question;
+    wire[id] = question;
+    if (!(value instanceof Nullable)) continue;
+    const gate = `__modaic_answerable_${id}`;
+    if (Object.hasOwn(questions, gate)) throw new Error(`Nullable gate ID conflicts with question ${gate}`);
+    wire[gate] = { type: "noul", instructions: {
+      task: "Does the supplied state contain enough information to answer this question?",
+      question: JSON.parse(JSON.stringify(question)),
+    } };
+    gates.set(id, { id: gate, threshold: value.threshold });
+  }
+  return { questions: wire, definitions, gates };
+}
+
+function resolveNullable(response: DecisionResponse, gates: Map<string, { id: string; threshold: number }>): void {
+  if (gates.size === 0) return;
+  response.answers = { ...response.answers };
+  for (const [id, gate] of gates) {
+    const answers = response.answers as Record<string, Answer | null>;
+    const answer = answers[gate.id];
+    if (!answer || answer.type !== "noul" || typeof answer.noul !== "number" ||
+        !Number.isFinite(answer.noul) || answer.noul < 0 || answer.noul > 1 ||
+        !Object.hasOwn(response.answers, id)) {
+      throw new ModaicConnectionError(`Missing or malformed answerability gate for ${id}.`);
+    }
+    delete answers[gate.id];
+    if (answer.noul < gate.threshold) answers[id] = null;
+  }
+}
+
+function modelBody<T extends { questions?: Record<string, Question> }>(params: T): T {
+  if (!params.questions) return params;
+  return { ...params, questions: Object.fromEntries(Object.entries(params.questions).map(
+    ([name, question]) => [name, questionBody(question)],
+  )) };
+}

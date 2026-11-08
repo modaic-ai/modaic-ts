@@ -49,13 +49,14 @@ Questions may be constructor instances or plain objects and may be mixed.
 fractional outputs. Instructions are optional JSON and may be null.
 Preserve false, zero, null, arrays, and Unicode in inputs and annotations.
 
-Answers are a discriminated union: narrow `answer.type` before accessing
-`noul`, `choice`, or `score`. Choice/score answers contain probabilities
+Inline question dictionaries infer named primitive answer types automatically.
+For saved-model calls without inline questions, answers are a discriminated union:
+narrow `answer.type` before accessing `noul`, `choice`, or `score`. Choice/score answers contain probabilities
 and confidence; score also contains a legend. Responses retain `usage`
 and optional `captured`, `exampleId`, `decisionId`, `revision`,
 and `checkpoint`. Public TypeScript properties use camelCase.
 
-To skip the narrowing, pass `schema` to `decisions.create` and the result is
+For custom response validation, pass `schema` to `decisions.create` and the result is
 that schema's type. It validates the camelCase response the SDK returns, not
 the wire body, and is never sent to the API. Zod is not a dependency: any
 `{ parse(value: unknown): T }` object works, typed as `ResponseSchema<T>`.
@@ -197,3 +198,113 @@ model commit. Invoke `workspace/model` for main or
 
 
 See https://docs.modaic.dev/docs/sdks/jobs/fine-tuning for dataset requirements.
+
+## Nullable questions and inferred answers
+
+Questions infer the answer fields automatically, including Choice literal keys;
+Zod or another response schema is optional. The same inference works for
+model-bound decisions.
+
+```typescript
+import { Modaic, Choice, Noul } from "modaic";
+
+const result = await new Modaic().decisions.create({
+  model: "mo-latest",
+  state: { address: "Paris, France" },
+  questions: {
+    country: new Choice({
+      instructions: "Which country is the address in?",
+      criteria: { fr: "France", us: "United States" },
+    }).nullable(),
+    relevant: new Noul({ instructions: "Is this address relevant?" }),
+  },
+});
+result.answers.country; // Choice<"fr" | "us">, or null.
+result.answers.relevant.noul; // number, without union narrowing.
+```
+
+Noul, Choice, Score, Number, Text, Span, Datetime, Date, Time, and Box support `.nullable(threshold = 0.5)`.
+`new Nullable(question, threshold)` also wraps constructor instances or plain
+question objects. Thresholds must be finite numbers in [0, 1]. A helper Noul
+checks whether the supplied state is sufficient to answer the full question.
+Both questions run in one HTTP request; below the threshold the entire answer
+becomes `null`, and equality accepts it. Helper answers are removed before an
+optional response schema parses the result, so use `.nullable()` in Zod for
+those answer fields. Missing or malformed helper answers throw
+`ModaicConnectionError`; explicit helper-ID collisions fail before HTTP.
+
+Nullable wrappers are request-local to `decisions.create`, not saved-model
+configuration. `__modaic_answerable_<question-id>` identifies each helper.
+Helpers count as additional questions. Captured API history retains the original
+answers and helper Nouls; SDK projection changes only the returned response.
+Calls without questions retain the standard `DecisionResponse` return type.
+
+
+### Native text, span, and datetime
+
+```typescript
+import { Text, Span, Datetime } from "modaic";
+const questions = {
+  summary: new Text({ instructions: "Summarize the document" }),
+  quote: new Span({ instructions: "Find the exact supporting passage" }).nullable(),
+  published: new Datetime({ instructions: "Publication date?", format: "YYYY-MM-DD" }),
+};
+```
+
+The inferred answers expose `.text`, `.span`/`.start`/`.end`, and `.datetime`
+respectively. Datetime answers retain strings rather than converting local times
+to JavaScript Date objects. The selected `format` is serialized as
+`criteria.format`. Allowed formats: `YYYY`, `YYYY-MM`, `YYYY-MM-DD`, `HH`,
+`HH:MM`, `HH:MM:SS`, `YYYY-MM-DDTHH`, `YYYY-MM-DDTHH:MM`,
+`YYYY-MM-DDTHH:MM:SS`. Timezone suffixes and offsets are unsupported.
+
+
+### Unified primitives
+
+Answers are public primitive instances. Use `Choice.choice`, `Score.score`,
+`Span.span`/`.start`/`.end`, `Text.text`, `Number.value`, `Noul.noul`, and
+`Datetime.datetime`. Structural `*Answer` types remain available.
+
+```typescript
+const result = await client.decisions.create({
+  model: "mo-2.0", state: "The event is in Paris.",
+  questions: { evidence: new Span({ instructions: "Find the city name" }) },
+});
+result.answers.evidence.span;
+result.answers.evidence.start;
+result.answers.evidence.name; // "evidence", inferred from the key.
+```
+
+`questions` accepts a dictionary, or may be omitted for saved models as before.
+Primitive instances and constructor classes are not accepted directly.
+Constructor `name` remains optional; the dictionary key takes precedence.
+Nullable dictionary entries return their primitive or `null`. Response envelopes
+and optional schema validation remain supported. Metadata and answer fields do
+not leak into request serialization. Answers without an available original
+question definition cannot be reused as question definitions.
+
+`Number` takes `instructions` and optional exact decimal string
+`criteria: { min, max, step }`, matching the API.
+
+
+`Date` and `Time` extend `Datetime` and default to `YYYY-MM-DD` and `HH:MM`.
+`Datetime` defaults to `YYYY-MM-DDTHH:MM`. Explicit format overrides are
+supported. Their `.datetime` values remain formatted strings and returned
+objects retain the subclass used to define the question.
+
+
+`Box` supports native image localization and nullable composition. For
+`questions: { region: new Box({ instructions: "Find the object" }) }`, the
+inferred answer exposes `.box.top`, `.box.bottom`, `.box.left`, `.box.right`,
+and `.confidence`. Coordinates are normalized to [0, 1]. Saved-model Box
+responses are supported, including when a custom response schema is supplied.
+
+
+Box `.confidence` is `number | null`, matching the shared TypeSafe response
+contract. JavaScript object keys remain strings at runtime; Score maps support
+numeric property indexing as normal JavaScript objects do.
+
+Returned primitive answer fields are read-only. Do not assign to `.choice`,
+`.noul`, or other answer properties. JavaScript objects are always truthy;
+use `answer.noul > 0.5` for a boolean decision. Both
+`result.answers.country` and `result.answers["country"]` work.

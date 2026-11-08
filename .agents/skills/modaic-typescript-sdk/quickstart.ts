@@ -1,24 +1,28 @@
-// Direct inference. Run with MODAIC_API_KEY and bun; makes a billable API call.
-import { Choice, Modaic, Noul, Score } from "modaic";
+// Requires MODAIC_API_KEY and bun; makes a billable API call.
+import { Choice, Date, Modaic, Noul, Span } from "modaic";
 
 export async function classify(client: Modaic) {
   return client.decisions.create({
-    model: "typesafe/jev-latest",
+    model: "mo",
     state: { description: "Waterproof hiking boots, size 42" },
     questions: {
       outdoor: new Noul({ instructions: "Is this product intended for outdoor use?" }),
-      department: new Choice({ criteria: {
-        apparel: "Clothes and footwear", electronics: "Electronic devices", other: "Other products",
-      } }),
-      specificity: new Score({ criteria: [
-        "No identifiable product", "Product category only", "Specific product with useful details",
-      ] }),
+      department: new Choice({
+        instructions: "Which department fits this product?",
+        criteria: {
+          apparel: "Clothes and footwear", electronics: "Electronic devices", other: "Other products",
+        },
+      }).nullable(),
+      evidence: new Span({ instructions: "Extract the product name" }),
+      published: new Date({ instructions: "Publication date?" }).nullable(0.8),
     },
   });
 }
 
 if (import.meta.main) {
   const result = await classify(new Modaic());
-  const answer = result.answers.department;
-  if (answer?.type === "choice") console.log(answer.choice);
+  if (result.answers.department !== null) {
+    console.log(result.answers.department.choice); // "apparel" | "electronics" | "other"
+  }
+  console.log(result.answers.outdoor.noul, result.answers.evidence.span);
 }

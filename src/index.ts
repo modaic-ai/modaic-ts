@@ -1,7 +1,7 @@
 export { Alignments, BatchDecisions, Decisions, Examples, Modaic, ModaicClient, Models } from "./client.js";
 export { FineTunes, KnowledgeBase, KnowledgeBaseResources, KnowledgeBaseUploads } from "./training.js";
 export type { ClientOptions } from "./client.js";
-export { Choice, Noul, Score } from "./questions.js";
+export { Choice, Noul, Score, Nullable, Datetime, Text, Span, Number, Date, Time, Box } from "./questions.js";
 export { VERSION } from "./version.js";
 export {
   ModaicAPIError,

@@ -10,7 +10,7 @@ const fixture = JSON.parse(readFileSync(new URL("./fixtures/domain-stress.json",
 for (const domain of fixture.domains) {
   test(`domain workload validates offline: ${domain.slug}`, () => {
     for (const q of Object.values(domain.questions)) {
-      const parsed = q.type === "noul" ? new Noul(q) : q.type === "choice" ? new Choice(q) : new Score(q);
+      const parsed = q.type === "noul" ? new Noul(q) : q.type === "choice" ? new Choice(q) : q.type === "score" ? new Score(q) : q;
       expect(JSON.parse(JSON.stringify(parsed))).toEqual(q);
     }
     expect(domain.examples).toHaveLength(12);
