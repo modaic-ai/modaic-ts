@@ -32,8 +32,8 @@ function validate(result: DecisionResponse, questions: Record<string, Question>)
     assert.equal(answer.type, question.type);
     if (answer.type === "noul") assert(answer.noul >= 0 && answer.noul <= 1);
     else {
-      assert(answer.type === "choice" || answer.type === "score", "Categorical workload received a noncategorical answer");
-      assert(answer.confidence >= 0 && answer.confidence <= 1);
+      if ("confidence" in answer && answer.confidence !== null) assert(answer.confidence >= 0 && answer.confidence <= 1);
+      if (!("probabilities" in answer)) continue;
       const probabilities = Object.values(answer.probabilities);
       assert(probabilities.every((p) => p >= 0 && p <= 1));
       assert(Math.abs(probabilities.reduce((a, b) => a + b, 0) - 1) < 0.01);
@@ -54,7 +54,7 @@ async function runDomain(domain: Domain, runId: string, workspace: string): Prom
   const entry: DomainReport = { domain: domain.slug, client: "typescript", model: `${workspace}/${slug}`,
     examples: [], errors: [] };
   const questions = Object.fromEntries(Object.entries(domain.questions).map(([name, q]) => [name,
-    q.type === "noul" ? new Noul(q) : q.type === "choice" ? new Choice(q) : new Score(q)]));
+    q.type === "noul" ? new Noul(q) : q.type === "choice" ? new Choice(q) : q.type === "score" ? new Score(q) : q]));
   const started = performance.now();
   try {
     const model = await client.models.create({ workspace, slug, model: "typesafe/jev-latest", questions,

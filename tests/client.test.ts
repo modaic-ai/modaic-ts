@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import { Modaic, ModaicAPIError, ModaicTimeoutError } from "../src/index.js";
-import type { Answer, BatchSelection, ClientOptions, Question } from "../src/index.js";
+import type { Answer, BatchSelection, ClientOptions, Question, DecisionResponse } from "../src/index.js";
 
 const MODEL_ID = "farouk1/support-triage";
 const EXAMPLE_ID = "31fcc86c-7f49-4daa-a8b1-577db0c8fe76";
@@ -463,7 +463,7 @@ describe("regressions for model-bound resources", () => {
       quality: { type: "score", score: 0, legend: { "0": "Poor" }, probabilities: { "0": 1 }, confidence: 1 },
     };
     const { modaic, requests } = setup(() => Response.json({ model: "typesafe/jev-latest", answers, usage: { input_tokens: 0, output_tokens: 0 }, checkpoint: 0, captured: false, revision: "sha", example_id: EXAMPLE_ID, decision_id: JOB_ID }));
-    const result = await modaic.decisions.create({ state: null, model: "typesafe/jev-latest", capture: false, questions });
+    const result: DecisionResponse = await modaic.decisions.create({ state: null, model: "typesafe/jev-latest", capture: false, questions });
     expect(result).toEqual({ model: "typesafe/jev-latest", answers, usage: { inputTokens: 0, outputTokens: 0 }, checkpoint: 0, captured: false, revision: "sha", exampleId: EXAMPLE_ID, decisionId: JOB_ID });
     expect(await requests[0]!.json()).toEqual({ state: null, model: "typesafe/jev-latest", capture: false, questions });
     expect(requests[0]!.headers.has("idempotency-key")).toBe(false);
