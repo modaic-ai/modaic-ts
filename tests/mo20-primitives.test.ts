@@ -1,26 +1,31 @@
 import { expect, test } from "bun:test";
-import { Box, Datetime, Modaic, Number, Span, Text } from "../src/index.js";
+import { Box, Modaic, Span } from "../src/index.js";
 
-test("span sends and returns character offsets plus its content", async () => {
+test("Span preserves the nested public answer", async () => {
   const client = new Modaic({ apiKey: "test", fetch: async (_url, init) => {
     const body = JSON.parse(init?.body as string);
     expect(body.questions.owner).toEqual({ type: "span", instructions: "Who?" });
     return Response.json({ model: "mo-2.0", usage: { input_tokens: 5, output_tokens: 0 }, answers: {
-      owner: { type: "span", start: 3, end: 8, span: "Alice", confidence: 0.9 },
+      owner: { type: "span", span: { start: 3, end: 8, text: "Alice" }, probabilities: {"0": { start: 3, end: 8, text: "Alice" , probability: 0.9}}, confidence: 0.9 },
     }});
   }});
   const result = await client.decisions.create({ model: "mo-2.0", state: "😀 Alice", questions: { owner: new Span({ instructions: "Who?" }) } });
   const answer = result.answers.owner;
+  const probability: number = answer.probabilities["0"]!.probability;
+  expect(probability).toBe(0.9);
+  expect(answer.probabilities["0"]?.text).toBe("Alice");
   expect(answer?.type).toBe("span");
-  if (answer?.type === "span") expect(answer).toMatchObject({ start: 3, end: 8, span: "Alice" });
+  if (answer?.type === "span") expect([answer.span.start, answer.span.end, answer.span.text]).toEqual([3, 8, "Alice"]);
 });
 
 test("Mo 2.0 primitives preserve question shape and reject criteria", () => {
-  expect(new Span({ instructions: "Who?" })).toEqual({ type: "span", instructions: "Who?" });
-  expect(new Box({ instructions: "Locate photo." })).toEqual({ type: "box", instructions: "Locate photo." });
+  expect(new Span({ instructions: "Who?" }).toQuestion()).toEqual({ type: "span", instructions: "Who?" });
+  expect(new Box({ instructions: "Locate photo." }).toQuestion()).toEqual({ type: "box", instructions: "Locate photo." });
   expect(() => new Span({ instructions: " " })).toThrow();
-  // @ts-expect-error criteria are not allowed on span
+  // @ts-expect-error criteria are not allowed on extraction
   expect(() => new Span({ instructions: "Who?", criteria: {} })).toThrow();
+  // @ts-expect-error criteria are not allowed on box
+  expect(() => new Box({ instructions: "Locate photo.", criteria: {} })).toThrow();
 });
 
 test("inline assets retain IDs and map only the asset byte field to wire casing", async () => {
@@ -38,41 +43,45 @@ test("inline assets retain IDs and map only the asset byte field to wire casing"
   expect(result.answers.region?.type).toBe("box");
 });
 
-test("number, datetime, and text preserve their public contract", async () => {
-  const client = new Modaic({ apiKey: "test", fetch: async (_url, init) => {
-    const body = JSON.parse(init?.body as string);
-    expect(body.questions).toEqual({
-      weight: { type: "number", instructions: "Weight?", criteria: { min: "0", step: "0.1" } },
-      inspected: { type: "datetime", instructions: "When?", criteria: { format: "YYYY-MM-DD" } },
-      summary: { type: "text", instructions: "Summarize." },
-    });
-    return Response.json({ model: "mo-2.0", usage: { input_tokens: 5, output_tokens: 2 }, answers: {
-      weight: { type: "number", number: 12.4, probabilities: { "12.4": 1 }, variance: 0.16,
-        confidence: 0.91 },
-      inspected: { type: "datetime", datetime: "2024-02-29",
-        probabilities: { "2024-02-29": 0.75, "2024-03-01": 0.25 }, confidence: 0.82 },
-      summary: { type: "text", text: "Inspection complete", confidence: 0.94 },
+test("Span preserves its nested value through nullable inference", async () => {
+  for (const probability of [0.4, 0.5]) {
+    const client = new Modaic({ apiKey: "test", fetch: async (_url, init) => {
+      const body = JSON.parse(init?.body as string);
+      expect(body.questions.owner).toEqual({ type: "span", instructions: "Who?" });
+      expect(body.questions.__modaic_answerable_owner.instructions.question.type).toBe("span");
+      return Response.json({ model: "mo-2.0", usage: { input_tokens: 5, output_tokens: 0 }, answers: {
+        owner: { type: "span", span: { start: 3, end: 8, text: "Alice" }, probabilities: {"0": { start: 3, end: 8, text: "Alice" , probability: 0.9}}, confidence: 0.9 },
+        __modaic_answerable_owner: { type: "noul", noul: probability },
+      }});
     }});
-  }});
-  const result = await client.decisions.create({ model: "mo-2.0", state: "12.4 kg on leap day", questions: {
-    weight: new Number({ instructions: "Weight?", criteria: { min: "0", step: "0.1" } }),
-    inspected: new Datetime({ instructions: "When?", criteria: { format: "YYYY-MM-DD" } }),
-    summary: new Text({ instructions: "Summarize." }),
-  }});
-  const weight = result.answers.weight;
-  const inspected = result.answers.inspected;
-  const summary = result.answers.summary;
-  if (weight?.type === "number") {
-    expect(weight.number).toBe(12.4);
-    expect(weight.confidence).toBe(0.91);
+    const result = await client.decisions.create({ model: "mo-2.0", state: "😀 Alice",
+      questions: { owner: new Span({ instructions: "Who?" }).nullable() } });
+    const owner: Span | null = result.answers.owner;
+    expect(Object.keys(result.answers)).toEqual(["owner"]);
+    if (probability < 0.5) expect(owner).toBeNull();
+    else {
+      expect(owner).toBeInstanceOf(Span);
+      expect(owner?.span.text).toBe("Alice");
+      expect(owner?.name).toBe("owner");
+      expect(owner?.toQuestion()).toEqual({ type: "span", instructions: "Who?" });
+    }
   }
-  if (inspected?.type === "datetime") expect(inspected.datetime).toBe("2024-02-29");
-  if (summary?.type === "text") expect(summary.text).toBe("Inspection complete");
 });
 
-test("structured primitive constructors reject empty instructions and unsupported formats", () => {
-  expect(() => new Number({ instructions: " " })).toThrow();
-  expect(() => new Text({ instructions: " " })).toThrow();
-  // @ts-expect-error unsupported format
-  expect(() => new Datetime({ instructions: "When?", criteria: { format: "MM-DD-YYYY" } })).toThrow();
+test("saved-model span stays nested before optional schema validation", async () => {
+  const client = new Modaic({ apiKey: "test", fetch: async () => Response.json({
+    model: "acme/review", usage: { input_tokens: 5, output_tokens: 0 }, answers: {
+      owner: { type: "span", span: { start: 3, end: 8, text: "Alice" }, probabilities: {"0": { start: 3, end: 8, text: "Alice" , probability: 0.9}}, confidence: 0.9 },
+    },
+  }) });
+  const result = await client.decisions.create({ model: "acme/review", state: "😀 Alice", schema: {
+    parse(value: unknown): Span {
+      const answer = (value as { answers: { owner: Span } }).answers.owner;
+      expect(answer).toBeInstanceOf(Span);
+      expect(answer.span.text).toBe("Alice");
+      expect("extraction" in answer).toBe(false);
+      return answer;
+    },
+  } });
+  expect(result.span.start).toBe(3);
 });

@@ -289,15 +289,133 @@ Non-2xx responses throw `ModaicAPIError`, which exposes `status`, `code`,
 
 See the complete API documentation at <https://docs.modaic.dev>.
 
+## Nullable questions and inferred answers
+
+Questions infer the answer fields automatically, including Choice literal keys;
+Zod or another response schema is optional. The same inference works for
+model-bound decisions.
+
+```typescript
+import { Modaic, Choice, Noul } from "modaic";
+
+const result = await new Modaic().decisions.create({
+  model: "mo-latest",
+  state: { address: "Paris, France" },
+  questions: {
+    country: new Choice({
+      instructions: "Which country is the address in?",
+      criteria: { fr: "France", us: "United States" },
+    }).nullable(),
+    relevant: new Noul({ instructions: "Is this address relevant?" }),
+  },
+});
+result.answers.country; // ChoiceAnswer with choice "fr" | "us", or null.
+result.answers.relevant.noul; // number, without union narrowing.
+```
+
+Noul, Choice, Score, Text, Span, and Datetime support `.nullable(threshold = 0.5)`.
+`new Nullable(question, threshold)` also wraps constructor instances or plain
+question objects. Thresholds must be finite numbers in [0, 1]. A helper Noul
+checks whether the supplied state is sufficient to answer the full question.
+Both questions run in one HTTP request; below the threshold the entire answer
+becomes `null`, and equality accepts it. Helper answers are removed before an
+optional response schema parses the result, so use `.nullable()` in Zod for
+those answer fields. Missing or malformed helper answers throw
+`ModaicConnectionError`; explicit helper-ID collisions fail before HTTP.
+
+Nullable wrappers are request-local to `decisions.create`, not saved-model
+configuration. `__modaic_answerable_<question-id>` identifies each helper.
+Helpers count as additional questions. Captured API history retains the original
+answers and helper Nouls; SDK projection changes only the returned response.
+Calls without questions retain the standard `DecisionResponse` return type.
+
+
+### Native text, span, and datetime
+
+```typescript
+import { Text, Span, Datetime } from "modaic";
+const questions = {
+  summary: new Text({ instructions: "Summarize the document" }),
+  quote: new Span({ instructions: "Find the exact supporting passage" }).nullable(),
+  published: new Datetime({ instructions: "Publication date?", format: "YYYY-MM-DD" }),
+};
+```
+
+The inferred answers expose `.text`, `.span.text`/`.span.start`/`.span.end`, and `.datetime`
+respectively. Datetime answers retain strings rather than converting local times
+to JavaScript Date objects. The selected `format` is serialized as
+`criteria.format`. Allowed formats: `YYYY`, `YYYY-MM`, `YYYY-MM-DD`, `HH`,
+`HH:MM`, `HH:MM:SS`, `YYYY-MM-DDTHH`, `YYYY-MM-DDTHH:MM`,
+`YYYY-MM-DDTHH:MM:SS`. Timezone suffixes and offsets are unsupported.
+
+
+### Unified primitives
+
+Answers are public primitive instances. Use `Choice.choice`, `Score.score`,
+`Span.span.text`/`.span.start`/`.span.end`, `Text.text`, `Number.number`, `Noul.noul`, and
+`Datetime.datetime`. Structural `*Answer` types remain available.
+
+```typescript
+const result = await client.decisions.create({
+  model: "mo-2.0", state: "The event is in Paris.",
+  questions: { evidence: new Span({ instructions: "Find the city name" }) },
+});
+result.answers.evidence.span.text;
+result.answers.evidence.span.start;
+result.answers.evidence.name; // "evidence", inferred from the key.
+```
+
+`questions` accepts a dictionary, or may be omitted for saved models as before.
+Primitive instances and constructor classes are not accepted directly.
+Constructor `name` remains optional; the dictionary key takes precedence.
+Nullable dictionary entries return their primitive or `null`. Response envelopes
+and optional schema validation remain supported. Metadata and answer fields do
+not leak into request serialization. Answers without an available original
+question definition cannot be reused as question definitions.
+
+`Number` takes `instructions` and optional exact decimal string
+`criteria: { min, max, step }`, matching the API.
+
+
+`Date` and `Time` extend `Datetime` and default to `YYYY-MM-DD` and `HH:MM`.
+`Datetime` defaults to `YYYY-MM-DDTHH:MM`. Explicit format overrides are
+supported. Their `.datetime` values remain formatted strings and returned
+objects retain the subclass used to define the question.
+
+
+`Box` supports native image localization and nullable composition. For
+`questions: { region: new Box({ instructions: "Find the object" }) }`, the
+inferred answer exposes `.box.top`, `.box.bottom`, `.box.left`, `.box.right`,
+and `.confidence`. Coordinates are normalized to [0, 1]. Saved-model Box
+responses are supported, including when a custom response schema is supplied.
+
+
+Box `.confidence` is `number | null`, matching the shared TypeSafe response
+contract. JavaScript object keys remain strings at runtime; Score maps support
+numeric property indexing as normal JavaScript objects do.
 ## Mo 2.0 extraction and boxes
 
-Select `mo-2.0` explicitly. `Extraction` (`type: "extraction"`) extracts an exact
+Select `mo-2.0` explicitly. `Span` extracts an exact
 substring from a string state; `Box` (`type: "box"`) localizes an image region.
 Both require nonempty string instructions and reject criteria.
-Extraction answers contain `extraction: {start, end, text}` and confidence; offsets count
+Span answers expose `.span.text`, `.span.start`, `.span.end`, and `.confidence`; offsets count
 UTF-16 code units and end is exclusive. Box answers contain
 `box: {top, bottom, left, right}` normalized to [0, 1], and confidence.
 Pass inline `assets` to decisions.create, mapping an asset ID to
 `{type: "image", format: "png", dataBase64: "..."}`. Reference IDs in
 state, instructions or supported criteria; no separate upload is required.
 `mo-latest` selects `mo-2.0`.
+
+Span answers contain a nested value: `.span.text`, `.span.start`, and `.span.end`.
+The API and SDK use the same `type: "span"` contract.
+
+Span `.probabilities` is a dictionary keyed by string IDs. Currently it contains
+only `"0"`, with `text`, `start`, `end`, and `probability` equal to the answer
+confidence. Python entries expose attributes; TypeScript entries expose properties.
+
+### Number answers
+
+Number answers expose `.number`, `.confidence`, `.probabilities`, and `.variance`,
+matching the API. Confidence is the greedy numeric sequence's confidence; it is
+separate from the alternatives distribution and variance. Even a single-value
+probability map may have nonzero variance.

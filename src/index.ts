@@ -10,16 +10,7 @@ export {
 } from "./client.js";
 export { FineTunes, Resources, Uploads } from "./training.js";
 export type { ClientOptions } from "./client.js";
-export {
-  Box,
-  Choice,
-  Datetime,
-  Span,
-  Noul,
-  Number,
-  Score,
-  Text,
-} from "./questions.js";
+export { Choice, Noul, Score, Nullable, Datetime, Text, Span, Number, Date, Time, Box } from "./questions.js";
 export { VERSION } from "./version.js";
 export {
   ModaicAPIError,

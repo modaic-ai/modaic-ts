@@ -1,3 +1,4 @@
+import type { Nullable, Choice, Noul, Score, Text, Span, Datetime, Number, Box } from "./questions.js";
 export type JsonValue =
   | null
   | boolean
@@ -26,69 +27,60 @@ export interface ScoreQuestion {
   criteria: JsonValue[];
 }
 
-export interface NumberQuestion {
-  type: "number";
-  instructions: string;
-  criteria?: { min?: string; max?: string; step?: string };
-}
-
-export interface TextQuestion {
-  type: "text";
-  instructions: string;
-}
-
-export type DatetimeFormat =
-  | "YYYY"
-  | "YYYY-MM"
-  | "YYYY-MM-DD"
-  | "HH"
-  | "HH:MM"
-  | "HH:MM:SS"
-  | "YYYY-MM-DDTHH"
-  | "YYYY-MM-DDTHH:MM"
-  | "YYYY-MM-DDTHH:MM:SS";
-
+export type DatetimeFormat = "YYYY" | "YYYY-MM" | "YYYY-MM-DD" | "HH" | "HH:MM" | "HH:MM:SS"
+  | "YYYY-MM-DDTHH" | "YYYY-MM-DDTHH:MM" | "YYYY-MM-DDTHH:MM:SS";
 export interface DatetimeQuestion {
   type: "datetime";
   instructions: string;
   criteria: { format: DatetimeFormat };
 }
-
-export interface SpanQuestion {
-  type: "span";
-  instructions: string;
-  criteria?: never;
+export interface BoxQuestion { type: "box"; instructions: string; criteria?: never }
+export interface BoxCoordinates { top: number; bottom: number; left: number; right: number }
+export interface BoxAnswer extends AnswerMetadata { type: "box"; box: BoxCoordinates; confidence: number | null }
+export interface TextQuestion { type: "text"; instructions: string }
+export interface SpanQuestion { type: "span"; instructions: string; criteria?: never }
+export interface AnswerMetadata { readonly name?: string | undefined; readonly instructions?: JsonValue | undefined }
+export interface TextAnswer extends AnswerMetadata { type: "text"; text: string; confidence: number }
+export interface SpanValue { text: string; start: number; end: number }
+export interface SpanProbability extends SpanValue { probability: number }
+export interface SpanAnswer extends AnswerMetadata { type: "span"; span: SpanValue; probabilities: Record<string, SpanProbability>; confidence: number }
+export interface DatetimeAnswer extends AnswerMetadata {
+  type: "datetime"; datetime: string; probabilities: Record<string, number>; confidence: number;
 }
 
-export interface BoxQuestion {
-  type: "box";
-  instructions: string;
-  criteria?: never;
+export interface NumberQuestion {
+  type: "number"; instructions: string; criteria?: { min?: string; max?: string; step?: string };
 }
+export interface NumberAnswer extends AnswerMetadata { type: "number"; number: number; confidence: number; probabilities: Record<string, number>; variance: number }
+export type Question = NoulQuestion | ChoiceQuestion | ScoreQuestion | DatetimeQuestion | TextQuestion | SpanQuestion | NumberQuestion | BoxQuestion;
+export type QuestionInput = Question | Nullable;
+export type AnswerFor<Q> = Q extends Nullable<infer Inner> ? AnswerFor<Inner> | null
+  : Q extends NoulQuestion ? Noul
+  : Q extends ChoiceQuestion ? Choice<Extract<keyof Q["criteria"], string>>
+  : Q extends ScoreQuestion ? Score
+  : Q extends TextQuestion ? Text
+  : Q extends SpanQuestion ? Span
+  : Q extends DatetimeQuestion ? Q extends Datetime ? Q : Datetime
+  : Q extends NumberQuestion ? Number
+  : Q extends BoxQuestion ? Box
+  : never;
+export type InferredDecisionResponse<Q extends Record<string, QuestionInput>> =
+  Omit<DecisionResponse, "answers"> & { answers: { [K in keyof Q]: AnswerFor<Q[K]> } };
 
-export type Question =
-  | NoulQuestion
-  | ChoiceQuestion
-  | ScoreQuestion
-  | NumberQuestion
-  | TextQuestion
-  | DatetimeQuestion
-  | SpanQuestion
-  | BoxQuestion;
 
-export interface NoulAnswer {
+export interface NoulAnswer extends AnswerMetadata {
   type: "noul";
   noul: number;
 }
 
-export interface ChoiceAnswer {
+export interface ChoiceAnswer extends AnswerMetadata {
   type: "choice";
   choice: string;
   probabilities: Record<string, number>;
   confidence: number;
 }
 
-export interface ScoreAnswer {
+export interface ScoreAnswer extends AnswerMetadata {
   type: "score";
   score: number;
   legend: Record<string, JsonValue>;
@@ -96,50 +88,8 @@ export interface ScoreAnswer {
   confidence: number;
 }
 
-export interface NumberAnswer {
-  type: "number";
-  number: number;
-  probabilities: Record<string, number>;
-  variance: number;
-  confidence: number;
-}
 
-export interface TextAnswer {
-  type: "text";
-  text: string;
-  confidence: number;
-}
-
-export interface DatetimeAnswer {
-  type: "datetime";
-  datetime: string;
-  probabilities: Record<string, number>;
-  confidence: number;
-}
-
-export interface SpanAnswer {
-  type: "span";
-  start: number;
-  end: number;
-  span: string;
-  confidence: number;
-}
-
-export interface BoxAnswer {
-  type: "box";
-  box: { top: number; bottom: number; left: number; right: number };
-  confidence: number;
-}
-
-export type Answer =
-  | NoulAnswer
-  | ChoiceAnswer
-  | ScoreAnswer
-  | NumberAnswer
-  | TextAnswer
-  | DatetimeAnswer
-  | SpanAnswer
-  | BoxAnswer;
+export type Answer = NoulAnswer | ChoiceAnswer | ScoreAnswer | DatetimeAnswer | TextAnswer | SpanAnswer | NumberAnswer | BoxAnswer;
 
 export interface TokenUsage {
   inputTokens: number;
@@ -168,11 +118,12 @@ export interface ResponseSchema<T> {
   parse(value: unknown): T;
 }
 
-export interface CreateDecisionParams {
+export type DecisionQuestions = Record<string, QuestionInput>;
+export interface CreateDecisionParams<Q extends DecisionQuestions = Record<string, Question>> {
   assets?: Record<string, { type?: "image"; format: "png" | "jpg" | "jpeg"; dataBase64: string }>;
   state: JsonValue;
   model: string;
-  questions?: Record<string, Question>;
+  questions?: Q;
   revision?: string;
   exampleId?: string;
   capture?: boolean;
@@ -180,9 +131,9 @@ export interface CreateDecisionParams {
   idempotencyKey?: string;
 }
 
-export interface DecisionResponse {
+export interface DecisionResponse<A = Answer> {
   model: string;
-  answers: Record<string, Answer>;
+  answers: Record<string, A>;
   usage: TokenUsage;
   thinking?: Record<string, ThinkingResult>;
   exampleId?: string;
@@ -230,10 +181,16 @@ export interface CommitResult {
 }
 
 export interface ModelDecisions {
+
+  create<const Q extends Record<string, QuestionInput>>(
+    params: Omit<CreateDecisionParams, "model" | "questions"> & { questions: Q; schema?: never },
+  ): Promise<InferredDecisionResponse<Q>>;
+
   create<T>(
-    params: Omit<CreateDecisionParams, "model"> & { schema: ResponseSchema<T> },
+    params: Omit<CreateDecisionParams<DecisionQuestions>, "model"> & { schema: ResponseSchema<T> },
   ): Promise<T>;
   create(params: Omit<CreateDecisionParams, "model">): Promise<DecisionResponse>;
+  create(params: Omit<CreateDecisionParams<DecisionQuestions>, "model">): Promise<DecisionResponse<Answer | null>>;
 }
 
 export interface ExampleSummary {
