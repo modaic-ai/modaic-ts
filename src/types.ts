@@ -38,7 +38,7 @@ export interface BoxQuestion { type: "box"; instructions: string; criteria?: nev
 export interface BoxCoordinates { top: number; bottom: number; left: number; right: number }
 export interface BoxAnswer extends AnswerMetadata { type: "box"; box: BoxCoordinates; confidence: number | null }
 export interface TextQuestion { type: "text"; instructions: string }
-export interface SpanQuestion { type: "span"; instructions: string }
+export interface SpanQuestion { type: "span"; instructions: string; criteria?: never }
 export interface AnswerMetadata { readonly name?: string | undefined; readonly instructions?: JsonValue | undefined }
 export interface TextAnswer extends AnswerMetadata { type: "text"; text: string; confidence: number }
 export interface SpanValue { text: string; start: number; end: number }
@@ -51,7 +51,7 @@ export interface DatetimeAnswer extends AnswerMetadata {
 export interface NumberQuestion {
   type: "number"; instructions: string; criteria?: { min?: string; max?: string; step?: string };
 }
-export interface NumberAnswer extends AnswerMetadata { type: "number"; value: number; probabilities: Record<string, number>; variance: number }
+export interface NumberAnswer extends AnswerMetadata { type: "number"; number: number; confidence: number; probabilities: Record<string, number>; variance: number }
 export type Question = NoulQuestion | ChoiceQuestion | ScoreQuestion | DatetimeQuestion | TextQuestion | SpanQuestion | NumberQuestion | BoxQuestion;
 export type QuestionInput = Question | Nullable;
 export type AnswerFor<Q> = Q extends Nullable<infer Inner> ? AnswerFor<Inner> | null

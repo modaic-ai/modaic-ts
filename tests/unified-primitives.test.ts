@@ -7,7 +7,7 @@ const cases = [
   [new Score({ name: "evidence", instructions: "Severity?", criteria: ["Low", "High"] }), { type: "score", score: 0.7, legend: { "0": "Low", "1": "High" }, probabilities: { "0": 0.3, "1": 0.7 }, confidence: 0.7 }, "score", 0.7],
   [new Span({ name: "evidence", instructions: "Find" }), { type: "span", span: { text: "Paris", start: 0, end: 5 }, probabilities: {"0": { text: "Paris", start: 0, end: 5 , probability: 1}}, confidence: 1 }, "span", "Paris"],
   [new Text({ name: "evidence", instructions: "Summarize" }), { type: "text", text: "", confidence: 1 }, "text", ""],
-  [new Number({ name: "evidence", instructions: "Count?" }), { type: "number", value: 0, probabilities: { "0": 1 }, variance: 0 }, "value", 0],
+  [new Number({ name: "evidence", instructions: "Count?" }), { type: "number", number: 0, probabilities: { "0": 1 }, variance: 0, confidence: 0.91 }, "number", 0],
   [new Datetime({ name: "evidence", instructions: "When?", format: "YYYY-MM-DD" }), { type: "datetime", datetime: "2024-02-29", probabilities: { "2024-02-29": 1 }, confidence: 1 }, "datetime", "2024-02-29"],
 ] as const;
 

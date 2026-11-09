@@ -1,5 +1,5 @@
 // Requires MODAIC_API_KEY and bun; makes a billable API call.
-import { Choice, Date, Span, Modaic, Noul } from "modaic";
+import { Choice, Date, Span, Modaic, Noul, Number } from "modaic";
 
 export async function classify(client: Modaic) {
   return client.decisions.create({
@@ -13,6 +13,7 @@ export async function classify(client: Modaic) {
           apparel: "Clothes and footwear", electronics: "Electronic devices", other: "Other products",
         },
       }).nullable(),
+      size: new Number({ instructions: "What is the shoe size?", criteria: { min: "0" } }),
       evidence: new Span({ instructions: "Extract the product name" }),
       published: new Date({ instructions: "Publication date?" }).nullable(0.8),
     },
@@ -24,5 +25,6 @@ if (import.meta.main) {
   if (result.answers.department !== null) {
     console.log(result.answers.department.choice); // "apparel" | "electronics" | "other"
   }
+  console.log(result.answers.size.number, result.answers.size.confidence);
   console.log(result.answers.outdoor.noul, result.answers.evidence.span);
 }

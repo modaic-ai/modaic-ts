@@ -45,7 +45,7 @@ export function hydrateAnswer(answer: Answer, name: string, definition?: Questio
     score: { score: "number", legend: "object", probabilities: "object", confidence: "number" },
     text: { text: "string", confidence: "number" },
     span: { span: "object", probabilities: "object", confidence: "number" },
-    number: { value: "number", probabilities: "object", variance: "number" },
+    number: { number: "number", confidence: "number", probabilities: "object", variance: "number" },
     datetime: { datetime: "string", probabilities: "object", confidence: "number" },
   };
   if (!required[answer.type]) throw new Error("Unknown answer type");
@@ -230,7 +230,8 @@ export class Number extends Primitive implements NumberQuestion {
     this.instructions = options.instructions;
     if (options.criteria !== undefined) this.criteria = options.criteria;
   }
-  get value(): number { return answered(this, "number").value; }
+  get number(): number { return answered(this, "number").number; }
+  get confidence(): number { return answered(this, "number").confidence; }
   get probabilities(): Record<string, number> { return answered(this, "number").probabilities; }
   get variance(): number { return answered(this, "number").variance; }
   nullable(threshold = 0.5): Nullable<this> { return new Nullable(this, threshold); }

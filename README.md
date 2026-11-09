@@ -352,7 +352,7 @@ to JavaScript Date objects. The selected `format` is serialized as
 ### Unified primitives
 
 Answers are public primitive instances. Use `Choice.choice`, `Score.score`,
-`Span.span.text`/`.span.start`/`.span.end`, `Text.text`, `Number.value`, `Noul.noul`, and
+`Span.span.text`/`.span.start`/`.span.end`, `Text.text`, `Number.number`, `Noul.noul`, and
 `Datetime.datetime`. Structural `*Answer` types remain available.
 
 ```typescript
@@ -412,3 +412,10 @@ The API and SDK use the same `type: "span"` contract.
 Span `.probabilities` is a dictionary keyed by string IDs. Currently it contains
 only `"0"`, with `text`, `start`, `end`, and `probability` equal to the answer
 confidence. Python entries expose attributes; TypeScript entries expose properties.
+
+### Number answers
+
+Number answers expose `.number`, `.confidence`, `.probabilities`, and `.variance`,
+matching the API. Confidence is the greedy numeric sequence's confidence; it is
+separate from the alternatives distribution and variance. Even a single-value
+probability map may have nonzero variance.
