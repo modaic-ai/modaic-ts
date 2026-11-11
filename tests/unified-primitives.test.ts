@@ -5,10 +5,10 @@ const cases = [
   [new Noul({ name: "evidence", instructions: "Relevant?" }), { type: "noul", noul: 0.9 }, "noul", 0.9],
   [new Choice({ name: "evidence", instructions: "Country?", criteria: { fr: "France" } }), { type: "choice", choice: "fr", probabilities: { fr: 1 }, confidence: 1 }, "choice", "fr"],
   [new Score({ name: "evidence", instructions: "Severity?", criteria: ["Low", "High"] }), { type: "score", score: 0.7, legend: { "0": "Low", "1": "High" }, probabilities: { "0": 0.3, "1": 0.7 }, confidence: 0.7 }, "score", 0.7],
-  [new Span({ name: "evidence", instructions: "Find" }), { type: "span", span: { text: "Paris", start: 0, end: 5 }, probabilities: {"0": { text: "Paris", start: 0, end: 5 , probability: 1}}, confidence: 1 }, "span", "Paris"],
+  [new Span({ name: "evidence", instructions: "Find" }), { type: "span", span: { text: "Paris", start: 0, end: 5, confidence: 1 }, spans: [{ text: "Paris", start: 0, end: 5, confidence: 1 }], confidence: 1 }, "span", "Paris"],
   [new Text({ name: "evidence", instructions: "Summarize" }), { type: "text", text: "", confidence: 1 }, "text", ""],
-  [new Number({ name: "evidence", instructions: "Count?" }), { type: "number", number: 0, probabilities: { "0": 1 }, variance: 0, confidence: 0.91 }, "number", 0],
-  [new Datetime({ name: "evidence", instructions: "When?", format: "YYYY-MM-DD" }), { type: "datetime", datetime: "2024-02-29", probabilities: { "2024-02-29": 1 }, confidence: 1 }, "datetime", "2024-02-29"],
+  [new Number({ name: "evidence", instructions: "Count?" }), { type: "number", number: 0, variance: 0, confidence: 0.91 }, "number", 0],
+  [new Datetime({ name: "evidence", instructions: "When?", format: "YYYY-MM-DD" }), { type: "datetime", datetime: "2024-02-29", confidence: 1 }, "datetime", "2024-02-29"],
 ] as const;
 
 for (const [question, answer, attribute, expected] of cases) {
@@ -35,7 +35,7 @@ for (const [question, answer, attribute, expected] of cases) {
 test("dictionary nullable Span returns Span or null", async () => {
   let probability = 0.1;
   const client = new Modaic({ apiKey: "test", fetch: async () => Response.json({ model: "mo-2.0", answers: {
-    evidence: { type: "span", span: { text: "Paris", start: 0, end: 5 }, probabilities: {"0": { text: "Paris", start: 0, end: 5 , probability: 1}}, confidence: 1 },
+    evidence: { type: "span", span: { text: "Paris", start: 0, end: 5, confidence: 1 }, spans: [{ text: "Paris", start: 0, end: 5, confidence: 1 }], confidence: 1 },
     __modaic_answerable_evidence: { type: "noul", noul: probability },
   }, usage: { input_tokens: 1, output_tokens: 1 } }) });
   const questions = { evidence: new Span({ instructions: "Find" }).nullable() };
@@ -49,7 +49,7 @@ test("dictionary nullable Span returns Span or null", async () => {
 
 test("dictionary and saved-model responses hydrate public classes", async () => {
   const client = new Modaic({ apiKey: "test", fetch: async () => Response.json({ model: "mo-2.0", answers: {
-    evidence: { type: "span", span: { text: "Paris", start: 0, end: 5 }, probabilities: {"0": { text: "Paris", start: 0, end: 5 , probability: 1}}, confidence: 1 },
+    evidence: { type: "span", span: { text: "Paris", start: 0, end: 5, confidence: 1 }, spans: [{ text: "Paris", start: 0, end: 5, confidence: 1 }], confidence: 1 },
   }, usage: { input_tokens: 1, output_tokens: 1 } }) });
   const result = await client.decisions.create({ model: "mo-2.0", state: "Paris", questions: { evidence: new Span({ instructions: "Find" }) } });
   expect(result.answers.evidence).toBeInstanceOf(Span);
@@ -70,7 +70,7 @@ test("wrong dictionary answer type fails validation", async () => {
 
 test("malformed dictionary answer fields are rejected", async () => {
   const client = new Modaic({ apiKey: "test", fetch: async () => Response.json({ model: "mo-2.0", answers: {
-    answer: { type: "span", span: { text: "Paris", start: 5, end: 0 }, probabilities: {"0": { text: "Paris", start: 5, end: 0 , probability: 1}}, confidence: 1 },
+    answer: { type: "span", span: { text: "Paris", start: 5, end: 0, confidence: 1 }, spans: [{ text: "Paris", start: 5, end: 0, confidence: 1 }], confidence: 1 },
   }, usage: { input_tokens: 1, output_tokens: 1 } }) });
   await expect(client.decisions.create({ model: "mo-2.0", state: "Paris", questions: { answer: new Span({ instructions: "Find" }) } })).rejects.toBeInstanceOf(ModaicConnectionError);
 });
@@ -91,7 +91,7 @@ test("dictionary key overrides an optional constructor name", async () => {
   const question = new Span({ name: "other", instructions: "Find" });
   const client = new Modaic({ apiKey: "test", fetch: async (_url, init) => {
     expect(JSON.parse(String(init?.body)).questions).toEqual({ evidence: { type: "span", instructions: "Find" } });
-    return Response.json({ model: "mo-2.0", answers: { evidence: { type: "span", span: { text: "Paris", start: 0, end: 5 }, probabilities: {"0": { text: "Paris", start: 0, end: 5 , probability: 1}}, confidence: 1 } }, usage: { input_tokens: 1, output_tokens: 1 } });
+    return Response.json({ model: "mo-2.0", answers: { evidence: { type: "span", span: { text: "Paris", start: 0, end: 5, confidence: 1 }, spans: [{ text: "Paris", start: 0, end: 5, confidence: 1 }], confidence: 1 } }, usage: { input_tokens: 1, output_tokens: 1 } });
   } });
   const result = await client.decisions.create({ model: "mo-2.0", state: "Paris", questions: { evidence: question } });
   expect(result.answers.evidence.name).toBe("evidence");

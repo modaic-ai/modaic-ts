@@ -48,7 +48,8 @@ import type {
 } from "./types.js";
 
 interface WireDecisionResponse
-  extends Omit<DecisionResponse, "usage" | "thinking" | "exampleId" | "decisionId"> {
+  extends Omit<DecisionResponse, "answers" | "usage" | "thinking" | "exampleId" | "decisionId"> {
+  answers: Record<string, (Answer & { p_null?: number }) | null>;
   usage: { input_tokens: number; output_tokens: number; reasoning_tokens?: number };
   thinking?: Record<string, {
     max_tokens: number | null;
@@ -83,7 +84,13 @@ function decisionBody(params: AnyDecisionParams & { schema?: ResponseSchema<unkn
   body: Record<string, unknown>;
   headers?: Record<string, string>;
 } {
-  const { idempotencyKey, exampleId, reasoningEffort, assets, schema: _schema, ...rest } = params;
+  const { idempotencyKey, exampleId, reasoningEffort, assets, experimentalNullability,
+    experimentalSampling, schema: _schema, ...rest } = params;
+  const headers = {
+    ...(idempotencyKey === undefined ? {} : { "idempotency-key": idempotencyKey }),
+    ...(experimentalNullability === true ? { "X-Modaic-Experimental-Nullability": "true" } : {}),
+    ...(experimentalSampling === true ? { "X-Modaic-Experimental-Sampling": "true" } : {}),
+  };
   return {
     body: {
       ...rest,
@@ -91,16 +98,18 @@ function decisionBody(params: AnyDecisionParams & { schema?: ResponseSchema<unkn
       ...(reasoningEffort === undefined ? {} : { reasoning_effort: reasoningEffort }),
       ...(exampleId === undefined ? {} : { example_id: exampleId }),
     },
-    ...(idempotencyKey === undefined
-      ? {}
-      : { headers: { "idempotency-key": idempotencyKey } }),
+    ...(Object.keys(headers).length === 0 ? {} : { headers }),
   };
 }
 
 function mapDecision(response: WireDecisionResponse): DecisionResponse {
   return {
     model: response.model,
-    answers: response.answers,
+    answers: Object.fromEntries(Object.entries(response.answers).map(([name, answer]) => {
+      if (answer === null || answer.p_null === undefined) return [name, answer];
+      const { p_null: pNull, ...rest } = answer;
+      return [name, { ...rest, pNull }];
+    })),
     usage: {
       inputTokens: response.usage.input_tokens,
       outputTokens: response.usage.output_tokens,

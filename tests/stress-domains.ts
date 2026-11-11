@@ -33,7 +33,7 @@ function validate(result: DecisionResponse, questions: Record<string, Question>)
     if (answer.type === "noul") assert(answer.noul >= 0 && answer.noul <= 1);
     else {
       if ("confidence" in answer && answer.confidence !== null) assert(answer.confidence >= 0 && answer.confidence <= 1);
-      if (!("probabilities" in answer)) continue;
+      if (!("probabilities" in answer) || answer.probabilities === undefined) continue;
       const probabilities = Object.values(answer.probabilities);
       assert(probabilities.every((p) => p >= 0 && p <= 1));
       assert(Math.abs(probabilities.reduce((a, b) => a + b, 0) - 1) < 0.01);
