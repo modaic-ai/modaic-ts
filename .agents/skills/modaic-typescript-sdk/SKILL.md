@@ -341,14 +341,14 @@ The API and SDK use the same `type: "span"` contract.
 
 ### Number answers
 
-Number answers expose `.number`, `.confidence`, `.probabilities`, and `.variance`,
-matching the API. Confidence is the greedy numeric sequence's confidence; it is
-separate from the alternatives distribution and variance. Even a single-value
-probability map may have nonzero variance.
+Number answers expose `.number`, `.confidence`, `.variance`, and optional
+`.probabilities`, matching the API. Datetime answers likewise expose optional
+`.probabilities`. The field is `undefined` unless experimental sampling was requested.
+Confidence is separate from the sampled alternatives distribution and variance.
 
 Set `experimentalNullability: true` on `decisions.create` to send
 `X-Modaic-Experimental-Nullability: true`. Span, Text, Number, and Datetime
 answers then include `.pNull` in `[0, 1]`; their headline value remains the
 model's best guess regardless of `.pNull`. Set `experimentalSampling: true` to
-request sampled Number alternatives. Without it, Number `.probabilities`
-contains only the selected value.
+include sampled Number and Datetime `.probabilities`. Without it, those answers
+omit `.probabilities` and the SDK exposes it as `undefined`.

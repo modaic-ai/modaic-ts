@@ -44,13 +44,13 @@ export interface TextAnswer extends AnswerMetadata { type: "text"; text: string;
 export interface SpanValue { text: string; start: number; end: number; confidence: number }
 export interface SpanAnswer extends AnswerMetadata { type: "span"; span: SpanValue; spans: SpanValue[]; confidence: number; pNull?: number | undefined }
 export interface DatetimeAnswer extends AnswerMetadata {
-  type: "datetime"; datetime: string; probabilities: Record<string, number>; confidence: number; pNull?: number | undefined;
+  type: "datetime"; datetime: string; probabilities?: Record<string, number> | undefined; confidence: number; pNull?: number | undefined;
 }
 
 export interface NumberQuestion {
   type: "number"; instructions: string; criteria?: { min?: string; max?: string };
 }
-export interface NumberAnswer extends AnswerMetadata { type: "number"; number: number; confidence: number; probabilities: Record<string, number>; variance: number; pNull?: number | undefined }
+export interface NumberAnswer extends AnswerMetadata { type: "number"; number: number; confidence: number; probabilities?: Record<string, number> | undefined; variance: number; pNull?: number | undefined }
 export type Question = NoulQuestion | ChoiceQuestion | ScoreQuestion | DatetimeQuestion | TextQuestion | SpanQuestion | NumberQuestion | BoxQuestion;
 export type QuestionInput = Question | Nullable;
 export type AnswerFor<Q> = Q extends Nullable<infer Inner> ? AnswerFor<Inner> | null

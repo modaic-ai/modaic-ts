@@ -45,8 +45,8 @@ export function hydrateAnswer(answer: Answer, name: string, definition?: Questio
     score: { score: "number", legend: "object", probabilities: "object", confidence: "number" },
     text: { text: "string", confidence: "number" },
     span: { span: "object", spans: "object", confidence: "number" },
-    number: { number: "number", confidence: "number", probabilities: "object", variance: "number" },
-    datetime: { datetime: "string", probabilities: "object", confidence: "number" },
+    number: { number: "number", confidence: "number", variance: "number" },
+    datetime: { datetime: "string", confidence: "number" },
   };
   if (!required[answer.type]) throw new Error("Unknown answer type");
   for (const [key, type] of Object.entries(required[answer.type])) {
@@ -58,6 +58,10 @@ export function hydrateAnswer(answer: Answer, name: string, definition?: Questio
       throw new Error(`Invalid answer field ${key}`);
     }
   }
+  if ((answer.type === "number" || answer.type === "datetime") &&
+      answer.probabilities !== undefined &&
+      (typeof answer.probabilities !== "object" || answer.probabilities === null ||
+       Array.isArray(answer.probabilities))) throw new Error("Invalid answer field probabilities");
   if (answer.type === "span" && (!globalThis.Number.isInteger(answer.span.start) ||
       !globalThis.Number.isInteger(answer.span.end) || answer.span.start < 0 ||
       answer.span.end <= answer.span.start || typeof answer.span.text !== "string" || answer.span.text.length === 0 ||
@@ -228,7 +232,7 @@ export class Span extends Primitive implements SpanQuestion {
 
 export class Datetime extends Primitive implements DatetimeQuestion {
   get datetime(): string { return answered(this, "datetime").datetime; }
-  get probabilities(): Record<string, number> { return answered(this, "datetime").probabilities; }
+  get probabilities(): Record<string, number> | undefined { return answered(this, "datetime").probabilities; }
   get confidence(): number { return answered(this, "datetime").confidence; }
   get pNull(): number | undefined { return answered(this, "datetime").pNull; }
   readonly type = "datetime" as const;
@@ -260,7 +264,7 @@ export class Number extends Primitive implements NumberQuestion {
   }
   get number(): number { return answered(this, "number").number; }
   get confidence(): number { return answered(this, "number").confidence; }
-  get probabilities(): Record<string, number> { return answered(this, "number").probabilities; }
+  get probabilities(): Record<string, number> | undefined { return answered(this, "number").probabilities; }
   get variance(): number { return answered(this, "number").variance; }
   get pNull(): number | undefined { return answered(this, "number").pNull; }
   nullable(threshold = 0.5): Nullable<this> { return new Nullable(this, threshold); }

@@ -17,7 +17,7 @@ test("native text, span, and datetime infer their answers and compose nullabilit
     expect(wire.questions.quote.type).toBe("span");
     expect(wire.questions.summary.type).toBe("text");
     return Response.json({ model: "mo-2.0", answers: {
-      when: { type: "datetime", datetime: "2024-02-29", probabilities: { "2024-02-29": 1 }, confidence: 1 },
+      when: { type: "datetime", datetime: "2024-02-29", confidence: 1 },
       __modaic_answerable_when: { type: "noul", noul: 0.9 },
       summary: { type: "text", text: "", confidence: 1 },
       quote: { type: "span", span: { text: "Paris", start: 0, end: 5, confidence: 1 }, spans: [{ text: "Paris", start: 0, end: 5, confidence: 1 }], confidence: 1 },
@@ -54,7 +54,7 @@ for (const [question, format, value] of [
     const client = new Modaic({ apiKey: "test", fetch: async (_url, init) => {
       expect(JSON.parse(String(init?.body)).questions.when.criteria.format).toBe(format);
       return Response.json({ model: "mo-2.0", answers: {
-        when: { type: "datetime", datetime: value, probabilities: { [value]: 1 }, confidence: 1 },
+        when: { type: "datetime", datetime: value, confidence: 1 },
       }, usage: { input_tokens: 1, output_tokens: 1 } });
     } });
     const result = await client.decisions.create({ model: "mo-2.0", state: {}, questions: { when: question } });
