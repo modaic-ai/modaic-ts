@@ -20,7 +20,7 @@ test("native text, span, and datetime infer their answers and compose nullabilit
       when: { type: "datetime", datetime: "2024-02-29", probabilities: { "2024-02-29": 1 }, confidence: 1 },
       __modaic_answerable_when: { type: "noul", noul: 0.9 },
       summary: { type: "text", text: "", confidence: 1 },
-      quote: { type: "span", span: { text: "Paris", start: 0, end: 5 }, probabilities: {"0": { text: "Paris", start: 0, end: 5 , probability: 1}}, confidence: 1 },
+      quote: { type: "span", span: { text: "Paris", start: 0, end: 5, confidence: 1 }, spans: [{ text: "Paris", start: 0, end: 5, confidence: 1 }], confidence: 1 },
       __modaic_answerable_quote: { type: "noul", noul: 0.1 },
     }, usage: { input_tokens: 1, output_tokens: 1 } });
   }});

@@ -6,14 +6,14 @@ test("Span preserves the nested public answer", async () => {
     const body = JSON.parse(init?.body as string);
     expect(body.questions.owner).toEqual({ type: "span", instructions: "Who?" });
     return Response.json({ model: "mo-2.0", usage: { input_tokens: 5, output_tokens: 0 }, answers: {
-      owner: { type: "span", span: { start: 3, end: 8, text: "Alice" }, probabilities: {"0": { start: 3, end: 8, text: "Alice" , probability: 0.9}}, confidence: 0.9 },
+      owner: { type: "span", span: { start: 3, end: 8, text: "Alice", confidence: 0.9 }, spans: [{ start: 3, end: 8, text: "Alice", confidence: 0.9 }], confidence: 0.9 },
     }});
   }});
   const result = await client.decisions.create({ model: "mo-2.0", state: "😀 Alice", questions: { owner: new Span({ instructions: "Who?" }) } });
   const answer = result.answers.owner;
-  const probability: number = answer.probabilities["0"]!.probability;
-  expect(probability).toBe(0.9);
-  expect(answer.probabilities["0"]?.text).toBe("Alice");
+  const confidence: number = answer.spans[0]!.confidence;
+  expect(confidence).toBe(0.9);
+  expect(answer.spans[0]?.text).toBe("Alice");
   expect(answer?.type).toBe("span");
   if (answer?.type === "span") expect([answer.span.start, answer.span.end, answer.span.text]).toEqual([3, 8, "Alice"]);
 });
@@ -50,7 +50,7 @@ test("Span preserves its nested value through nullable inference", async () => {
       expect(body.questions.owner).toEqual({ type: "span", instructions: "Who?" });
       expect(body.questions.__modaic_answerable_owner.instructions.question.type).toBe("span");
       return Response.json({ model: "mo-2.0", usage: { input_tokens: 5, output_tokens: 0 }, answers: {
-        owner: { type: "span", span: { start: 3, end: 8, text: "Alice" }, probabilities: {"0": { start: 3, end: 8, text: "Alice" , probability: 0.9}}, confidence: 0.9 },
+        owner: { type: "span", span: { start: 3, end: 8, text: "Alice", confidence: 0.9 }, spans: [{ start: 3, end: 8, text: "Alice", confidence: 0.9 }], confidence: 0.9 },
         __modaic_answerable_owner: { type: "noul", noul: probability },
       }});
     }});
@@ -71,7 +71,7 @@ test("Span preserves its nested value through nullable inference", async () => {
 test("saved-model span stays nested before optional schema validation", async () => {
   const client = new Modaic({ apiKey: "test", fetch: async () => Response.json({
     model: "acme/review", usage: { input_tokens: 5, output_tokens: 0 }, answers: {
-      owner: { type: "span", span: { start: 3, end: 8, text: "Alice" }, probabilities: {"0": { start: 3, end: 8, text: "Alice" , probability: 0.9}}, confidence: 0.9 },
+      owner: { type: "span", span: { start: 3, end: 8, text: "Alice", confidence: 0.9 }, spans: [{ start: 3, end: 8, text: "Alice", confidence: 0.9 }], confidence: 0.9 },
     },
   }) });
   const result = await client.decisions.create({ model: "acme/review", state: "😀 Alice", schema: {
@@ -84,4 +84,23 @@ test("saved-model span stays nested before optional schema validation", async ()
     },
   } });
   expect(result.span.start).toBe(3);
+});
+
+test("experimental flags are headers and p_null maps to pNull", async () => {
+  const client = new Modaic({ apiKey: "test", fetch: async (_url, init) => {
+    const headers = new Headers(init?.headers);
+    expect(headers.get("X-Modaic-Experimental-Nullability")).toBe("true");
+    expect(headers.get("X-Modaic-Experimental-Sampling")).toBe("true");
+    const body = JSON.parse(String(init?.body));
+    expect(body.experimentalNullability).toBeUndefined();
+    expect(body.experimentalSampling).toBeUndefined();
+    return Response.json({ model: "mo-2.0", usage: { input_tokens: 1, output_tokens: 0 }, answers: {
+      owner: { type: "span", span: { start: 3, end: 8, text: "Alice", confidence: 0.9 }, spans: [{ start: 3, end: 8, text: "Alice", confidence: 0.9 }], confidence: 0.9, p_null: 0.7 },
+    }});
+  }});
+  const result = await client.decisions.create({ model: "mo-2.0", state: "Alice",
+    questions: { owner: new Span({ instructions: "Who?" }) },
+    experimentalNullability: true, experimentalSampling: true });
+  expect(result.answers.owner.pNull).toBe(0.7);
+  expect(result.answers.owner.span.text).toBe("Alice");
 });

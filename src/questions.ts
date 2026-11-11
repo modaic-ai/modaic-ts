@@ -44,7 +44,7 @@ export function hydrateAnswer(answer: Answer, name: string, definition?: Questio
     choice: { choice: "string", probabilities: "object", confidence: "number" },
     score: { score: "number", legend: "object", probabilities: "object", confidence: "number" },
     text: { text: "string", confidence: "number" },
-    span: { span: "object", probabilities: "object", confidence: "number" },
+    span: { span: "object", spans: "object", confidence: "number" },
     number: { number: "number", confidence: "number", probabilities: "object", variance: "number" },
     datetime: { datetime: "string", probabilities: "object", confidence: "number" },
   };
@@ -54,11 +54,14 @@ export function hydrateAnswer(answer: Answer, name: string, definition?: Questio
     if (answer.type === "box" && key === "confidence" && value === null) continue;
     if (typeof value !== type || value === null ||
         (type === "number" && !globalThis.Number.isFinite(value)) ||
-        (type === "object" && Array.isArray(value))) throw new Error(`Invalid answer field ${key}`);
+        (type === "object" && Array.isArray(value) && !(answer.type === "span" && key === "spans"))) {
+      throw new Error(`Invalid answer field ${key}`);
+    }
   }
   if (answer.type === "span" && (!globalThis.Number.isInteger(answer.span.start) ||
       !globalThis.Number.isInteger(answer.span.end) || answer.span.start < 0 ||
-      answer.span.end <= answer.span.start || typeof answer.span.text !== "string" || answer.span.text.length === 0)) {
+      answer.span.end <= answer.span.start || typeof answer.span.text !== "string" || answer.span.text.length === 0 ||
+      typeof answer.span.confidence !== "number" || answer.span.confidence < 0 || answer.span.confidence > 1)) {
     throw new Error("Invalid span value");
   }
   if (answer.type === "box") {
@@ -67,15 +70,37 @@ export function hydrateAnswer(answer: Answer, name: string, definition?: Questio
         top >= bottom || left >= right || (answer.confidence !== null && (answer.confidence < 0 || answer.confidence > 1))) throw new Error("Invalid box boundaries");
   }
   if (answer.type === "span") {
-    for (const candidate of Object.values(answer.probabilities)) {
+    if (!Array.isArray(answer.spans) || answer.spans.length < 1 || answer.spans.length > 10) {
+      throw new Error("Invalid ranked spans");
+    }
+    for (const candidate of answer.spans) {
       if (!candidate || typeof candidate !== "object" ||
           typeof candidate.text !== "string" || candidate.text.length === 0 ||
           !globalThis.Number.isInteger(candidate.start) || !globalThis.Number.isInteger(candidate.end) ||
           candidate.start < 0 || candidate.end <= candidate.start ||
-          typeof candidate.probability !== "number" || !globalThis.Number.isFinite(candidate.probability) ||
-          candidate.probability < 0 || candidate.probability > 1) throw new Error("Invalid span probability");
+          typeof candidate.confidence !== "number" || !globalThis.Number.isFinite(candidate.confidence) ||
+          candidate.confidence < 0 || candidate.confidence > 1) throw new Error("Invalid ranked span");
+    }
+    for (let index = 1; index < answer.spans.length; index += 1) {
+      if (answer.spans[index]!.confidence > answer.spans[index - 1]!.confidence) {
+        throw new Error("Ranked spans must use descending confidence");
+      }
+    }
+    for (let left = 0; left < answer.spans.length; left += 1) {
+      for (let right = left + 1; right < answer.spans.length; right += 1) {
+        const a = answer.spans[left]!;
+        const b = answer.spans[right]!;
+        if (a.start < b.end && b.start < a.end) throw new Error("Ranked spans must be disjoint");
+      }
+    }
+    if (answer.confidence !== answer.spans[0]!.confidence ||
+        JSON.stringify(answer.span) !== JSON.stringify(answer.spans[0])) {
+      throw new Error("Selected span must equal the top ranked span");
     }
   }
+  if ("pNull" in answer && answer.pNull !== undefined &&
+      (typeof answer.pNull !== "number" || !globalThis.Number.isFinite(answer.pNull) ||
+       answer.pNull < 0 || answer.pNull > 1)) throw new Error("Invalid pNull");
   const constructor = (definition && definitionConstructors.get(definition)) ?? constructors[answer.type];
   if (!constructor) throw new Error("Unknown answer type");
   if (definition && definition.type !== answer.type) throw new Error("Answer type does not match its question");
@@ -174,6 +199,7 @@ function instructions(value: string): void {
 export class Text extends Primitive implements TextQuestion {
   get text(): string { return answered(this, "text").text; }
   get confidence(): number { return answered(this, "text").confidence; }
+  get pNull(): number | undefined { return answered(this, "text").pNull; }
   readonly type = "text" as const;
   instructions: string;
   constructor(options: { instructions: string; name?: string }) {
@@ -185,9 +211,10 @@ export class Text extends Primitive implements TextQuestion {
 }
 
 export class Span extends Primitive implements SpanQuestion {
-  get probabilities(): SpanAnswer["probabilities"] { return answered(this, "span").probabilities; }
   get span(): SpanAnswer["span"] { return answered(this, "span").span; }
+  get spans(): SpanAnswer["spans"] { return answered(this, "span").spans; }
   get confidence(): number { return answered(this, "span").confidence; }
+  get pNull(): number | undefined { return answered(this, "span").pNull; }
   readonly type = "span" as const;
   instructions: string;
   constructor(options: { instructions: string; name?: string }) {
@@ -203,6 +230,7 @@ export class Datetime extends Primitive implements DatetimeQuestion {
   get datetime(): string { return answered(this, "datetime").datetime; }
   get probabilities(): Record<string, number> { return answered(this, "datetime").probabilities; }
   get confidence(): number { return answered(this, "datetime").confidence; }
+  get pNull(): number | undefined { return answered(this, "datetime").pNull; }
   readonly type = "datetime" as const;
   instructions: string;
   criteria: { format: DatetimeFormat };
@@ -234,6 +262,7 @@ export class Number extends Primitive implements NumberQuestion {
   get confidence(): number { return answered(this, "number").confidence; }
   get probabilities(): Record<string, number> { return answered(this, "number").probabilities; }
   get variance(): number { return answered(this, "number").variance; }
+  get pNull(): number | undefined { return answered(this, "number").pNull; }
   nullable(threshold = 0.5): Nullable<this> { return new Nullable(this, threshold); }
 }
 

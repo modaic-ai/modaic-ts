@@ -298,7 +298,7 @@ not leak into request serialization. Answers without an available original
 question definition cannot be reused as question definitions.
 
 `Number` takes `instructions` and optional exact decimal string
-`criteria: { min, max, step }`, matching the API.
+`criteria: { min, max }`. Number does not accept `step`.
 
 
 `Date` and `Time` extend `Datetime` and default to `YYYY-MM-DD` and `HH:MM`.
@@ -327,20 +327,17 @@ use `answer.noul > 0.5` for a boolean decision. Both
 Select `mo-2.0` explicitly. `Span` extracts an exact
 substring from a string state; `Box` (`type: "box"`) localizes an image region.
 Both require nonempty string instructions and reject criteria.
-Span answers expose `.span.text`, `.span.start`, `.span.end`, and `.confidence`; offsets count
-UTF-16 code units and end is exclusive. Box answers contain
+Span answers expose `.span`, up to ten confidence-ordered disjoint candidates
+in `.spans`, and top-level `.confidence`; each candidate has `text`, `start`,
+`end`, and `confidence`, and `.span` is always `.spans[0]`. Offsets count UTF-16
+code units and end is exclusive. Box answers contain
 `box: {top, bottom, left, right}` normalized to [0, 1], and confidence.
 Pass inline `assets` to decisions.create, mapping an asset ID to
 `{type: "image", format: "png", dataBase64: "..."}`. Reference IDs in
 state, instructions or supported criteria; no separate upload is required.
 `mo-latest` selects `mo-2.0`.
 
-Span answers contain a nested value: `.span.text`, `.span.start`, and `.span.end`.
 The API and SDK use the same `type: "span"` contract.
-
-Span `.probabilities` is a dictionary keyed by string IDs. Currently it contains
-only `"0"`, with `text`, `start`, `end`, and `probability` equal to the answer
-confidence. Python entries expose attributes; TypeScript entries expose properties.
 
 ### Number answers
 
@@ -348,3 +345,10 @@ Number answers expose `.number`, `.confidence`, `.probabilities`, and `.variance
 matching the API. Confidence is the greedy numeric sequence's confidence; it is
 separate from the alternatives distribution and variance. Even a single-value
 probability map may have nonzero variance.
+
+Set `experimentalNullability: true` on `decisions.create` to send
+`X-Modaic-Experimental-Nullability: true`. Span, Text, Number, and Datetime
+answers then include `.pNull` in `[0, 1]`; their headline value remains the
+model's best guess regardless of `.pNull`. Set `experimentalSampling: true` to
+request sampled Number alternatives. Without it, Number `.probabilities`
+contains only the selected value.
