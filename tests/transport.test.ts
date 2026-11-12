@@ -85,3 +85,24 @@ test("204 responses support model deletion and job cancellation", async () => {
   expect(requests).toHaveLength(3);
   expect(requests.every(r => r.method === "DELETE")).toBe(true);
 });
+
+// Browser fetch throws "Illegal invocation" unless called on the global object or detached.
+function browserLikeFetch(this: unknown): Promise<Response> {
+  if (this !== undefined && this !== globalThis) {
+    return Promise.reject(new TypeError("Failed to execute 'fetch' on 'Window': Illegal invocation"));
+  }
+  return Promise.resolve(Response.json({ models: [] }));
+}
+
+test("fetch is not called with the transport as its receiver", async () => {
+  const modaic = new Modaic({ apiKey: "test-key", fetch: browserLikeFetch });
+  expect(await modaic.models.list()).toEqual({ models: [] });
+
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = browserLikeFetch as unknown as typeof fetch;
+  try {
+    expect(await new Modaic({ apiKey: "test-key" }).models.list()).toEqual({ models: [] });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
