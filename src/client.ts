@@ -48,7 +48,7 @@ import type {
 } from "./types.js";
 
 interface WireDecisionResponse
-  extends Omit<DecisionResponse, "answers" | "usage" | "thinking" | "exampleId" | "decisionId"> {
+  extends Omit<DecisionResponse, "answers" | "usage" | "thinking" | "exampleId" | "predictionId"> {
   answers: Record<string, (Answer & { p_null?: number }) | null>;
   usage: { input_tokens: number; output_tokens: number; reasoning_tokens?: number };
   thinking?: Record<string, {
@@ -61,7 +61,7 @@ interface WireDecisionResponse
     cached_tokens: number | null;
   }>;
   example_id?: string;
-  decision_id?: string;
+  prediction_id?: string;
 }
 
 interface WireModelSummary extends Omit<ModelSummary, "repositoryId"> {
@@ -110,6 +110,7 @@ function mapDecision(response: WireDecisionResponse): DecisionResponse {
       const { p_null: pNull, ...rest } = answer;
       return [name, { ...rest, pNull }];
     })),
+    ...(response.predictions === undefined ? {} : { predictions: response.predictions }),
     usage: {
       inputTokens: response.usage.input_tokens,
       outputTokens: response.usage.output_tokens,
@@ -128,7 +129,7 @@ function mapDecision(response: WireDecisionResponse): DecisionResponse {
       }])),
     }),
     ...(response.example_id === undefined ? {} : { exampleId: response.example_id }),
-    ...(response.decision_id === undefined ? {} : { decisionId: response.decision_id }),
+    ...(response.prediction_id === undefined ? {} : { predictionId: response.prediction_id }),
     ...(response.checkpoint === undefined ? {} : { checkpoint: response.checkpoint }),
     ...(response.revision === undefined ? {} : { revision: response.revision }),
     ...(response.captured === undefined ? {} : { captured: response.captured }),
@@ -221,7 +222,7 @@ function bindModel<T extends CreatedModel | Model>(model: T, transport: Transpor
   const workspace = typeof model.workspace === "string" ? model.workspace : model.workspace.slug;
   const repo = `${workspace}/${model.slug}`;
   const examples = new Examples(transport);
-  const alignments = new Alignments(transport);
+  const instructionOptimizations = new Alignments(transport);
   const batchDecisions = new BatchDecisions(transport);
   const boundExamples: ModelExamples = Object.freeze({
     ingest: (items: ExampleInput[]) => examples.ingest(repo, items),
@@ -230,20 +231,24 @@ function bindModel<T extends CreatedModel | Model>(model: T, transport: Transpor
     get: (exampleId: string) => examples.get(exampleId),
     annotate: (exampleId: string, annotation: Parameters<ModelExamples["annotate"]>[1]) =>
       examples.annotate(exampleId, annotation),
-    listDecisions: (exampleId: string) => examples.listDecisions(exampleId),
+    listPredictions: (exampleId: string) => examples.listPredictions(exampleId),
+  });
+  const boundBatchPredictions = Object.freeze({
+    create: (params: CreateBatchDecisionParams) => batchDecisions.create(repo, params),
+    list: (options?: { limit?: number }) => batchDecisions.list(repo, options),
   });
   const jobs: ModelJobs = Object.freeze({
-    alignments: Object.freeze({
-      create: (params: CreateAlignmentParams) => alignments.create(repo, params),
-      list: (options?: { limit?: number }) => alignments.list(repo, options),
+    instructionOptimizations: Object.freeze({
+      create: (params: CreateAlignmentParams) => instructionOptimizations.create(repo, params),
+      list: (options?: { limit?: number }) => instructionOptimizations.list(repo, options),
     }),
-    batchDecisions: Object.freeze({
-      create: (params: CreateBatchDecisionParams) => batchDecisions.create(repo, params),
-      list: (options?: { limit?: number }) => batchDecisions.list(repo, options),
-    }),
+    batchPredictions: boundBatchPredictions,
+    batchDecisions: boundBatchPredictions,
   });
+  const boundPredictions = new BoundDecisions(new Decisions(transport), repo);
+  Object.defineProperty(model, "predictions", { value: boundPredictions, enumerable: false });
   Object.defineProperty(model, "decisions", {
-    value: new BoundDecisions(new Decisions(transport), `${workspace}/${model.slug}`),
+    value: boundPredictions,
     enumerable: false,
     writable: false,
     configurable: false,
@@ -424,10 +429,10 @@ export class Examples {
     );
   }
 
-  async listDecisions(exampleId: string): Promise<DecisionList> {
+  async listPredictions(exampleId: string): Promise<DecisionList> {
     return this.transport.request<DecisionList>(
       "GET",
-      `/examples/${segment(exampleId)}/decisions`,
+      `/examples/${segment(exampleId)}/predictions`,
     );
   }
 }
@@ -439,7 +444,7 @@ export class BatchDecisions {
     const { idempotencyKey, ...body } = params;
     return this.transport.request<BatchDecision>(
       "POST",
-      modelPath(modelId, "/batch-decisions"),
+      modelPath(modelId, "/batch-predictions"),
       { body, headers: { "idempotency-key": idempotencyKey } },
     );
   }
@@ -447,7 +452,7 @@ export class BatchDecisions {
   async list(modelId: string, options: { limit?: number } = {}): Promise<BatchDecisionList> {
     return this.transport.request<BatchDecisionList>(
       "GET",
-      modelPath(modelId, "/batch-decisions"),
+      modelPath(modelId, "/batch-predictions"),
       { query: { limit: options.limit ?? 20 } },
     );
   }
@@ -455,12 +460,12 @@ export class BatchDecisions {
   async get(batchDecisionId: string): Promise<BatchDecision> {
     return this.transport.request<BatchDecision>(
       "GET",
-      `/batch-decisions/${segment(batchDecisionId)}`,
+      `/batch-predictions/${segment(batchDecisionId)}`,
     );
   }
 
   async cancel(batchDecisionId: string): Promise<void> {
-    await this.transport.request<void>("DELETE", `/batch-decisions/${segment(batchDecisionId)}`);
+    await this.transport.request<void>("DELETE", `/batch-predictions/${segment(batchDecisionId)}`);
   }
 
   async wait(batchDecisionId: string, options: WaitOptions = {}): Promise<BatchDecision> {
@@ -490,42 +495,43 @@ export class BatchDecisions {
 export class Alignments {
   constructor(private readonly transport: Transport) {}
 
-  async create(modelId: string, params: CreateAlignmentParams): Promise<Alignment> {
-    const { idempotencyKey, maxMetricCalls, reflection, ...rest } = params;
+  create(params: CreateAlignmentParams & { model: string }): Promise<Alignment>;
+  create(model: string, params: CreateAlignmentParams): Promise<Alignment>;
+  async create(modelOrParams: string | (CreateAlignmentParams & {model: string}), options?: CreateAlignmentParams): Promise<Alignment> {
+    const model = typeof modelOrParams === "string" ? modelOrParams : modelOrParams.model;
+    const params = typeof modelOrParams === "string" ? options! : modelOrParams;
+    const { idempotencyKey, maxMetricCalls, reflection, trainingFile, validationFile, evalOnlyDataset, ...rest } = params;
     const body = {
-      ...rest,
-      // Optional: without it the API sizes the budget to the validation split.
-      ...(maxMetricCalls !== undefined && { budget: { maxMetricCalls } }),
-      reflection: { seed: 0, ...reflection },
+      ...rest, model, training_file: trainingFile,
+      ...(validationFile !== undefined && {validation_file: validationFile}),
+      ...(evalOnlyDataset !== undefined && {eval_only_dataset: evalOnlyDataset}),
+      ...(maxMetricCalls !== undefined && {budget: {maxMetricCalls}}),
+      reflection: {seed: 0, ...reflection},
     };
-    return this.transport.request<Alignment>(
-      "POST",
-      modelPath(modelId, "/alignments"),
-      { body, headers: { "idempotency-key": idempotencyKey } },
-    );
+    return this.transport.request<Alignment>("POST", "/instruction-optimizations", {body, headers: {"idempotency-key": idempotencyKey}});
   }
 
   async list(modelId: string, options: { limit?: number } = {}): Promise<AlignmentList> {
     return this.transport.request<AlignmentList>(
       "GET",
-      modelPath(modelId, "/alignments"),
+      modelPath(modelId, "/instruction-optimizations"),
       { query: { limit: options.limit ?? 20 } },
     );
   }
 
   async get(alignmentId: string): Promise<Alignment> {
-    return this.transport.request<Alignment>("GET", `/alignments/${segment(alignmentId)}`);
+    return this.transport.request<Alignment>("GET", `/instruction-optimizations/${segment(alignmentId)}`);
   }
 
   async logs(alignmentId: string): Promise<AlignmentLogs> {
     return this.transport.request<AlignmentLogs>(
       "GET",
-      `/alignments/${segment(alignmentId)}/logs`,
+      `/instruction-optimizations/${segment(alignmentId)}/logs`,
     );
   }
 
   async cancel(alignmentId: string): Promise<void> {
-    await this.transport.request<void>("DELETE", `/alignments/${segment(alignmentId)}`);
+    await this.transport.request<void>("DELETE", `/instruction-optimizations/${segment(alignmentId)}`);
   }
 
   async wait(alignmentId: string, options: WaitOptions = {}): Promise<Alignment> {
@@ -594,11 +600,13 @@ export class Protege {
 }
 
 export class Modaic {
+  readonly predictions: Decisions;
   readonly decisions: Decisions;
   readonly models: Models;
   readonly examples: Examples;
+  readonly batchPredictions: BatchDecisions;
   readonly batchDecisions: BatchDecisions;
-  readonly alignments: Alignments;
+  readonly instructionOptimizations: Alignments;
   readonly fineTunes: FineTunes;
   readonly uploads: Uploads;
   readonly resources: Resources;
@@ -606,11 +614,13 @@ export class Modaic {
 
   constructor(options: ClientOptions = {}) {
     const transport = new Transport(options);
-    this.decisions = new Decisions(transport);
+    this.predictions = new Decisions(transport);
+    this.decisions = this.predictions;
     this.models = new Models(transport);
     this.examples = new Examples(transport);
-    this.batchDecisions = new BatchDecisions(transport);
-    this.alignments = new Alignments(transport);
+    this.batchPredictions = new BatchDecisions(transport);
+    this.batchDecisions = this.batchPredictions;
+    this.instructionOptimizations = new Alignments(transport);
     this.fineTunes = new FineTunes(transport);
     this.uploads = new Uploads(transport);
     this.resources = new Resources(transport);

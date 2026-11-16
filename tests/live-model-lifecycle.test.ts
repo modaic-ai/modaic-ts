@@ -65,25 +65,25 @@ test.skipIf(process.env.MODAIC_E2E !== "1")("live model, examples, and captured 
   const result = await created.decisions.create(request);
   expect(result.captured).toBe(true);
   expect(result.exampleId).toBe(ids[0]);
-  expect(result.decisionId).toBeTruthy();
+  expect(result.predictionId).toBeTruthy();
   expect(result.checkpoint).toBeNumber();
   expect(result.revision).toBeTruthy();
   expect(Object.fromEntries(Object.entries(result.answers).map(([k, v]) => [k, v.type])))
     .toEqual({ urgent: "noul", category: "choice", severity: "score" });
-  const history = await eventually(() => model.examples.listDecisions(ids[0]),
-    (h) => h.decisions.some((d) => d.id === result.decisionId));
-  expect(history.decisions).toHaveLength(1);
-  expect(history.decisions[0]?.source).toBe("live");
-  expect(history.decisions[0]?.request.questions).toEqual(questions);
-  expect(history.decisions[0]?.answers).toEqual(result.answers);
+  const history = await eventually(() => model.examples.listPredictions(ids[0]),
+    (h) => h.predictions.some((d) => d.id === result.predictionId));
+  expect(history.predictions).toHaveLength(1);
+  expect(history.predictions[0]?.source).toBe("live");
+  expect(history.predictions[0]?.request.questions).toEqual(questions);
+  expect(history.predictions[0]?.answers).toEqual(result.answers);
   expect(await created.decisions.create(request)).toEqual(result);
-  expect((await model.examples.listDecisions(ids[0])).decisions).toHaveLength(1);
+  expect((await model.examples.listPredictions(ids[0])).predictions).toHaveLength(1);
   const automatic = await model.decisions.create({ state: { ticket: "Please explain my invoice." },
     idempotencyKey: `e2e-auto-${crypto.randomUUID()}` });
   expect(automatic.captured).toBe(true);
   expect(automatic.exampleId).toBeTruthy();
   await eventually(() => model.examples.get(automatic.exampleId!),
-    (e) => e.source === "live" && e.decisionCount === 1);
+    (e) => e.source === "live" && e.predictionCount === 1);
   const page = await eventually(() => model.examples.list({ pageSize: 1 }), (p) => p.total === 3);
   expect(page.items).toHaveLength(1);
   expect(page.totalPages).toBe(3);
@@ -105,13 +105,13 @@ test.skipIf(process.env.MODAIC_E2E !== "1")("live model, examples, and captured 
   expect(edge.captured).toBe(true);
   expect(edge.exampleId).toBeTruthy();
   const edgeExample = await eventually(() => model.examples.get(edge.exampleId!),
-    (e) => e.latestDecision !== null);
+    (e) => e.latestPrediction !== null);
   expect(edgeExample.state).toBe(false);
-  expect(edgeExample.latestDecision?.answers[""]).toBeDefined();
-  const edgeHistory = await eventually(() => model.examples.listDecisions(edge.exampleId!),
-    (h) => h.decisions.length === 1);
-  expect(edgeHistory.decisions[0]?.request.state).toBe(false);
-  expect(edgeHistory.decisions[0]?.request.questions).toEqual(edgeQuestions);
+  expect(edgeExample.latestPrediction?.answers[""]).toBeDefined();
+  const edgeHistory = await eventually(() => model.examples.listPredictions(edge.exampleId!),
+    (h) => h.predictions.length === 1);
+  expect(edgeHistory.predictions[0]?.request.state).toBe(false);
+  expect(edgeHistory.predictions[0]?.request.questions).toEqual(edgeQuestions);
   expect(paths.filter((p) => p.endsWith("/systemone"))).toHaveLength(5);
   expect(paths.some((p) => p.endsWith("/decision"))).toBe(false);
   console.log(`PASS TypeScript: ${workspace}/${slug}; 4 stored examples, capture, annotations, history, replay, preserved edge inputs`);

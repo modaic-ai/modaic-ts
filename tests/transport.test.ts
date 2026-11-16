@@ -80,7 +80,7 @@ test("204 responses support model deletion and job cancellation", async () => {
     return new Response(null, { status: 204 });
   } });
   expect(await modaic.models.delete("acme/model-1")).toBeUndefined();
-  expect(await modaic.alignments.cancel("job-1")).toBeUndefined();
+  expect(await modaic.instructionOptimizations.cancel("job-1")).toBeUndefined();
   expect(await modaic.batchDecisions.cancel("job-2")).toBeUndefined();
   expect(requests).toHaveLength(3);
   expect(requests.every(r => r.method === "DELETE")).toBe(true);

@@ -85,7 +85,7 @@ async function runDomain(domain: Domain, runId: string, workspace: string): Prom
           row.latency_ms = Math.round(performance.now() - begin);
           row.response = result;
           validate(result, questions);
-          assert(result.captured && result.exampleId === e.id && result.decisionId);
+          assert(result.captured && result.exampleId === e.id && result.predictionId);
           assert(result.revision && result.checkpoint !== null);
           const binary = result.answers[domain.keys[0]]!;
           const choice = result.answers[domain.keys[1]]!;
@@ -103,15 +103,15 @@ async function runDomain(domain: Domain, runId: string, workspace: string): Prom
             row.immediate_replay_ms = Math.round(performance.now() - replayBegin);
           }
           const deadline = performance.now() + 30_000;
-          let history = await model.examples.listDecisions(e.id);
-          while (!history.decisions.length && performance.now() < deadline) {
+          let history = await model.examples.listPredictions(e.id);
+          while (!history.predictions.length && performance.now() < deadline) {
             await new Promise((resolve) => setTimeout(resolve, 500));
-            history = await model.examples.listDecisions(e.id);
+            history = await model.examples.listPredictions(e.id);
           }
           row.persistence_verified_ms = Math.round(performance.now() - begin);
-          assert.equal(history.decisions.length, 1);
-          const saved = history.decisions[0]!;
-          assert.equal(saved.id, result.decisionId);
+          assert.equal(history.predictions.length, 1);
+          const saved = history.predictions[0]!;
+          assert.equal(saved.id, result.predictionId);
           assert.equal(saved.error, null);
           assert.deepEqual(saved.request.state, e.state);
           assert.deepEqual(saved.request.questions, domain.questions);
@@ -120,8 +120,8 @@ async function runDomain(domain: Domain, runId: string, workspace: string): Prom
           assert.deepEqual(stored.state, e.state);
           assert.deepEqual(stored.annotation?.groundTruth, e.groundTruth);
           assert.equal(stored.annotation?.groundReasoning, e.rationale);
-          assert.equal(stored.latestDecision?.id, result.decisionId);
-          assert.equal(stored.decisionCount, 1);
+          assert.equal(stored.latestPrediction?.id, result.predictionId);
+          assert.equal(stored.predictionCount, 1);
           row.passed = true;
         } catch (error) {
           row.error = String(error);
@@ -138,7 +138,7 @@ async function runDomain(domain: Domain, runId: string, workspace: string): Prom
     assert.equal(items.length, 12);
     assert.deepEqual(new Set(items.map((e) => e.id)), new Set(examples.map((e) => e.id)));
     entry.pagination_verified = true;
-    entry.stored_outputs = items.filter((e) => e.latestDecision !== null).length;
+    entry.stored_outputs = items.filter((e) => e.latestPrediction !== null).length;
   } catch (error) {
     entry.errors.push(String(error));
     console.log(`DOMAIN FAIL ${entry.model}: ${error}`);

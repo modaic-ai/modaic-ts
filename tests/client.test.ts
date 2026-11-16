@@ -34,8 +34,8 @@ function exampleJson() {
       groundReasoning: "duplicate charge",
       split: "train",
     },
-    latestDecision: null,
-    decisionCount: 0,
+    latestPrediction: null,
+    predictionCount: 0,
     createdAt: "2026-09-22T00:00:00Z",
     updatedAt: "2026-09-22T00:00:00Z",
   };
@@ -125,8 +125,8 @@ function responseFor(request: Request): Response {
       totalPages: 1,
     });
   }
-  if (pathname === `/api/v1/examples/${EXAMPLE_ID}/decisions`) {
-    return Response.json({ decisions: [] });
+  if (pathname === `/api/v1/examples/${EXAMPLE_ID}/predictions`) {
+    return Response.json({ predictions: [] });
   }
   if (pathname === `/api/v1/examples/${EXAMPLE_ID}`) {
     return Response.json(exampleJson());
@@ -134,29 +134,30 @@ function responseFor(request: Request): Response {
   if (pathname === `/api/v1/examples/${EXAMPLE_ID}/annotation`) {
     return Response.json(exampleJson());
   }
-  if (pathname === `/api/v1/models/${MODEL_ID}/batch-decisions`) {
+  if (pathname === `/api/v1/models/${MODEL_ID}/batch-predictions`) {
     return method === "GET"
-      ? Response.json({ batchDecisions: [batchJson()] })
+      ? Response.json({ batchPredictions: [batchJson()] })
       : Response.json(batchJson("queued"), { status: 202 });
   }
-  if (pathname === `/api/v1/batch-decisions/${JOB_ID}` && method === "GET") {
+  if (pathname === `/api/v1/batch-predictions/${JOB_ID}` && method === "GET") {
     return Response.json(batchJson());
   }
-  if (pathname === `/api/v1/batch-decisions/${JOB_ID}` && method === "DELETE") {
+  if (pathname === `/api/v1/batch-predictions/${JOB_ID}` && method === "DELETE") {
     return new Response(null, { status: 204 });
   }
-  if (pathname === `/api/v1/models/${MODEL_ID}/alignments`) {
+  if (pathname === "/api/v1/instruction-optimizations" && method === "POST") return Response.json(alignmentJson("queued"));
+  if (pathname === "/api/v1/models/farouk1/support-triage/instruction-optimizations") {
     return method === "GET"
-      ? Response.json({ alignments: [alignmentJson()] })
+      ? Response.json({ instructionOptimizations: [alignmentJson()] })
       : Response.json(alignmentJson("queued"), { status: 202 });
   }
-  if (pathname === `/api/v1/alignments/${JOB_ID}` && method === "GET") {
+  if (pathname === `/api/v1/instruction-optimizations/${JOB_ID}` && method === "GET") {
     return Response.json(alignmentJson());
   }
-  if (pathname === `/api/v1/alignments/${JOB_ID}` && method === "DELETE") {
+  if (pathname === `/api/v1/instruction-optimizations/${JOB_ID}` && method === "DELETE") {
     return new Response(null, { status: 204 });
   }
-  if (pathname === `/api/v1/alignments/${JOB_ID}/logs`) {
+  if (pathname === `/api/v1/instruction-optimizations/${JOB_ID}/logs`) {
     return Response.json({ logs: ["done"], available: true, running: false });
   }
   return Response.json({ code: "not_found", detail: pathname }, { status: 404 });
@@ -204,7 +205,7 @@ describe("regressions for model-bound resources", () => {
       return responseFor(request);
     });
     const params = { state, model: "mo-fast", questions: { refund: { type: "noul" as const } }, reasoningEffort: "low" as const };
-    const result = await modaic.decisions.create(params);
+    const result = await modaic.predictions.create(params);
     expect(await requests[0]!.json()).toEqual({
       state, model: "mo-fast", questions: params.questions, reasoning_effort: "low",
     });
@@ -215,15 +216,15 @@ describe("regressions for model-bound resources", () => {
       finishReason: "natural", generationMs: 0, scoringMs: 0.5, cachedTokens: null,
     });
     const model = await modaic.models.get("farouk1", "support-triage");
-    const bound = await model.decisions.create({ state, reasoningEffort: "xhigh" });
+    const bound = await model.predictions.create({ state, reasoningEffort: "xhigh" });
     expect(await requests[2]!.json()).toEqual({
       state, model: "farouk1/support-triage", reasoning_effort: "xhigh",
     });
     expect(bound.thinking?.refund?.maxTokens).toBeNull();
-    await modaic.decisions.create({ model: "mo-fast", state, questions: params.questions });
+    await modaic.predictions.create({ model: "mo-fast", state, questions: params.questions });
     expect(await requests[3]!.json()).toEqual({ model: "mo-fast", state, questions: params.questions });
     const noReasoning = setup();
-    const plain = await noReasoning.modaic.decisions.create({ model: "mo-fast", state, questions: params.questions });
+    const plain = await noReasoning.modaic.predictions.create({ model: "mo-fast", state, questions: params.questions });
     expect(plain.usage.reasoningTokens).toBeUndefined();
     expect(plain.thinking).toBeUndefined();
   });
@@ -232,7 +233,7 @@ describe("regressions for model-bound resources", () => {
     const { modaic } = setup(() => Response.json(
       { code: "invalid_image", detail: "Invalid image" }, { status: 422 },
     ));
-    await expect(modaic.decisions.create({
+    await expect(modaic.predictions.create({
       model: "mo-fast", state: { type: "image_url", image_url: { url: "bad" } },
       questions: { refund: { type: "noul" } },
     })).rejects.toMatchObject({ status: 422, code: "invalid_image" });
@@ -365,16 +366,16 @@ describe("regressions for model-bound resources", () => {
         return Response.json({ ...modelJson(), id: body.slug, workspace: body.workspace, slug: body.slug });
       }
       if (new URL(request.url).pathname.endsWith("/systemone")) return responseFor(request);
-      return Response.json({ items: [], alignments: [], batchDecisions: [] });
+      return Response.json({ items: [], instructionOptimizations: [], batchPredictions: [] });
     } });
     const first = await makeClient("key-a").models.create({ workspace: "team-a", slug: "first", model: "mo-fast" });
     const second = await makeClient("key-b").models.create({ workspace: "team-b", slug: "second", model: "mo-fast" });
     requests.length = 0;
     await Promise.all([first, second].map(async (model) => {
-      await model.decisions.create({ state: {} });
+      await model.predictions.create({ state: {} });
       await model.examples.list();
-      await model.jobs.alignments.list();
-      await model.jobs.batchDecisions.list();
+      await model.jobs.instructionOptimizations.list();
+      await model.jobs.batchPredictions.list();
     }));
     for (const [key, workspace, id] of [["key-a", "team-a", "first"], ["key-b", "team-b", "second"]]) {
       const owned = requests.filter(r => r.headers.get("authorization") === `Bearer ${key}`);
@@ -407,29 +408,44 @@ describe("regressions for model-bound resources", () => {
     const model = await modaic.models.get("farouk1", "support-triage");
     const params = { ...selection, idempotencyKey: "selection-123", branch: "review", sourceCommitSha: "pinned" };
     const before = structuredClone(params);
-    await model.jobs.batchDecisions.create(params);
+    await model.jobs.batchPredictions.create(params);
     expect(await requests[1]!.json()).toEqual({ ...selection, branch: "review", sourceCommitSha: "pinned" });
     expect(requests[1]!.headers.get("idempotency-key")).toBe("selection-123");
     expect(params).toEqual(before);
   });
 
+  test("optimization takes base model and immutable uploaded dataset references", async () => {
+    const requests: Request[] = [];
+    const client = new Modaic({ apiKey: "test", fetch: async (input, init) => {
+      const request = new Request(input, init);
+      requests.push(request);
+      return Response.json({ ...alignmentJson(), training_file: "train", datasetCommitSha: "a".repeat(40) });
+    } });
+    const job = await client.instructionOptimizations.create({ model: "mo-latest", destination: "acme/triage", trainingFile: "train", validationFile: "validation", evalOnlyDataset: "heldout", idempotencyKey: "optimization-dataset-1" });
+    expect(requests).toHaveLength(1);
+    expect(new URL(requests[0]!.url).pathname).toBe("/api/v1/instruction-optimizations");
+    expect(await requests[0]!.json()).toEqual({ model: "mo-latest", destination: "acme/triage", training_file: "train", validation_file: "validation", eval_only_dataset: "heldout", reflection: { seed: 0 } });
+    expect(job.training_file).toBe("train");
+    expect(job.datasetCommitSha).toBe("a".repeat(40));
+  });
+
   test.each([undefined, { seed: 0 }, { model: "reflection-model", minibatchSize: 2, seed: 12 }])("alignment reflection defaults and overrides %j", async (reflection) => {
     const { modaic, requests } = setup();
     const model = await modaic.models.get("farouk1", "support-triage");
-    await model.jobs.alignments.create({ branch: "main", sourceCommitSha: "pinned", maxMetricCalls: 10, idempotencyKey: "alignment-123", ...(reflection === undefined ? {} : { reflection }) });
-    expect(await requests[1]!.json()).toEqual({ branch: "main", sourceCommitSha: "pinned", budget: { maxMetricCalls: 10 }, reflection: { seed: 0, ...reflection } });
+    await model.jobs.instructionOptimizations.create({ trainingFile: "train", branch: "main", sourceCommitSha: "pinned", maxMetricCalls: 10, idempotencyKey: "alignment-123", ...(reflection === undefined ? {} : { reflection }) });
+    expect(await requests[1]!.json()).toEqual({ model: "farouk1/support-triage", training_file: "train", branch: "main", sourceCommitSha: "pinned", budget: { maxMetricCalls: 10 }, reflection: { seed: 0, ...reflection } });
     expect(requests[1]!.headers.get("idempotency-key")).toBe("alignment-123");
   });
 
   test("alignment budget is optional and omitted from the request when unset", async () => {
     const { modaic, requests } = setup();
     const model = await modaic.models.get("farouk1", "support-triage");
-    await model.jobs.alignments.create({ branch: "main", sourceCommitSha: "pinned", idempotencyKey: "alignment-123" });
-    expect(await requests[1]!.json()).toEqual({ branch: "main", sourceCommitSha: "pinned", reflection: { seed: 0 } });
+    await model.jobs.instructionOptimizations.create({ trainingFile: "train", branch: "main", sourceCommitSha: "pinned", idempotencyKey: "alignment-123" });
+    expect(await requests[1]!.json()).toEqual({ model: "farouk1/support-triage", training_file: "train", branch: "main", sourceCommitSha: "pinned", reflection: { seed: 0 } });
   });
 
-  for (const resource of ["alignments", "batchDecisions"] as const) {
-    const jobJson = resource === "alignments" ? alignmentJson : batchJson;
+  for (const resource of ["instructionOptimizations", "batchDecisions"] as const) {
+    const jobJson = resource === "instructionOptimizations" ? alignmentJson : batchJson;
     test.each(["completed", "failed", "cancelled"])(`${resource}.wait polls until %s and returns job details`, async status => {
       const states = ["queued", "running", status];
       const { modaic, requests } = setup(() => Response.json({ ...jobJson(states.shift()), error: status === "failed" ? { code: "job_failed", message: "Could not complete" } : null }));
@@ -450,7 +466,7 @@ describe("regressions for model-bound resources", () => {
   test.each([401, 403, 404, 409, 422, 429, 500])("bound examples and jobs preserve HTTP %i errors without retrying", async status => {
     const { modaic, requests } = setup(request => new URL(request.url).pathname === `/api/v1/models/${MODEL_ID}` ? responseFor(request) : Response.json({ code: "problem", detail: "Request rejected", details: { reason: "test" } }, { status, headers: { "x-request-id": "req-123" } }));
     const model = await modaic.models.get("farouk1", "support-triage");
-    for (const call of [() => model.examples.list(), () => model.jobs.alignments.list(), () => model.jobs.batchDecisions.create({ scope: "all", idempotencyKey: "error-123" })]) {
+    for (const call of [() => model.examples.list(), () => model.jobs.instructionOptimizations.list(), () => model.jobs.batchPredictions.create({ scope: "all", idempotencyKey: "error-123" })]) {
       await expect(call()).rejects.toMatchObject({ status, code: "problem", requestId: "req-123", details: { reason: "test" } });
     }
     expect(requests).toHaveLength(4);
@@ -462,9 +478,9 @@ describe("regressions for model-bound resources", () => {
       priority: { type: "choice", choice: "low", probabilities: { low: 1, high: 0 }, confidence: 1 },
       quality: { type: "score", score: 0, legend: { "0": "Poor" }, probabilities: { "0": 1 }, confidence: 1 },
     };
-    const { modaic, requests } = setup(() => Response.json({ model: "typesafe/jev-latest", answers, usage: { input_tokens: 0, output_tokens: 0 }, checkpoint: 0, captured: false, revision: "sha", example_id: EXAMPLE_ID, decision_id: JOB_ID }));
-    const result: DecisionResponse = await modaic.decisions.create({ state: null, model: "typesafe/jev-latest", capture: false, questions });
-    expect(result).toEqual({ model: "typesafe/jev-latest", answers, usage: { inputTokens: 0, outputTokens: 0 }, checkpoint: 0, captured: false, revision: "sha", exampleId: EXAMPLE_ID, decisionId: JOB_ID });
+    const { modaic, requests } = setup(() => Response.json({ model: "typesafe/jev-latest", answers, usage: { input_tokens: 0, output_tokens: 0 }, checkpoint: 0, captured: false, revision: "sha", example_id: EXAMPLE_ID, prediction_id: JOB_ID }));
+    const result: DecisionResponse = await modaic.predictions.create({ state: null, model: "typesafe/jev-latest", capture: false, questions });
+    expect(result).toEqual({ model: "typesafe/jev-latest", answers, usage: { inputTokens: 0, outputTokens: 0 }, checkpoint: 0, captured: false, revision: "sha", exampleId: EXAMPLE_ID, predictionId: JOB_ID });
     expect(await requests[0]!.json()).toEqual({ state: null, model: "typesafe/jev-latest", capture: false, questions });
     expect(requests[0]!.headers.has("idempotency-key")).toBe(false);
   });
@@ -494,27 +510,27 @@ describe("Modaic", () => {
     const examples = [{ state: { ticket: "charged twice" }, annotation: { groundTruth: { refund: true } } }];
     const annotation = { groundReasoning: "Duplicate charge confirmed" };
     const batch = { exampleIds: [EXAMPLE_ID], branch: "review", sourceCommitSha: "abc1234", idempotencyKey: "bound-batch-123" };
-    const alignment = { branch: "review", sourceCommitSha: "abc1234", maxMetricCalls: 10, idempotencyKey: "bound-align-123", reflection: { minibatchSize: 2, seed: 42 } };
+    const alignment = { trainingFile: "train", branch: "review", sourceCommitSha: "abc1234", maxMetricCalls: 10, idempotencyKey: "bound-align-123", reflection: { minibatchSize: 2, seed: 42 } };
     expect((await model.examples.ingest(examples)).examples[0]?.id).toBe(EXAMPLE_ID);
     expect((await model.examples.list({ page: 2, pageSize: 5 })).items[0]?.id).toBe(EXAMPLE_ID);
     expect((await model.examples.get(EXAMPLE_ID)).id).toBe(EXAMPLE_ID);
     expect((await model.examples.annotate(EXAMPLE_ID, annotation)).id).toBe(EXAMPLE_ID);
-    expect((await model.examples.listDecisions(EXAMPLE_ID)).decisions).toEqual([]);
-    expect((await model.jobs.batchDecisions.create(batch)).id).toBe(JOB_ID);
-    await model.jobs.batchDecisions.list({ limit: 7 });
-    expect((await model.jobs.alignments.create(alignment)).id).toBe(JOB_ID);
-    await model.jobs.alignments.list({ limit: 8 });
+    expect((await model.examples.listPredictions(EXAMPLE_ID)).predictions).toEqual([]);
+    expect((await model.jobs.batchPredictions.create(batch)).id).toBe(JOB_ID);
+    await model.jobs.batchPredictions.list({ limit: 7 });
+    expect((await model.jobs.instructionOptimizations.create(alignment)).id).toBe(JOB_ID);
+    await model.jobs.instructionOptimizations.list({ limit: 8 });
     expect(requests).toHaveLength(10);
 
     await modaic.examples.ingest(MODEL_ID, examples);
     await modaic.examples.list(MODEL_ID, { page: 2, pageSize: 5 });
     await modaic.examples.get(EXAMPLE_ID);
     await modaic.examples.annotate(EXAMPLE_ID, annotation);
-    await modaic.examples.listDecisions(EXAMPLE_ID);
+    await modaic.examples.listPredictions(EXAMPLE_ID);
     await modaic.batchDecisions.create(MODEL_ID, batch);
     await modaic.batchDecisions.list(MODEL_ID, { limit: 7 });
-    await modaic.alignments.create(MODEL_ID, alignment);
-    await modaic.alignments.list(MODEL_ID, { limit: 8 });
+    await modaic.instructionOptimizations.create("farouk1/support-triage", alignment);
+    await modaic.instructionOptimizations.list("farouk1/support-triage", { limit: 8 });
     for (let index = 1; index <= 9; index++) {
       const bound = requests[index]!;
       const direct = requests[index + 9]!;
@@ -524,8 +540,8 @@ describe("Modaic", () => {
       expect(await bound.text()).toBe(await direct.text());
     }
     await model.examples.list();
-    await model.jobs.alignments.list();
-    await model.jobs.batchDecisions.list();
+    await model.jobs.instructionOptimizations.list();
+    await model.jobs.batchPredictions.list();
     expect(new URL(requests.at(-3)!.url).search).toBe("?page=1&pageSize=30");
     expect(new URL(requests.at(-2)!.url).search).toBe("?limit=20");
     expect(new URL(requests.at(-1)!.url).search).toBe("?limit=20");
@@ -553,7 +569,7 @@ describe("Modaic", () => {
       capture: false,
       idempotencyKey: "bound-decision-123",
     };
-    const result = await model.decisions.create(options);
+    const result = await model.predictions.create(options);
     expect(result.exampleId).toBe(EXAMPLE_ID);
     expect(requests).toHaveLength(2);
     expect(requests[1]!.url).toBe("https://example.test/api/v1/systemone");
@@ -564,11 +580,11 @@ describe("Modaic", () => {
       state: options.state, model: "farouk1/support-triage", questions: options.questions,
       revision: "review", example_id: EXAMPLE_ID, capture: false,
     });
-    await modaic.decisions.create({ ...options, model: "farouk1/support-triage" });
+    await modaic.predictions.create({ ...options, model: "farouk1/support-triage" });
     expect(await requests[2]!.json()).toEqual(boundBody);
     // Extra properties from JavaScript callers cannot redirect a bound handle.
     const override = { state: {}, model: "typesafe/jev-latest" };
-    await model.decisions.create(override);
+    await model.predictions.create(override);
     expect(await requests[3]!.json()).toEqual({ state: {}, model: "farouk1/support-triage" });
   });
 
@@ -577,7 +593,7 @@ describe("Modaic", () => {
       ? Response.json({ code: "rate_limited", detail: "Slow down" }, { status: 429 })
       : responseFor(request));
     const model = await modaic.models.get("farouk1", "support-triage");
-    await expect(model.decisions.create({ state: {} })).rejects.toMatchObject({
+    await expect(model.predictions.create({ state: {} })).rejects.toMatchObject({
       status: 429, code: "rate_limited", message: "Slow down",
     });
   });
@@ -608,7 +624,7 @@ describe("Modaic", () => {
   test("covers the documented API surface", async () => {
     const { modaic, requests } = setup();
 
-    const result = await modaic.decisions.create({
+    const result = await modaic.predictions.create({
       state: { ticket: "charged twice" },
       model: "typesafe/jev-latest",
       questions: { refund: { type: "noul" } },
@@ -634,7 +650,7 @@ describe("Modaic", () => {
     await modaic.examples.annotate(EXAMPLE_ID, {
       groundTruth: { refund: true },
     });
-    await modaic.examples.listDecisions(EXAMPLE_ID);
+    await modaic.examples.listPredictions(EXAMPLE_ID);
 
     await modaic.batchDecisions.create(MODEL_ID, {
       exampleIds: [EXAMPLE_ID],
@@ -647,17 +663,17 @@ describe("Modaic", () => {
       "completed",
     );
 
-    await modaic.alignments.create(MODEL_ID, {
+    await modaic.instructionOptimizations.create("farouk1/support-triage", { trainingFile: "train",
       branch: "main",
       sourceCommitSha: "abc1234",
       maxMetricCalls: 100,
       idempotencyKey: "alignment-123",
     });
-    await modaic.alignments.list(MODEL_ID);
-    await modaic.alignments.get(JOB_ID);
-    await modaic.alignments.logs(JOB_ID);
-    await modaic.alignments.cancel(JOB_ID);
-    expect((await modaic.alignments.wait(JOB_ID, { pollIntervalMs: 0 })).status).toBe(
+    await modaic.instructionOptimizations.list("farouk1/support-triage");
+    await modaic.instructionOptimizations.get(JOB_ID);
+    await modaic.instructionOptimizations.logs(JOB_ID);
+    await modaic.instructionOptimizations.cancel(JOB_ID);
+    expect((await modaic.instructionOptimizations.wait(JOB_ID, { pollIntervalMs: 0 })).status).toBe(
       "completed",
     );
 
@@ -690,4 +706,15 @@ describe("Modaic", () => {
       expect(apiError.message).toBe("Bad question.");
     }
   });
+});
+
+
+test("prediction aliases share their resources and retain current answer normalization", async () => {
+  const client = new Modaic({ apiKey: "test", fetch: async () => Response.json({ model: "mo-latest", answers: { relevant: { type: "noul", noul: 0.8, p_null: 0.1 } }, predictions: { relevant: true }, prediction_id: JOB_ID, usage: { input_tokens: 0, output_tokens: 0 } }) });
+  expect(client.predictions).toBe(client.decisions);
+  expect(client.batchPredictions).toBe(client.batchDecisions);
+  const response = await client.predictions.create({ model: "mo-latest", state: "test" });
+  expect(response.predictionId).toBe(JOB_ID);
+  expect(response.predictions).toEqual({ relevant: true });
+  expect(response.answers.relevant).toMatchObject({ noul: 0.8, pNull: 0.1 });
 });

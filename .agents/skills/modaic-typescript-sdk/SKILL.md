@@ -1,6 +1,6 @@
 ---
 name: modaic-typescript-sdk
-description: Use the Modaic TypeScript or JavaScript HTTP SDK for decisions, question objects, model and example management, and alignment or batch-decision jobs. Covers Promise-based APIs, configuration, progress, and errors.
+description: Use the Modaic TypeScript or JavaScript HTTP SDK for predictions, question objects, model and example management, and alignment or batch-prediction jobs. Covers Promise-based APIs, configuration, progress, and errors.
 ---
 
 # Modaic TypeScript SDK
@@ -18,7 +18,7 @@ Promise; use await. Read [quickstart.ts](quickstart.ts) for direct inference.
 import { Modaic, Noul, Choice, Score } from "modaic";
 
 const client = new Modaic();
-const result = await client.decisions.create({
+const result = await client.predictions.create({
   model: "mo-latest",
   state: { description: "Waterproof hiking boots, size 42" },
   questions: {
@@ -43,7 +43,7 @@ Use `mo-latest` for production inference.
 Typesafe System One HTTP requests can migrate with the same state/questions:
 use a Modaic key and endpoint, create a saved model, and set `model` to its
 `workspace/slug`. Core answers/usage remain compatible. See `modaic-api`
-for URL-joining details when retaining a Typesafe client. This SDK uses `decisions.create`.
+for URL-joining details when retaining a Typesafe client. This SDK uses `predictions.create`.
 
 Questions may be constructor instances or plain objects and may be mixed.
 `Choice` needs at least one option; option keys cannot be empty.
@@ -55,10 +55,10 @@ Inline question dictionaries infer named primitive answer types automatically.
 For saved-model calls without inline questions, answers are a discriminated union:
 narrow `answer.type` before accessing `noul`, `choice`, or `score`. Choice/score answers contain probabilities
 and confidence; score also contains a legend. Responses retain `usage`
-and optional `captured`, `exampleId`, `decisionId`, `revision`,
+and optional `captured`, `exampleId`, `predictionId`, `revision`,
 and `checkpoint`. Public TypeScript properties use camelCase.
 
-For custom response validation, pass `schema` to `decisions.create` and the result is
+For custom response validation, pass `schema` to `predictions.create` and the result is
 that schema's type. It validates the camelCase response the SDK returns, not
 the wire body, and is never sent to the API. Zod is not a dependency: any
 `{ parse(value: unknown): T }` object works, typed as `ResponseSchema<T>`.
@@ -73,7 +73,7 @@ const model = await client.models.create({
   workspace: "acme", slug: "support-priority", model: "mo-latest",
   questions: { urgent: new Noul({ instructions: "Does this require urgent action?" }) },
 });
-const decision = await model.decisions.create({
+const decision = await model.predictions.create({
   state: "The production checkout is unavailable.",
 });
 const page = await model.examples.list({ page: 1, pageSize: 20 });
@@ -104,35 +104,46 @@ whose `code` is `expected_head_mismatch`. Version control on `models`:
 message? })`. Tag an alignment's result commit and use the tag as
 `revision`; restore an overwritten version with `rollback`, not by
 re-committing prompt text.
-Create/get/update results bind `model.decisions`, `model.examples`,
-`model.jobs.alignments`, and `model.jobs.batchDecisions`.
+Create/get/update results bind `model.predictions`, `model.examples`,
+`model.jobs.instructionOptimizations`, and `model.jobs.batchPredictions`.
 Bound methods omit model paths. Collection methods on top-level examples,
-alignments, and batch decisions take `workspace/model`; example item methods
-take only the globally unique example ID. Pass `revision` on decisions to pin
+instruction optimizations, and batch predictions take `workspace/model`; example item methods
+take only the globally unique example ID. Pass `revision` on predictions to pin
 a version.
 
 `model.examples` provides `ingest([...])`, `list`, `get`,
-`annotate`, and `listDecisions`. Each ingested example has `state`,
+`annotate`, and `listPredictions`. Each ingested example has `state`,
 an optional UUID `id`, and optional
 `annotation: { groundTruth: {...} }`.
 An ingested label does not run inference. The returned annotation
 carries a `split` the service assigns and preserves; it is not an input,
-so do not curate train/test membership yourself. `latestDecision` may be null;
+so do not curate train/test membership yourself. `latestPrediction` may be null;
 it does not contain the history record's `exampleId`, `jobId`, or `error`.
 
 ## Jobs and progress
 
-`model.jobs.batchDecisions.create` requires `idempotencyKey` and exactly
+`model.jobs.batchPredictions.create` requires `idempotencyKey` and exactly
 one of `exampleIds`, `examples`, or `scope: "all"`. Explicit selections
 have 1–1,000 examples. Branch defaults to main.
 
-`model.jobs.alignments.create` requires `branch`, `sourceCommitSha`, and
-`idempotencyKey`; use a real source commit. `maxMetricCalls` is optional
-(modaic >= 0.9.0): when omitted the API sizes the budget to the validation
-split at launch, which is the recommended default. Optional `reflection`
-contains `model`, `minibatchSize`, and `seed`.
+`model.jobs.instructionOptimizations.create` requires `trainingFile` and
+`idempotencyKey`. Upload the dataset in the model's workspace first. Optional
+`validationFile` and `evalOnlyDataset` replace the validation and held-out
+partitions. Branch defaults to main; omit `sourceCommitSha` to use its current
+head. `maxMetricCalls` is optional and defaults to automatic budget sizing.
+Optional `reflection` contains `model`, `minibatchSize`, and `seed`.
 
-Use `client.batchDecisions` or `client.alignments` for
+Top-level `client.instructionOptimizations.create({ model: "mo-latest",
+destination: "acme/support-priority", trainingFile: "triage-labels",
+idempotencyKey: "support-optimize-v1" })` also supports base models with a
+saved destination. For a saved model, use its path as `model` and omit destination.
+All rows share one question set with nonempty text instructions and hard labels:
+Noul 0/1, keyed Choice option, or ordered Score index. Training, validation, and
+held-out evaluation must be nonempty with disjoint inputs/groups. Files are
+limited to 64 MiB combined. Stored examples are not consumed; completion does
+not trigger batch predictions.
+
+Use `client.batchPredictions` or `client.instructionOptimizations` for
 `get(id)`, `wait(id, options)`, and `cancel(id)`.
 Alignment also provides `logs(id)`. `wait(id, { progress: true })`
 renders terminal progress without another package. Defaults to silent;
@@ -148,13 +159,13 @@ Put images in JSON `state` using
 `data:image/...;base64,` URL. `mo-latest` accepts up to four images
 (PNG, JPEG, GIF, or WebP, 20 MB each). No separate image parameter is needed.
 
-`decisions.create` calls `POST /systemone`. Direct inference needs no
+`predictions.create` calls `POST /systemone`. Direct inference needs no
 saved model. A task-specific model has stored questions and must be called
 without request questions; supplying them returns
 `task_specific_model_questions_forbidden`. A general model has no stored
 questions and must be called with questions; omitting them returns
 `questions_required` (422). Reuse idempotency keys only for an
-identical request. Keyed decisions returning `409 decision_in_progress`
+identical request. Keyed predictions returning `409 decision_in_progress`
 are retried at most five times with bounded backoff; other conflicts are
 not automatically retried.
 Approved ZDR workspaces making covered direct base-model calls ignore the key:
@@ -217,12 +228,12 @@ See https://docs.modaic.dev/docs/sdks/jobs/fine-tuning for dataset requirements.
 
 Questions infer the answer fields automatically, including Choice literal keys;
 Zod or another response schema is optional. The same inference works for
-model-bound decisions.
+model-bound predictions.
 
 ```typescript
 import { Modaic, Choice, Noul } from "modaic";
 
-const result = await new Modaic().decisions.create({
+const result = await new Modaic().predictions.create({
   model: "mo-latest",
   state: { address: "Paris, France" },
   questions: {
@@ -247,7 +258,7 @@ optional response schema parses the result, so use `.nullable()` in Zod for
 those answer fields. Missing or malformed helper answers throw
 `ModaicConnectionError`; explicit helper-ID collisions fail before HTTP.
 
-Nullable wrappers are request-local to `decisions.create`, not saved-model
+Nullable wrappers are request-local to `predictions.create`, not saved-model
 configuration. `__modaic_answerable_<question-id>` identifies each helper.
 Helpers count as additional questions. Captured API history retains the original
 answers and helper Nouls; SDK projection changes only the returned response.
@@ -280,7 +291,7 @@ Answers are public primitive instances. Use `Choice.choice`, `Score.score`,
 `Datetime.datetime`. Structural `*Answer` types remain available.
 
 ```typescript
-const result = await client.decisions.create({
+const result = await client.predictions.create({
   model: "mo-2.0", state: "The event is in Paris.",
   questions: { evidence: new Span({ instructions: "Find the city name" }) },
 });
@@ -332,7 +343,7 @@ in `.spans`, and top-level `.confidence`; each candidate has `text`, `start`,
 `end`, and `confidence`, and `.span` is always `.spans[0]`. Offsets count UTF-16
 code units and end is exclusive. Box answers contain
 `box: {top, bottom, left, right}` normalized to [0, 1], and confidence.
-Pass inline `assets` to decisions.create, mapping an asset ID to
+Pass inline `assets` to predictions.create, mapping an asset ID to
 `{type: "image", format: "png", dataBase64: "..."}`. Reference IDs in
 state, instructions or supported criteria; no separate upload is required.
 `mo-latest` selects `mo-2.0`.

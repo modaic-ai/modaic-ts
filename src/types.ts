@@ -133,12 +133,13 @@ export interface CreateDecisionParams<Q extends DecisionQuestions = Record<strin
 }
 
 export interface DecisionResponse<A = Answer> {
+  predictions?: Record<string, boolean | string | number>;
   model: string;
   answers: Record<string, A>;
   usage: TokenUsage;
   thinking?: Record<string, ThinkingResult>;
   exampleId?: string;
-  decisionId?: string;
+  predictionId?: string;
   checkpoint?: number;
   revision?: string;
   captured?: boolean;
@@ -209,21 +210,23 @@ export interface ModelExamples {
     groundTruth?: Record<string, JsonValue>;
     groundReasoning?: string;
   }): Promise<Example>;
-  listDecisions(exampleId: string): Promise<DecisionList>;
+  listPredictions(exampleId: string): Promise<DecisionList>;
 }
 
 export interface ModelJobs {
-  readonly alignments: {
+  readonly instructionOptimizations: {
     create(params: CreateAlignmentParams): Promise<Alignment>;
     list(options?: { limit?: number }): Promise<AlignmentList>;
   };
-  readonly batchDecisions: {
+  readonly batchDecisions: ModelJobs["batchPredictions"];
+  readonly batchPredictions: {
     create(params: CreateBatchDecisionParams): Promise<BatchDecision>;
     list(options?: { limit?: number }): Promise<BatchDecisionList>;
   };
 }
 
 export interface CreatedModel {
+  readonly predictions: ModelDecisions;
   readonly decisions: ModelDecisions;
   readonly examples: ModelExamples;
   readonly jobs: ModelJobs;
@@ -406,8 +409,8 @@ export interface Example {
   source: "ingest" | "live";
   imageUrls: string[];
   annotation: Annotation | null;
-  latestDecision: ExampleDecision | null;
-  decisionCount: number;
+  latestPrediction: ExampleDecision | null;
+  predictionCount: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -425,7 +428,7 @@ export interface ExamplePage {
 }
 
 export interface DecisionList {
-  decisions: DecisionRecord[];
+  predictions: DecisionRecord[];
 }
 
 export type JobStatus = "queued" | "running" | "completed" | "failed" | "cancelled";
@@ -458,7 +461,7 @@ export interface BatchDecision {
 }
 
 export interface BatchDecisionList {
-  batchDecisions: BatchDecision[];
+  batchPredictions: BatchDecision[];
 }
 
 export type BatchSelection =
@@ -486,6 +489,11 @@ export interface AlignmentProgress {
 }
 
 export interface Alignment {
+  training_file?: string;
+  validation_file?: string;
+  eval_only_dataset?: string;
+  datasetCommitSha?: string;
+  datasetSha256?: string;
   id: string;
   repositoryId: string;
   status: JobStatus;
@@ -503,7 +511,7 @@ export interface Alignment {
 }
 
 export interface AlignmentList {
-  alignments: Alignment[];
+  instructionOptimizations: Alignment[];
 }
 
 export interface AlignmentLogs {
@@ -513,8 +521,12 @@ export interface AlignmentLogs {
 }
 
 export interface CreateAlignmentParams {
-  branch: string;
-  sourceCommitSha: string;
+  trainingFile: string;
+  validationFile?: string;
+  evalOnlyDataset?: string;
+  destination?: string;
+  branch?: string;
+  sourceCommitSha?: string;
   /**
    * Metric-call budget for the run. Optional: when omitted, the API sizes
    * the budget to the validation split at launch, which is the recommended
@@ -732,3 +744,10 @@ export interface ProtegeJob {
   id: string;
   status: "running" | "succeeded" | "failed" | "cancelled";
 }
+export type PredictionResponse<A = Answer> = DecisionResponse<A>;
+export type PredictionRecord = DecisionRecord;
+export type PredictionList = DecisionList;
+export type BatchPrediction = BatchDecision;
+export type BatchPredictionList = BatchDecisionList;
+export type CreatePredictionParams<Q extends DecisionQuestions = Record<string, Question>> = CreateDecisionParams<Q>;
+export type CreateBatchPredictionParams = CreateBatchDecisionParams;

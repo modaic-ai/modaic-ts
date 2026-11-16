@@ -19,3 +19,5 @@ export {
   ModaicTimeoutError,
 } from "./errors.js";
 export type * from "./types.js";
+
+export { Decisions as Predictions, BatchDecisions as BatchPredictions } from "./client.js";

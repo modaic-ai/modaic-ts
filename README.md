@@ -10,7 +10,7 @@ Use `new Noul({ instructions: "Is this about billing?" })`,
 `new Choice({ criteria: { billing: "Payments", other: "Other requests" } })`,
 or `new Score({ criteria: ["Routine", "Urgent"] })` to define questions.
 Import these constructors from `modaic` and pass them in the `questions` map
-to `decisions.create`, `models.create`, or `models.update`. Plain question
+to `predictions.create`, `models.create`, or `models.update`. Plain question
 objects still work and can be mixed with these constructors.
 
 `Choice` requires at least one option; `Score` requires at least one rubric
@@ -40,7 +40,7 @@ import { Modaic } from "modaic";
 
 const modaic = new Modaic();
 
-const result = await modaic.decisions.create({
+const result = await modaic.predictions.create({
   state: {
     ticket: "I was charged twice for order 4832. Please refund one charge.",
   },
@@ -99,7 +99,7 @@ const ListingReview = z.object({
   }),
 });
 
-const result = await modaic.decisions.create({
+const result = await modaic.predictions.create({
   model: "mo-latest",
   state: { listing: "Vintage leather jacket, size M" },
   questions: { /* ... */ },
@@ -119,7 +119,7 @@ validators work the same way; the exported `ResponseSchema<T>` type describes
 the contract. A response that fails validation raises `ModaicConnectionError`,
 with the validator's own error kept as `cause`.
 
-`schema` works on `model.decisions.create` as well.
+`schema` works on `model.predictions.create` as well.
 
 ## Workspace uploads and fine-tuning
 
@@ -181,16 +181,16 @@ Fine-tuning requires `mo-1.3.1`.
 ## Model-bound resources
 
 Models returned by `models.create`, `models.get`, and `models.update` can run
-decisions directly:
+predictions directly:
 
 ```typescript
 const model = await modaic.models.get("acme", "support-priority");
-const result = await model.decisions.create({
+const result = await model.predictions.create({
   state: { ticket: "Please refund my duplicate charge." },
 });
 const examples = await model.examples.list({ pageSize: 10 });
-const batches = await model.jobs.batchDecisions.list();
-const alignments = await model.jobs.alignments.list();
+const batches = await model.jobs.batchPredictions.list();
+const alignments = await model.jobs.instructionOptimizations.list();
 ```
 
 `models.get` includes `configuration` with the model and questions saved on
@@ -222,7 +222,7 @@ const model = await modaic.models.get("acme", "support-priority");
 
 // Name the aligned commit so production can pin to it.
 await modaic.models.createTag(model.id, { name: "v1", commitSha: model.commit!.commitSha });
-await modaic.decisions.create({ model: "acme/support-priority", revision: "v1", state: { /* ... */ } });
+await modaic.predictions.create({ model: "acme/support-priority", revision: "v1", state: { /* ... */ } });
 
 // Undo a bad update: move main back to the aligned commit.
 const { commits } = await modaic.models.listCommits(model.id, { branch: "main" });
@@ -240,11 +240,11 @@ returns with its checkpoint and metrics intact. `listBranches`,
 
 The bound method accepts every decision option except `model` and uses the same
 client. Pass `revision` to pin a version. `JSON.stringify(model)` contains only
-response data. The top-level `modaic.decisions.create` remains available.
+response data. The top-level `modaic.predictions.create` remains available.
 
-`model.examples` exposes `ingest`, `list`, `get`, `annotate`, and `listDecisions`
-without a model ID argument. `model.jobs.alignments` and
-`model.jobs.batchDecisions` expose model-bound `create` and `list`. Use the
+`model.examples` exposes `ingest`, `list`, `get`, `annotate`, and `listPredictions`
+without a model ID argument. `model.jobs.instructionOptimizations` and
+`model.jobs.batchPredictions` expose model-bound `create` and `list`. Use the
 top-level job resources to retrieve, wait for, or cancel a job by its ID.
 
 ## Job progress
@@ -252,8 +252,8 @@ top-level job resources to retrieve, wait for, or cancel a job by its ID.
 Pass `progress: true` to either job resource's `wait()` method:
 
 ```typescript
-const finishedBatch = await modaic.batchDecisions.wait(job.id, { progress: true });
-const finishedAlignment = await modaic.alignments.wait(alignment.id, { progress: true });
+const finishedBatch = await modaic.batchPredictions.wait(job.id, { progress: true });
+const finishedAlignment = await modaic.instructionOptimizations.wait(alignment.id, { progress: true });
 ```
 
 Progress is off by default. When enabled, the SDK renders a bar on stderr in a
@@ -267,11 +267,11 @@ cancelling the job. No additional package is needed.
 
 | Resource | Methods |
 | --- | --- |
-| `decisions` | `create` |
+| `predictions` | `create` |
 | `models` | `list`, `create`, `get`, `update`, `delete` |
-| `examples` | `ingest`, `list`, `get`, `annotate`, `listDecisions` |
-| `batchDecisions` | `create`, `list`, `get`, `cancel`, `wait` |
-| `alignments` | `create`, `list`, `get`, `logs`, `cancel`, `wait` |
+| `examples` | `ingest`, `list`, `get`, `annotate`, `listPredictions` |
+| `batchPredictions` | `create`, `list`, `get`, `cancel`, `wait` |
+| `instructionOptimizations` | `create`, `list`, `get`, `logs`, `cancel`, `wait` |
 | `fineTunes` | `create`, `list`, `get`, `logs`, `cancel`, `wait` |
 | `uploads` | `create`, `get`, `preparePart`, `confirmPart`, `uploadPart`, `complete`, `cancel` |
 | `resources` | `list`, `get`, `update`, `download` |
@@ -293,12 +293,12 @@ See the complete API documentation at <https://docs.modaic.dev>.
 
 Questions infer the answer fields automatically, including Choice literal keys;
 Zod or another response schema is optional. The same inference works for
-model-bound decisions.
+model-bound predictions.
 
 ```typescript
 import { Modaic, Choice, Noul } from "modaic";
 
-const result = await new Modaic().decisions.create({
+const result = await new Modaic().predictions.create({
   model: "mo-latest",
   state: { address: "Paris, France" },
   questions: {
@@ -323,7 +323,7 @@ optional response schema parses the result, so use `.nullable()` in Zod for
 those answer fields. Missing or malformed helper answers throw
 `ModaicConnectionError`; explicit helper-ID collisions fail before HTTP.
 
-Nullable wrappers are request-local to `decisions.create`, not saved-model
+Nullable wrappers are request-local to `predictions.create`, not saved-model
 configuration. `__modaic_answerable_<question-id>` identifies each helper.
 Helpers count as additional questions. Captured API history retains the original
 answers and helper Nouls; SDK projection changes only the returned response.
@@ -356,7 +356,7 @@ Answers are public primitive instances. Use `Choice.choice`, `Score.score`,
 `Datetime.datetime`. Structural `*Answer` types remain available.
 
 ```typescript
-const result = await client.decisions.create({
+const result = await client.predictions.create({
   model: "mo-2.0", state: "The event is in Paris.",
   questions: { evidence: new Span({ instructions: "Find the city name" }) },
 });
@@ -403,7 +403,7 @@ in `.spans`, and top-level `.confidence`; each candidate has `text`, `start`,
 `end`, and `confidence`, and `.span` is always `.spans[0]`. Offsets count UTF-16
 code units and end is exclusive. Box answers contain
 `box: {top, bottom, left, right}` normalized to [0, 1], and confidence.
-Pass inline `assets` to decisions.create, mapping an asset ID to
+Pass inline `assets` to predictions.create, mapping an asset ID to
 `{type: "image", format: "png", dataBase64: "..."}`. Reference IDs in
 state, instructions or supported criteria; no separate upload is required.
 `mo-latest` selects `mo-2.0`.
@@ -414,3 +414,31 @@ The API and SDK use the same `type: "span"` contract.
 
 Number answers expose `.number`, `.confidence`, and `.variance`, matching the
 API. Confidence is separate from variance.
+
+## Instruction optimization datasets
+
+Upload a dataset in the same JSONL format as fine-tuning, then start a run:
+
+```typescript
+const upload = await modaic.uploads.uploadFile("train.jsonl", {
+  workspace: "acme", kind: "dataset", name: "triage-labels",
+});
+if (upload.status !== "completed" || !upload.result) throw new Error(upload.error?.message);
+const job = await modaic.instructionOptimizations.create({
+  model: "mo-latest",
+  destination: "acme/support-priority",
+  trainingFile: upload.result.name,
+  idempotencyKey: "support-optimize-v1",
+});
+const finished = await modaic.instructionOptimizations.wait(job.id);
+```
+
+For an existing saved model, use its path as `model` and omit `destination`,
+or use `model.jobs.instructionOptimizations.create({ trainingFile, idempotencyKey })`.
+Optional `validationFile` and `evalOnlyDataset` replace the validation and
+held-out evaluation partitions. Branch defaults to main and the API resolves
+its head unless `sourceCommitSha` is supplied. Every row shares one question
+set with nonempty text instructions and hard labels (Noul 0/1, keyed Choice
+option, ordered Score index). All three partitions must be nonempty with
+disjoint inputs/groups; files total at most 64 MiB. Stored model examples are
+not consumed and completion does not start batch predictions.

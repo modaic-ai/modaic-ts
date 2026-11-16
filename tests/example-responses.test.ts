@@ -12,7 +12,7 @@ const latest: ExampleDecision = {
 };
 const example: Example = {
   id: "example-1", state: {}, source: "live", imageUrls: [], annotation: null,
-  latestDecision: latest, decisionCount: 1,
+  latestPrediction: latest, predictionCount: 1,
   createdAt: "2026-09-23T00:00:00Z", updatedAt: "2026-09-23T00:00:00Z",
 };
 
@@ -29,15 +29,15 @@ test.each(["get", "list", "annotate", "ingest"] as const)("%s preserves the nest
     case "ingest": result = (await client.examples.ingest("acme/model", [{ state: {} }])).examples[0]!; break;
     case "list": result = (await client.examples.list("acme/model")).items[0]!; break;
   }
-  expect(result.latestDecision).toEqual(latest);
-  expect(result.latestDecision).not.toHaveProperty("exampleId");
-  expect(result.latestDecision).not.toHaveProperty("jobId");
-  expect(result.latestDecision).not.toHaveProperty("error");
+  expect(result.latestPrediction).toEqual(latest);
+  expect(result.latestPrediction).not.toHaveProperty("exampleId");
+  expect(result.latestPrediction).not.toHaveProperty("jobId");
+  expect(result.latestPrediction).not.toHaveProperty("error");
 });
 
 test.each([null, "Provider request failed"])("history keeps its distinct shape (error=%s)", async (error) => {
   const record: DecisionRecord = { ...latest, exampleId: example.id, jobId: null, error,
     response: error ? null : latest.response, answers: error ? {} : latest.answers };
-  const client = new Modaic({ apiKey: "test", fetch: async () => Response.json({ decisions: [record] }) });
-  expect((await client.examples.listDecisions(example.id)).decisions).toEqual([record]);
+  const client = new Modaic({ apiKey: "test", fetch: async () => Response.json({ predictions: [record] }) });
+  expect((await client.examples.listPredictions(example.id)).predictions).toEqual([record]);
 });

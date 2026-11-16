@@ -64,7 +64,7 @@ test("closed streams do not break progress or hide job results", () => {
   expect(() => { display.update(batch()); display.close("wait interrupted"); }).not.toThrow();
 });
 
-for (const resource of ["batchDecisions", "alignments"] as const) {
+for (const resource of ["batchDecisions", "instructionOptimizations"] as const) {
   const factory = resource === "batchDecisions" ? batch : alignment;
   test.each(["completed", "failed", "cancelled"] as const)(`${resource} progress handles %s and does not change requests`, async status => {
     const states: JobStatus[] = ["queued", "running", status];
