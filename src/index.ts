@@ -8,7 +8,7 @@ export {
   Models,
   Protege,
 } from "./client.js";
-export { FineTunes, Resources, Uploads } from "./training.js";
+export { FineTunes, Datasets, Uploads } from "./training.js";
 export type { ClientOptions } from "./client.js";
 export { Choice, Noul, Score, Nullable, Datetime, Text, Span, Number, Date, Time, Box } from "./questions.js";
 export { VERSION } from "./version.js";

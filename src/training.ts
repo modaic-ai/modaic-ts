@@ -6,12 +6,13 @@ import type {
   FineTune,
   FineTuneList,
   FineTuneLogs,
-  ResourceQuery,
-  Resource,
-  ResourcePage,
+  DatasetQuery,
+  Dataset,
+  DatasetDeletion,
+  DatasetPage,
   Upload,
   PreparedUploadPart,
-  ResourceKind,
+  DatasetKind,
   TrainingControls,
   UploadFileParams,
 } from "./types.js";
@@ -181,7 +182,7 @@ function workspacePath(workspace: string, suffix: string): string {
   return `/workspaces/${segment(workspace)}${suffix}`;
 }
 
-function query(options: ResourceQuery = {}): Record<string, string | undefined> {
+function query(options: DatasetQuery = {}): Record<string, string | undefined> {
   return { commitSha: options.commitSha };
 }
 
@@ -250,7 +251,7 @@ export class Uploads {
       const upload = await this.get(workspace, uploadId);
       if (UPLOAD_TERMINAL.has(upload.status)) return upload;
       if (Date.now() + pollIntervalMs >= deadline) {
-        throw new ModaicTimeoutError(`Timed out waiting for resource upload ${uploadId}.`);
+        throw new ModaicTimeoutError(`Timed out waiting for dataset upload ${uploadId}.`);
       }
       await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
     }
@@ -327,26 +328,46 @@ export class Uploads {
   }
 }
 
-export class Resources {
+export class Datasets {
   constructor(private readonly transport: Transport) {}
+
+  delete(workspace: string, name: string): Promise<DatasetDeletion> {
+    return this.transport.request("DELETE", workspacePath(workspace, `/datasets/${segment(name)}`));
+  }
+
+  getDeletion(workspace: string, deletionId: string): Promise<DatasetDeletion> {
+    return this.transport.request("GET", workspacePath(workspace, `/dataset-deletions/${segment(deletionId)}`));
+  }
+
+  async waitForDeletion(workspace: string, deletionId: string, options: { pollIntervalMs?: number; timeoutMs?: number } = {}): Promise<DatasetDeletion> {
+    const interval = options.pollIntervalMs ?? 2000;
+    if (interval <= 0) throw new RangeError("pollIntervalMs must be positive.");
+    const deadline = Date.now() + (options.timeoutMs ?? Number.POSITIVE_INFINITY);
+    while (true) {
+      const result = await this.getDeletion(workspace, deletionId);
+      if (result.status === "completed" || result.status === "failed") return result;
+      if (Date.now() + interval >= deadline) throw new ModaicTimeoutError("Timed out waiting for dataset deletion.");
+      await new Promise(resolve => setTimeout(resolve, interval));
+    }
+  }
 
   list(
     workspace: string,
-    options: ResourceQuery & { kind?: ResourceKind; glob?: string; cursor?: string } = {},
-  ): Promise<ResourcePage> {
-    return this.transport.request("GET", workspacePath(workspace, "/resources"), {
+    options: DatasetQuery & { kind?: DatasetKind; glob?: string; cursor?: string } = {},
+  ): Promise<DatasetPage> {
+    return this.transport.request("GET", workspacePath(workspace, "/datasets"), {
       query: { ...query(options), kind: options.kind, glob: options.glob, cursor: options.cursor },
     });
   }
 
-  get(workspace: string, name: string, options: ResourceQuery = {}): Promise<Resource> {
-    return this.transport.request("GET", workspacePath(workspace, `/resources/${segment(name)}`), {
+  get(workspace: string, name: string, options: DatasetQuery = {}): Promise<Dataset> {
+    return this.transport.request("GET", workspacePath(workspace, `/datasets/${segment(name)}`), {
       query: query(options),
     });
   }
 
-  download(workspace: string, name: string, options: ResourceQuery = {}): Promise<Uint8Array> {
-    return this.transport.download(workspacePath(workspace, `/resources/${segment(name)}/content`), {
+  download(workspace: string, name: string, options: DatasetQuery = {}): Promise<Uint8Array> {
+    return this.transport.download(workspacePath(workspace, `/datasets/${segment(name)}/content`), {
       query: query(options),
     });
   }
@@ -355,10 +376,10 @@ export class Resources {
     workspace: string,
     name: string,
     params: { description?: string | null; repos?: string[] },
-  ): Promise<Resource> {
+  ): Promise<Dataset> {
     return this.transport.request(
       "PATCH",
-      workspacePath(workspace, `/resources/${segment(name)}`),
+      workspacePath(workspace, `/datasets/${segment(name)}`),
       { body: params },
     );
   }

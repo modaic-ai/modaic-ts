@@ -168,11 +168,14 @@ questions and must be called with questions; omitting them returns
 identical request. Keyed predictions returning `409 decision_in_progress`
 are retried at most five times with bounded backoff; other conflicts are
 not automatically retried.
-Approved ZDR workspaces making covered direct base-model calls ignore the key:
-each retry is a new, potentially billable inference, not a replay. ZDR requires
-a separate signed agreement, approval, and technical activation; saved-model
-calls, batch jobs, and training are not covered. `capture: false` does not make
-a saved-model call ZDR. See
+Synchronous base-model and custom-model inference use ZDR by default on all
+workspaces and plans. Capture defaults off. Idempotency keys do not retain
+responses for replay on these calls: retries are independent and may incur
+usage again. Explicit capture on a custom-model call opts into stored
+examples/decisions and normal replay behavior; model sampling still applies.
+Saved instructions in a custom model, saved adapters, uploaded datasets, explicit examples/annotations,
+batch jobs, training, and optimization are outside ZDR. Uploaded datasets
+remain until explicitly deleted. See
 [Zero Data Retention](https://docs.modaic.dev/docs/api/zero-data-retention).
 
 Capture visibility can lag the inference response. Do not add a history
@@ -181,7 +184,7 @@ wait to the inference path. HTTP errors throw `ModaicAPIError` with
 Network/body-read errors throw `ModaicConnectionError`; timeouts throw
 `ModaicTimeoutError`. Request timeouts cover receiving the response body.
 
-## Workspace resources and fine-tuning
+## Datasets and fine-tuning
 
 
 Use `client.uploads` for resumable datasets, eval-only datasets,
@@ -195,9 +198,9 @@ completion. Browser callers use the lower-level part methods.
 `create(workspace, { kind, sha256, sizeBytes, name, repos? })` creates a session;
 `uploadPart(workspace, id, partNumber, data)` hashes one `Uint8Array` chunk, uploads it
 with the file-scoped grant, and confirms its receipt. Then call `complete` and
-poll `get` or call `wait` until validation is terminal. `resources` provides
+poll `get` or call `wait` until validation is terminal. `datasets` provides
 `list`, `get`, `update`, and `download`; listing accepts `glob`, and update can
-replace repository links and/or the description. Resource names are unique
+replace repository links and/or the description. Dataset names are unique
 across all kinds, so get/download do not take a kind.
 
 Use `client.protege.create({ prompt, repo: "workspace/model", evalOnlyDataset })`
@@ -354,3 +357,20 @@ The API and SDK use the same `type: "span"` contract.
 
 Number answers expose `.number`, `.confidence`, and `.variance`, matching the
 API. Confidence is separate from variance.
+
+
+## Permanent dataset deletion
+
+Delete by workspace and dataset name. A queued, running, or paused job using the
+dataset causes HTTP 409 (`dataset_in_use`). Accepted requests return 202 with
+`id`, `name`, `status`, `createdAt`, and `completedAt`. Poll until `completed`;
+`failed` means cleanup needs a retry through the delete method. New API reads are
+revoked immediately; physical cleanup drains outstanding upload grants first.
+
+```typescript
+const deletion = await client.datasets.delete("acme", "train");
+const result = await client.datasets.waitForDeletion("acme", deletion.id);
+```
+
+`getDeletion` reads progress. Optional wait fields are `pollIntervalMs` and
+`timeoutMs`, in milliseconds.

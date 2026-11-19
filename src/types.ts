@@ -125,6 +125,7 @@ export interface CreateDecisionParams<Q extends DecisionQuestions = Record<strin
   questions?: Q;
   revision?: string;
   exampleId?: string;
+  /** Defaults to false. True opts custom-model requests into retained examples/decisions, outside ZDR. */
   capture?: boolean;
   reasoningEffort?: ReasoningEffort;
   idempotencyKey?: string;
@@ -548,7 +549,7 @@ export interface WaitOptions {
   timeoutMs?: number;
 }
 
-export type ResourceKind = "dataset" | "eval-only-dataset" | "artifact";
+export type DatasetKind = "dataset" | "eval-only-dataset" | "artifact";
 export type TrainingType = "head_only" | "lora";
 export type FineTuneStatus =
   | "queued"
@@ -647,11 +648,11 @@ export interface FineTuneLogs {
   running: boolean;
 }
 
-export interface Resource {
+export interface Dataset {
   id: string;
   name: string;
   description: string | null;
-  kind: ResourceKind;
+  kind: DatasetKind;
   path: string;
   sha256: string;
   sizeBytes: number;
@@ -659,8 +660,16 @@ export interface Resource {
   commitSha: string;
 }
 
-export interface ResourcePage {
-  resources: Resource[];
+export interface DatasetDeletion {
+  id: string;
+  name: string;
+  status: "queued" | "running" | "completed" | "failed";
+  createdAt: string;
+  completedAt: string | null;
+}
+
+export interface DatasetPage {
+  datasets: Dataset[];
   commitSha: string | null;
   nextCursor: string | null;
 }
@@ -676,7 +685,7 @@ export interface Upload {
   id: string;
   name: string;
   description: string | null;
-  kind: ResourceKind;
+  kind: DatasetKind;
   sha256: string;
   sizeBytes: number;
   repos: string[];
@@ -692,7 +701,7 @@ export interface Upload {
 export interface UploadResult {
   name: string;
   description: string | null;
-  kind: ResourceKind;
+  kind: DatasetKind;
   path: string;
   sha256: string;
   sizeBytes: number;
@@ -710,7 +719,7 @@ export interface PreparedUploadPart {
 
 export interface CreateUploadParams {
   name: string;
-  kind: ResourceKind;
+  kind: DatasetKind;
   sha256: string;
   sizeBytes: number;
   description?: string;
@@ -727,7 +736,7 @@ export interface UploadFileProgress {
 export interface UploadFileParams {
   workspace: string;
   name: string;
-  kind: ResourceKind;
+  kind: DatasetKind;
   description?: string;
   repos?: string[];
   waitForValidation?: boolean;
@@ -736,7 +745,7 @@ export interface UploadFileParams {
   onProgress?: (progress: UploadFileProgress) => void;
 }
 
-export interface ResourceQuery {
+export interface DatasetQuery {
   commitSha?: string;
 }
 

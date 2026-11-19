@@ -149,7 +149,7 @@ describe("fine-tuning", () => {
   });
 });
 
-describe("resource uploads", () => {
+describe("dataset uploads", () => {
   test("uploads a hashed part and never sends the API token to transfer hosts", async () => {
     const { modaic, requests } = setup((request) => {
       const url = new URL(request.url);
@@ -195,7 +195,7 @@ describe("resource uploads", () => {
       new TextEncoder().encode("data"),
     );
     expect(uploaded.parts[0]?.uploaded).toBe(true);
-    expect(await modaic.resources.download("acme", "hard-labels"))
+    expect(await modaic.datasets.download("acme", "hard-labels"))
       .toEqual(new TextEncoder().encode("resource-bytes"));
 
     const apiRequests = requests.filter((request) => new URL(request.url).host === "example.test");
@@ -268,4 +268,48 @@ describe("resource uploads", () => {
       await rm(directory, { recursive: true, force: true });
     }
   });
+});
+
+
+test("datasets catalog uses the renamed routes and response field", async () => {
+  const item = {
+    id: UPLOAD_ID, name: "train", kind: "dataset", description: null,
+    path: "resources/uploaded-datasets/train.jsonl", sha256: SHA,
+    sizeBytes: 12, repos: [], commitSha: COMMIT,
+  };
+  const { modaic } = setup(async request => {
+    const url = new URL(request.url);
+    expect(url.pathname).not.toContain("/resources");
+    if (url.pathname.endsWith("/datasets")) {
+      expect(url.searchParams.get("commitSha")).toBe(COMMIT);
+      expect(url.searchParams.get("cursor")).toBe("next");
+      return Response.json({ datasets: [item], commitSha: COMMIT, nextCursor: null });
+    }
+    if (request.method === "PATCH") {
+      expect(await request.json()).toEqual({ description: null, repos: [] });
+    }
+    if (url.pathname.endsWith("/content")) return new Response("dataset bytes");
+    return Response.json(item);
+  });
+  const page = await modaic.datasets.list("acme", { commitSha: COMMIT, cursor: "next" });
+  expect(page.datasets[0]?.name).toBe("train");
+  expect((await modaic.datasets.get("acme", "train")).name).toBe("train");
+  expect((await modaic.datasets.update("acme", "train", { description: null, repos: [] })).description).toBeNull();
+  expect(await modaic.datasets.download("acme", "train")).toEqual(new TextEncoder().encode("dataset bytes"));
+  expect("resources" in modaic).toBe(false);
+});
+
+
+test("permanent dataset deletion exposes progress and waits for completion", async () => {
+  let completed = false;
+  const { modaic } = setup(request => {
+    const url = new URL(request.url);
+    if (request.method === "DELETE") expect(url.pathname).toBe("/api/v1/workspaces/acme/datasets/train");
+    else expect(url.pathname).toBe(`/api/v1/workspaces/acme/dataset-deletions/${UPLOAD_ID}`);
+    return Response.json({ id: UPLOAD_ID, name: "train", status: completed ? "completed" : "queued", createdAt: "2026-11-18T00:00:00Z", completedAt: completed ? "2026-11-18T00:10:01Z" : null }, { status: request.method === "DELETE" ? 202 : 200 });
+  });
+  const deletion = await modaic.datasets.delete("acme", "train");
+  await expect(modaic.datasets.waitForDeletion("acme", deletion.id, { timeoutMs: 0 })).rejects.toThrow("Timed out");
+  completed = true;
+  expect((await modaic.datasets.waitForDeletion("acme", deletion.id)).status).toBe("completed");
 });

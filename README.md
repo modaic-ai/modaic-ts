@@ -142,8 +142,8 @@ const upload = await modaic.uploads.uploadFile("training.jsonl", {
 
 Set `waitForValidation: false` to return as soon as completion starts, or use
 the lower-level `create`, `preparePart`, `uploadPart`, `confirmPart`, `complete`,
-and `wait` methods to resume an existing session. Resources are available
-through `resources.list`, `get`, `update`, and `download`.
+and `wait` methods to resume an existing session. Datasets are available
+through `datasets.list`, `get`, `update`, and `download`.
 Listing accepts a `glob` using `*` and `?`; held-out sets use
 `kind: "eval-only-dataset"`.
 
@@ -263,9 +263,9 @@ shows its stage and metric-call budget usage, not overall completion percentage.
 Updates use the existing polling interval. Timing out stops waiting without
 cancelling the job. No additional package is needed.
 
-## Resources
+## API methods
 
-| Resource | Methods |
+| API | Methods |
 | --- | --- |
 | `predictions` | `create` |
 | `models` | `list`, `create`, `get`, `update`, `delete` |
@@ -274,7 +274,7 @@ cancelling the job. No additional package is needed.
 | `instructionOptimizations` | `create`, `list`, `get`, `logs`, `cancel`, `wait` |
 | `fineTunes` | `create`, `list`, `get`, `logs`, `cancel`, `wait` |
 | `uploads` | `create`, `get`, `preparePart`, `confirmPart`, `uploadPart`, `complete`, `cancel` |
-| `resources` | `list`, `get`, `update`, `download` |
+| `datasets` | `list`, `get`, `update`, `download`, `delete` |
 | `protege` | `create`, `get`, `cancel`, `wait` |
 
 Every method returns a Promise. SDK properties use `camelCase`, including the
@@ -442,3 +442,18 @@ set with nonempty text instructions and hard labels (Noul 0/1, keyed Choice
 option, ordered Score index). All three partitions must be nonempty with
 disjoint inputs/groups; files total at most 64 MiB. Stored model examples are
 not consumed and completion does not start batch predictions.
+
+
+Dataset deletion is permanent. It is blocked while queued, running, or paused
+jobs use the dataset. The delete call returns a deletion request; wait until its
+status is `completed` before treating cleanup as finished. New API downloads are
+revoked immediately; existing upload grants drain before physical cleanup.
+
+
+Synchronous inference uses Zero Data Retention by default for direct base-model
+and custom-model calls on every workspace. Capture defaults off; explicitly
+enable capture on a custom-model request to save its example and decision.
+Default ZDR calls do not save responses for idempotent replay, so retries are
+new, potentially billable calls. Saved instructions in a custom model, saved adapters, uploaded
+datasets, explicit captures/annotations, batch jobs, and training/optimization
+are outside ZDR. Uploaded datasets remain until you explicitly delete them.

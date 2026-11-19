@@ -2,7 +2,7 @@ import { Nullable, questionBody, hydrateAnswer } from "./questions.js";
 import { ModaicConnectionError, ModaicTimeoutError } from "./errors.js";
 import { JobProgress } from "./progress.js";
 import { type ClientOptions, segment, Transport } from "./transport.js";
-import { FineTunes, Resources, Uploads } from "./training.js";
+import { FineTunes, Datasets, Uploads } from "./training.js";
 import type {
   Alignment,
   AlignmentList,
@@ -609,7 +609,7 @@ export class Modaic {
   readonly instructionOptimizations: Alignments;
   readonly fineTunes: FineTunes;
   readonly uploads: Uploads;
-  readonly resources: Resources;
+  readonly datasets: Datasets;
   readonly protege: Protege;
 
   constructor(options: ClientOptions = {}) {
@@ -623,7 +623,7 @@ export class Modaic {
     this.instructionOptimizations = new Alignments(transport);
     this.fineTunes = new FineTunes(transport);
     this.uploads = new Uploads(transport);
-    this.resources = new Resources(transport);
+    this.datasets = new Datasets(transport);
     this.protege = new Protege(transport);
   }
 }
