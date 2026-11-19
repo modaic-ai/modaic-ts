@@ -313,3 +313,22 @@ test("permanent dataset deletion exposes progress and waits for completion", asy
   completed = true;
   expect((await modaic.datasets.waitForDeletion("acme", deletion.id)).status).toBe("completed");
 });
+
+
+test("pause, resume, and checkpoint operations preserve empty responses and opaque checkpoint IDs", async () => {
+  const checkpointId = JOB_ID + ":attempt-000:checkpoint-000000000100";
+  const { modaic, requests } = setup((request) => {
+    if (request.method === "GET") return Response.json({ checkpoints: [{ id: checkpointId, step: 100, bytes: 512, committedAt: "2026-11-18T00:00:00Z" }] });
+    return new Response(null, { status: request.method === "POST" ? 202 : 204 });
+  });
+  expect("protege" in modaic).toBe(false);
+  expect(await modaic.fineTunes.pause(JOB_ID)).toBeUndefined();
+  expect(await modaic.fineTunes.resume(JOB_ID)).toBeUndefined();
+  const checkpoints = await modaic.fineTunes.listCheckpoints(JOB_ID);
+  expect(checkpoints.checkpoints[0]).toMatchObject({ id: checkpointId, step: 100, bytes: 512 });
+  await modaic.fineTunes.deleteCheckpoint(JOB_ID, checkpointId);
+  expect(requests.map(request => request.method)).toEqual(["POST", "POST", "GET", "DELETE"]);
+  expect(new URL(requests[0]!.url).pathname).toBe(`/api/v1/fine-tunes/${JOB_ID}/pause`);
+  expect(new URL(requests[1]!.url).pathname).toBe(`/api/v1/fine-tunes/${JOB_ID}/resume`);
+  expect(new URL(requests[3]!.url).pathname).toBe(`/api/v1/fine-tunes/${JOB_ID}/checkpoints/${encodeURIComponent(checkpointId)}`);
+});

@@ -6,7 +6,6 @@ export {
   Modaic,
   ModaicClient,
   Models,
-  Protege,
 } from "./client.js";
 export { FineTunes, Datasets, Uploads } from "./training.js";
 export type { ClientOptions } from "./client.js";

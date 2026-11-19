@@ -30,7 +30,6 @@ import type {
   ModelJobs,
   ModelList,
   ModelSummary,
-  ProtegeJob,
   ResponseSchema,
   Answer,
   QuestionInput,
@@ -558,47 +557,6 @@ export class Alignments {
   }
 }
 
-export class Protege {
-  constructor(private readonly transport: Transport) {}
-
-  create(params: {
-    prompt: string;
-    repo: string;
-    evalOnlyDataset?: string;
-  }): Promise<ProtegeJob> {
-    return this.transport.request("POST", "/protege", {
-      body: {
-        prompt: params.prompt,
-        repo: params.repo,
-        ...(params.evalOnlyDataset === undefined
-          ? {}
-          : { eval_only_dataset: params.evalOnlyDataset }),
-      },
-    });
-  }
-
-  get(jobId: string): Promise<ProtegeJob> {
-    return this.transport.request("GET", `/protege/${segment(jobId)}`);
-  }
-
-  cancel(jobId: string): Promise<ProtegeJob> {
-    return this.transport.request("DELETE", `/protege/${segment(jobId)}`);
-  }
-
-  async wait(jobId: string, options: WaitOptions = {}): Promise<ProtegeJob> {
-    const deadline = Date.now() + (options.timeoutMs ?? 3_600_000);
-    const pollIntervalMs = options.pollIntervalMs ?? 2_000;
-    while (true) {
-      const job = await this.get(jobId);
-      if (["succeeded", "failed", "cancelled"].includes(job.status)) return job;
-      if (Date.now() >= deadline) {
-        throw new ModaicTimeoutError(`Timed out waiting for Protégé job ${jobId}.`);
-      }
-      await sleep(pollIntervalMs);
-    }
-  }
-}
-
 export class Modaic {
   readonly predictions: Decisions;
   readonly decisions: Decisions;
@@ -610,7 +568,6 @@ export class Modaic {
   readonly fineTunes: FineTunes;
   readonly uploads: Uploads;
   readonly datasets: Datasets;
-  readonly protege: Protege;
 
   constructor(options: ClientOptions = {}) {
     const transport = new Transport(options);
@@ -624,7 +581,6 @@ export class Modaic {
     this.fineTunes = new FineTunes(transport);
     this.uploads = new Uploads(transport);
     this.datasets = new Datasets(transport);
-    this.protege = new Protege(transport);
   }
 }
 

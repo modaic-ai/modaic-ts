@@ -203,9 +203,6 @@ poll `get` or call `wait` until validation is terminal. `datasets` provides
 replace repository links and/or the description. Dataset names are unique
 across all kinds, so get/download do not take a kind.
 
-Use `client.protege.create({ prompt, repo: "workspace/model", evalOnlyDataset })`
-to start optimization, then `get`, `cancel`, or `wait` by job ID.
-
 Use `client.fineTunes.create` with `trainingFile` and
 `trainingType: "head_only" | "lora"`. Base model `mo-1.3.1` also requires
 `destination`. The JSONL dataset supplies `instructions`, `type`, `criteria`,
@@ -374,3 +371,5 @@ const result = await client.datasets.waitForDeletion("acme", deletion.id);
 
 `getDeletion` reads progress. Optional wait fields are `pollIntervalMs` and
 `timeoutMs`, in milliseconds.
+
+Fine-tuning supports pause/resume and saved optimizer checkpoints. Use `client.fineTunes.pause(jobId)`, `resume(jobId)`, `listCheckpoints(jobId)`, and `deleteCheckpoint(jobId, checkpointId)`. Pause saves a fresh checkpoint before releasing compute. Deleting a paused resume checkpoint prevents resuming. Active jobs must be paused or finished before individual checkpoint deletion.

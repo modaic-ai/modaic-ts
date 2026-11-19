@@ -552,6 +552,10 @@ export interface WaitOptions {
 export type DatasetKind = "dataset" | "eval-only-dataset" | "artifact";
 export type TrainingType = "head_only" | "lora";
 export type FineTuneStatus =
+  | "pausing"
+  | "stopping"
+  | "paused"
+  | "resuming"
   | "queued"
   | "training"
   | "committing"
@@ -624,6 +628,7 @@ export interface FineTune {
   datasetCommitSha: string;
   datasetSha256: string;
   status: FineTuneStatus;
+  canPause?: boolean;
   branch: string;
   sourceCommitSha: string;
   resultCommitSha: string | null;
@@ -636,6 +641,17 @@ export interface FineTune {
   updatedAt: string;
   startedAt: string | null;
   finishedAt: string | null;
+}
+
+export interface FineTuneCheckpoint {
+  id: string;
+  step: number;
+  bytes: number;
+  committedAt: string | null;
+}
+
+export interface FineTuneCheckpointList {
+  checkpoints: FineTuneCheckpoint[];
 }
 
 export interface FineTuneList {
@@ -749,10 +765,6 @@ export interface DatasetQuery {
   commitSha?: string;
 }
 
-export interface ProtegeJob {
-  id: string;
-  status: "running" | "succeeded" | "failed" | "cancelled";
-}
 export type PredictionResponse<A = Answer> = DecisionResponse<A>;
 export type PredictionRecord = DecisionRecord;
 export type PredictionList = DecisionList;

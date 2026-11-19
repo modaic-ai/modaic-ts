@@ -4,6 +4,7 @@ import type {
   CreateFineTuneParams,
   CreateUploadParams,
   FineTune,
+  FineTuneCheckpointList,
   FineTuneList,
   FineTuneLogs,
   DatasetQuery,
@@ -159,6 +160,22 @@ export class FineTunes {
 
   cancel(jobId: string): Promise<void> {
     return this.transport.request("DELETE", `/fine-tunes/${segment(jobId)}`);
+  }
+
+  pause(jobId: string): Promise<void> {
+    return this.transport.request("POST", `/fine-tunes/${segment(jobId)}/pause`);
+  }
+
+  resume(jobId: string): Promise<void> {
+    return this.transport.request("POST", `/fine-tunes/${segment(jobId)}/resume`);
+  }
+
+  listCheckpoints(jobId: string): Promise<FineTuneCheckpointList> {
+    return this.transport.request("GET", `/fine-tunes/${segment(jobId)}/checkpoints`);
+  }
+
+  deleteCheckpoint(jobId: string, checkpointId: string): Promise<void> {
+    return this.transport.request("DELETE", `/fine-tunes/${segment(jobId)}/checkpoints/${segment(checkpointId)}`);
   }
 
   async wait(

@@ -272,10 +272,9 @@ cancelling the job. No additional package is needed.
 | `examples` | `ingest`, `list`, `get`, `annotate`, `listPredictions` |
 | `batchPredictions` | `create`, `list`, `get`, `cancel`, `wait` |
 | `instructionOptimizations` | `create`, `list`, `get`, `logs`, `cancel`, `wait` |
-| `fineTunes` | `create`, `list`, `get`, `logs`, `cancel`, `wait` |
+| `fineTunes` | `create`, `list`, `get`, `logs`, `pause`, `resume`, `listCheckpoints`, `deleteCheckpoint`, `cancel`, `wait` |
 | `uploads` | `create`, `get`, `preparePart`, `confirmPart`, `uploadPart`, `complete`, `cancel` |
 | `datasets` | `list`, `get`, `update`, `download`, `delete` |
-| `protege` | `create`, `get`, `cancel`, `wait` |
 
 Every method returns a Promise. SDK properties use `camelCase`, including the
 few decision response fields that use `snake_case` on the wire.
@@ -457,3 +456,9 @@ Default ZDR calls do not save responses for idempotent replay, so retries are
 new, potentially billable calls. Saved instructions in a custom model, saved adapters, uploaded
 datasets, explicit captures/annotations, batch jobs, and training/optimization
 are outside ZDR. Uploaded datasets remain until you explicitly delete them.
+
+## Training controls and checkpoints
+
+Use `client.fineTunes.pause(jobId)` to request a fresh checkpoint and release compute. Poll `get(jobId)` until `status === "paused"` before calling `resume(jobId)`. Use `listCheckpoints(jobId)` and `deleteCheckpoint(jobId, checkpointId)` to manage retained checkpoints.
+
+Individual checkpoint deletion requires a paused or finished job. Deleting the pause checkpoint prevents resuming. Cancelling an active or paused job deletes its optimizer checkpoints; cancelling a completed job leaves its checkpoints unchanged. Retained checkpoints count toward workspace storage.
