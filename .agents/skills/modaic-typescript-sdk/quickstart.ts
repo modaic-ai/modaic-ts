@@ -2,7 +2,7 @@
 import { Choice, Date, Span, Modaic, Noul, Number } from "modaic";
 
 export async function classify(client: Modaic) {
-  return client.decisions.create({
+  return client.predictions.create({
     model: "mo-latest",
     state: "Waterproof hiking boots, size 42",
     questions: {

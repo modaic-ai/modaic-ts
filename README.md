@@ -4,6 +4,13 @@ The official, HTTP-only TypeScript client for the public Modaic API. It uses
 the platform `fetch` implementation, has no runtime dependencies, and never
 invokes Git or reads or writes repository files.
 
+Modaic provides managed training and inference primitives to adapt and calibrate
+System One models for your task. Run predictions, manage custom models and
+datasets, and start instruction optimization or fine-tuning jobs.
+
+Mo Lite is coming soon. Its aliases return HTTP `400` with code
+`model_not_supported`; use `mo-latest` or `mo-2.0` for inference.
+
 ## Question objects
 
 Use `new Noul({ instructions: "Is this about billing?" })`,
@@ -26,12 +33,11 @@ npm install modaic
 Set an API key from <https://modaic.dev/settings/keys>:
 
 ```bash
-export MODAIC_TOKEN="mdc_..."
+export MODAIC_API_KEY="mdc_..."
 ```
 
-`MODAIC_API_KEY` remains supported as a backwards-compatible alias. If both
-are set, `MODAIC_TOKEN` takes precedence; an explicit `apiKey` takes
-precedence over both.
+The client reads `MODAIC_API_KEY` automatically. You can also pass the key
+explicitly as `new Modaic({ apiKey })`.
 
 ## Quickstart
 
@@ -70,18 +76,7 @@ const result = await modaic.predictions.create({
 console.log(result.answers.priority);
 ```
 
-The API URL defaults to `https://modaic.dev/api/v1`. Set `MODAIC_API_URL` to
-override it, or pass `baseUrl` to the client. The client option takes precedence
-over the environment variable. In browsers, pass `baseUrl` explicitly.
-
-For a local server, pass the versioned API URL explicitly:
-
-```typescript
-const modaic = new Modaic({
-  apiKey: "mdc_...",
-  baseUrl: "http://localhost:3001/v1",
-});
-```
+The API URL defaults to `https://modaic.dev/api/v1`.
 
 ## Typed responses
 
@@ -143,7 +138,7 @@ const upload = await modaic.uploads.uploadFile("training.jsonl", {
 Set `waitForValidation: false` to return as soon as completion starts, or use
 the lower-level `create`, `preparePart`, `uploadPart`, `confirmPart`, `complete`,
 and `wait` methods to resume an existing session. Resources are available
-through `resources.list`, `get`, `update`, and `download`.
+through `datasets.list`, `get`, `update`, and `download`.
 Listing accepts a `glob` using `*` and `?`; held-out sets use
 `kind: "eval-only-dataset"`.
 
@@ -176,7 +171,7 @@ const finished = await modaic.fineTunes.wait(job.id);
 
 Once `finished.status === "done"`, call `acme/support-priority` normally. Pin an
 immutable published checkpoint with `acme/support-priority@<full-commit-sha>`.
-Fine-tuning requires `mo-1.3.1`.
+Fine-tuning supports `mo-1.3.1` (head-only or LoRA) and `mo-2.0` (LoRA only). For `mo-2.0`, use rank 16, alpha 32, and dropout 0 with Noul, Choice, or Score inputs up to 32,768 tokens.
 
 ## Model-bound resources
 
@@ -190,7 +185,7 @@ const result = await model.predictions.create({
 });
 const examples = await model.examples.list({ pageSize: 10 });
 const batches = await model.jobs.batchPredictions.list();
-const alignments = await model.jobs.instructionOptimizations.list();
+const optimizations = await model.jobs.instructionOptimizations.list();
 ```
 
 `models.get` includes `configuration` with the model and questions saved on
@@ -200,11 +195,11 @@ no-op: it resolves with `unchanged: true`, a `commit` whose `commitSha`
 equals `previousSha`, and the stored configuration. Nothing is committed and
 the checkpoint is not reset.
 
-Alignment writes its optimized instructions into the same `questions`, so a
-setup script that re-pushes the schema as authored would revert an aligned
+Instruction optimization writes its optimized instructions into the same `questions`, so a
+setup script that re-pushes the schema as authored would revert an optimized
 model. Once a model has a checkpoint, `models.update` with questions that
 differ from the stored ones rejects with `409 alignment_would_be_discarded`.
-Omit `questions` to keep the aligned instructions, or pass
+Omit `questions` to keep the optimized instructions, or pass
 `discardAlignment: true` to replace them and reset the checkpoint to 0.
 
 `VERSION` is the SDK version, for logging alongside results. `models.get`
@@ -220,11 +215,11 @@ Every model is a Git repository, and `models` exposes its history:
 ```typescript
 const model = await modaic.models.get("acme", "support-priority");
 
-// Name the aligned commit so production can pin to it.
+// Name the optimized commit so production can pin to it.
 await modaic.models.createTag(model.id, { name: "v1", commitSha: model.commit!.commitSha });
 await modaic.predictions.create({ model: "acme/support-priority", revision: "v1", state: { /* ... */ } });
 
-// Undo a bad update: move main back to the aligned commit.
+// Undo a bad update: move main back to the optimized commit.
 const { commits } = await modaic.models.listCommits(model.id, { branch: "main" });
 await modaic.models.rollback(model.id, {
   branch: "main",
@@ -238,7 +233,7 @@ returns with its checkpoint and metrics intact. `listBranches`,
 `createBranch({ name, sourceRef })`, `deleteBranch`, `listTags`, and
 `deleteTag` round out the surface.
 
-The bound method accepts every decision option except `model` and uses the same
+The bound method accepts every prediction option except `model` and uses the same
 client. Pass `revision` to pin a version. `JSON.stringify(model)` contains only
 response data. The top-level `modaic.predictions.create` remains available.
 
@@ -253,12 +248,12 @@ Pass `progress: true` to either job resource's `wait()` method:
 
 ```typescript
 const finishedBatch = await modaic.batchPredictions.wait(job.id, { progress: true });
-const finishedAlignment = await modaic.instructionOptimizations.wait(alignment.id, { progress: true });
+const finishedOptimization = await modaic.instructionOptimizations.wait(optimization.id, { progress: true });
 ```
 
 Progress is off by default. When enabled, the SDK renders a bar on stderr in a
 terminal or prints changed snapshots when output is redirected. Browsers without
-stderr stay silent. Batch jobs show processed examples and failures; alignment
+stderr stay silent. Batch jobs show processed examples and failures; instruction optimization
 shows its stage and metric-call budget usage, not overall completion percentage.
 Updates use the existing polling interval. Timing out stops waiting without
 cancelling the job. No additional package is needed.
@@ -272,13 +267,12 @@ cancelling the job. No additional package is needed.
 | `examples` | `ingest`, `list`, `get`, `annotate`, `listPredictions` |
 | `batchPredictions` | `create`, `list`, `get`, `cancel`, `wait` |
 | `instructionOptimizations` | `create`, `list`, `get`, `logs`, `cancel`, `wait` |
-| `fineTunes` | `create`, `list`, `get`, `logs`, `cancel`, `wait` |
+| `fineTunes` | `create`, `list`, `get`, `logs`, `pause`, `resume`, `listCheckpoints`, `deleteCheckpoint`, `cancel`, `wait` |
 | `uploads` | `create`, `get`, `preparePart`, `confirmPart`, `uploadPart`, `complete`, `cancel` |
-| `resources` | `list`, `get`, `update`, `download` |
-| `protege` | `create`, `get`, `cancel`, `wait` |
+| `datasets` | `list`, `get`, `update`, `download`, `delete` |
 
 Every method returns a Promise. SDK properties use `camelCase`, including the
-few decision response fields that use `snake_case` on the wire.
+few prediction response fields that use `snake_case` on the wire.
 
 ## Errors
 
@@ -442,3 +436,24 @@ set with nonempty text instructions and hard labels (Noul 0/1, keyed Choice
 option, ordered Score index). All three partitions must be nonempty with
 disjoint inputs/groups; files total at most 64 MiB. Stored model examples are
 not consumed and completion does not start batch predictions.
+
+
+Dataset deletion is permanent. It is blocked while queued, running, or paused
+jobs use the dataset. The delete call returns a deletion request; wait until its
+status is `completed` before treating cleanup as finished. New API downloads are
+revoked immediately; existing upload grants drain before physical cleanup.
+
+
+Synchronous inference uses Zero Data Retention by default for direct base-model
+and custom-model calls on every workspace. Capture defaults off; explicitly
+enable capture on a custom-model request to save its example and prediction.
+Default ZDR calls do not save responses for idempotent replay, so retries are
+new, potentially billable calls. Saved instructions in a custom model, saved adapters, uploaded
+datasets, explicit captures/annotations, batch jobs, and training/optimization
+are outside ZDR. Uploaded datasets remain until you explicitly delete them.
+
+## Training controls and checkpoints
+
+Use `client.fineTunes.pause(jobId)` to request a fresh checkpoint and release compute. Poll `get(jobId)` until `status === "paused"` before calling `resume(jobId)`. Use `listCheckpoints(jobId)` and `deleteCheckpoint(jobId, checkpointId)` to manage retained checkpoints.
+
+Individual checkpoint deletion requires a paused or finished job. Deleting the pause checkpoint prevents resuming. Cancelling an active or paused job deletes its optimizer checkpoints; cancelling a completed job leaves its checkpoints unchanged. Retained checkpoints count toward workspace storage.

@@ -1,16 +1,19 @@
 ---
 name: modaic-typescript-sdk
-description: Use the Modaic TypeScript or JavaScript HTTP SDK for predictions, question objects, model and example management, and alignment or batch-prediction jobs. Covers Promise-based APIs, configuration, progress, and errors.
+description: Use the Modaic TypeScript or JavaScript HTTP SDK for predictions, question objects, model and example management, and instruction optimization or batch prediction jobs. Covers Promise-based APIs, configuration, progress, and errors.
 ---
 
 # Modaic TypeScript SDK
 
-Default to `mo-latest` for inference. Use `mo-2.0` when pinning a version. Use `mo-1.3.1` only for fine-tuning. Do not select a different base model unless the user explicitly requests it.
+Default to `mo-latest` for inference. Use `mo-2.0` when pinning a version. For fine-tuning, `mo-1.3.1` supports head-only and LoRA; `mo-2.0` requires LoRA with rank 16, alpha 32, and dropout 0, and supports Noul, Choice, and Score inputs up to 32,768 tokens. Do not select a different base model unless the user explicitly requests it.
 
 Install `modaic` from npm. ESM, Node.js 18+, or a runtime with fetch.
 The SDK has no runtime dependencies and performs API requests without
 invoking Git or reading/writing model files. Every network method returns a
 Promise; use await. Read [quickstart.ts](quickstart.ts) for direct inference.
+
+Mo Lite is coming soon. Its aliases return HTTP `400` with code
+`model_not_supported`; use `mo-latest` or `mo-2.0` for inference.
 
 ## Configuration and questions
 
@@ -89,10 +92,10 @@ a no-op that resolves normally: `commit.commitSha === commit.previousSha`
 and the checkpoint is unchanged. Diff `configuration.questions` first to
 skip the call; never catch a 500 as "already up to date".
 
-If `configuration.checkpoint > 0`, alignment has rewritten the questions.
+If `configuration.checkpoint > 0`, instruction optimization has rewritten the questions.
 `models.update` with different `questions` rejects with a 409 whose `code`
 is `alignment_would_be_discarded` rather than reverting the model. Keep
-aligned instructions by omitting `questions`; pass `discardAlignment: true`
+optimized instructions by omitting `questions`; pass `discardAlignment: true`
 only when the user explicitly wants to replace them and reset the checkpoint.
 
 `(await models.get(...)).commit?.commitSha` is the default branch head. Pass
@@ -101,7 +104,7 @@ whose `code` is `expected_head_mismatch`. Version control on `models`:
 `listBranches`, `createBranch(repo, { name, sourceRef })`, `deleteBranch`,
 `listCommits(repo, { branch })`, `listTags`, `createTag(repo, { name, commitSha })`,
 `deleteTag`, and `rollback(repo, { branch, targetCommitSha, expectedHeadSha,
-message? })`. Tag an alignment's result commit and use the tag as
+message? })`. Tag an instruction optimization result commit and use the tag as
 `revision`; restore an overwritten version with `rollback`, not by
 re-committing prompt text.
 Create/get/update results bind `model.predictions`, `model.examples`,
@@ -145,7 +148,7 @@ not trigger batch predictions.
 
 Use `client.batchPredictions` or `client.instructionOptimizations` for
 `get(id)`, `wait(id, options)`, and `cancel(id)`.
-Alignment also provides `logs(id)`. `wait(id, { progress: true })`
+Instruction optimization also provides `logs(id)`. `wait(id, { progress: true })`
 renders terminal progress without another package. Defaults to silent;
 browsers without stderr remain silent. Poll interval/timeout options are
 `pollIntervalMs`/`timeoutMs`. Check terminal status and error:
@@ -168,11 +171,14 @@ questions and must be called with questions; omitting them returns
 identical request. Keyed predictions returning `409 decision_in_progress`
 are retried at most five times with bounded backoff; other conflicts are
 not automatically retried.
-Approved ZDR workspaces making covered direct base-model calls ignore the key:
-each retry is a new, potentially billable inference, not a replay. ZDR requires
-a separate signed agreement, approval, and technical activation; saved-model
-calls, batch jobs, and training are not covered. `capture: false` does not make
-a saved-model call ZDR. See
+Synchronous base-model and custom-model inference use ZDR by default on all
+workspaces and plans. Capture defaults off. Idempotency keys do not retain
+responses for replay on these calls: retries are independent and may incur
+usage again. Explicit capture on a custom-model call opts into stored
+examples/predictions and normal replay behavior; model sampling still applies.
+Saved instructions in a custom model, saved adapters, uploaded datasets, explicit examples/annotations,
+batch jobs, training, and optimization are outside ZDR. Uploaded datasets
+remain until explicitly deleted. See
 [Zero Data Retention](https://docs.modaic.dev/docs/api/zero-data-retention).
 
 Capture visibility can lag the inference response. Do not add a history
@@ -181,7 +187,7 @@ wait to the inference path. HTTP errors throw `ModaicAPIError` with
 Network/body-read errors throw `ModaicConnectionError`; timeouts throw
 `ModaicTimeoutError`. Request timeouts cover receiving the response body.
 
-## Workspace resources and fine-tuning
+## Datasets and fine-tuning
 
 
 Use `client.uploads` for resumable datasets, eval-only datasets,
@@ -195,13 +201,10 @@ completion. Browser callers use the lower-level part methods.
 `create(workspace, { kind, sha256, sizeBytes, name, repos? })` creates a session;
 `uploadPart(workspace, id, partNumber, data)` hashes one `Uint8Array` chunk, uploads it
 with the file-scoped grant, and confirms its receipt. Then call `complete` and
-poll `get` or call `wait` until validation is terminal. `resources` provides
+poll `get` or call `wait` until validation is terminal. `datasets` provides
 `list`, `get`, `update`, and `download`; listing accepts `glob`, and update can
-replace repository links and/or the description. Resource names are unique
+replace repository links and/or the description. Dataset names are unique
 across all kinds, so get/download do not take a kind.
-
-Use `client.protege.create({ prompt, repo: "workspace/model", evalOnlyDataset })`
-to start optimization, then `get`, `cancel`, or `wait` by job ID.
 
 Use `client.fineTunes.create` with `trainingFile` and
 `trainingType: "head_only" | "lora"`. Base model `mo-1.3.1` also requires
