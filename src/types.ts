@@ -215,8 +215,8 @@ export interface ModelExamples {
 
 export interface ModelJobs {
   readonly instructionOptimizations: {
-    create(params: CreateAlignmentParams): Promise<Alignment>;
-    list(options?: { limit?: number }): Promise<AlignmentList>;
+    create(params: CreateInstructionOptimizationParams): Promise<InstructionOptimization>;
+    list(options?: { limit?: number }): Promise<InstructionOptimizationList>;
   };
   readonly batchDecisions: ModelJobs["batchPredictions"];
   readonly batchPredictions: {
@@ -269,12 +269,12 @@ export interface UpdateModelParams {
   questions?: Record<string, Question>;
   message?: string;
   /**
-   * Required to replace questions that alignment wrote. Once a model has an
-   * alignment checkpoint, `questions` that differ from the stored ones are
-   * refused with `409 alignment_would_be_discarded` unless this is true; the
+   * Required to replace questions written by instruction optimization. Once a model has an
+   * instruction optimization checkpoint, `questions` that differ from the stored ones are
+   * refused with `409 optimized_instructions_would_be_discarded` unless this is true; the
    * update then commits the new questions and resets the checkpoint to 0.
    */
-  discardAlignment?: boolean;
+  discardOptimizedInstructions?: boolean;
   /**
    * Optimistic concurrency: the branch head you last read (`model.commit.commitSha`).
    * If the branch has advanced since, the update is refused with
@@ -475,7 +475,7 @@ export type CreateBatchDecisionParams = BatchSelection & {
   sourceCommitSha?: string;
 };
 
-export interface AlignmentProgress {
+export interface InstructionOptimizationProgress {
   stage: "starting" | "optimizing" | "scoring" | "finishing" | "committing" | "done";
   metricCalls?: number;
   maxMetricCalls?: number | null;
@@ -488,7 +488,7 @@ export interface AlignmentProgress {
   [key: string]: unknown;
 }
 
-export interface Alignment {
+export interface InstructionOptimization {
   training_file?: string;
   validation_file?: string;
   eval_only_dataset?: string;
@@ -502,7 +502,7 @@ export interface Alignment {
   sourceCommitSha: string;
   resultCommitSha: string | null;
   result: Record<string, unknown> | null;
-  progress: AlignmentProgress | null;
+  progress: InstructionOptimizationProgress | null;
   error: JobError | null;
   createdAt: string;
   updatedAt: string;
@@ -510,17 +510,17 @@ export interface Alignment {
   finishedAt: string | null;
 }
 
-export interface AlignmentList {
-  instructionOptimizations: Alignment[];
+export interface InstructionOptimizationList {
+  instructionOptimizations: InstructionOptimization[];
 }
 
-export interface AlignmentLogs {
+export interface InstructionOptimizationLogs {
   logs: string[];
   available: boolean;
   running: boolean;
 }
 
-export interface CreateAlignmentParams {
+export interface CreateInstructionOptimizationParams {
   trainingFile: string;
   validationFile?: string;
   evalOnlyDataset?: string;

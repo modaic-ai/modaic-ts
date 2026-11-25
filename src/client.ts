@@ -4,16 +4,16 @@ import { JobProgress } from "./progress.js";
 import { type ClientOptions, segment, Transport } from "./transport.js";
 import { FineTunes, Resources, Uploads } from "./training.js";
 import type {
-  Alignment,
-  AlignmentList,
-  AlignmentLogs,
+  InstructionOptimization,
+  InstructionOptimizationList,
+  InstructionOptimizationLogs,
   BatchDecision,
   BatchDecisionList,
   BranchList,
   CommitDetails,
   CommitList,
   CommitResult,
-  CreateAlignmentParams,
+  CreateInstructionOptimizationParams,
   CreateBatchDecisionParams,
   CreateDecisionParams,
   CreateModelParams,
@@ -222,7 +222,7 @@ function bindModel<T extends CreatedModel | Model>(model: T, transport: Transpor
   const workspace = typeof model.workspace === "string" ? model.workspace : model.workspace.slug;
   const repo = `${workspace}/${model.slug}`;
   const examples = new Examples(transport);
-  const instructionOptimizations = new Alignments(transport);
+  const instructionOptimizations = new InstructionOptimizations(transport);
   const batchDecisions = new BatchDecisions(transport);
   const boundExamples: ModelExamples = Object.freeze({
     ingest: (items: ExampleInput[]) => examples.ingest(repo, items),
@@ -239,7 +239,7 @@ function bindModel<T extends CreatedModel | Model>(model: T, transport: Transpor
   });
   const jobs: ModelJobs = Object.freeze({
     instructionOptimizations: Object.freeze({
-      create: (params: CreateAlignmentParams) => instructionOptimizations.create(repo, params),
+      create: (params: CreateInstructionOptimizationParams) => instructionOptimizations.create(repo, params),
       list: (options?: { limit?: number }) => instructionOptimizations.list(repo, options),
     }),
     batchPredictions: boundBatchPredictions,
@@ -302,7 +302,7 @@ export class Models {
   }
 
   // Version control. Every model is a Git repository: branches carry ongoing
-  // work, tags name commits worth keeping (a good alignment, a release), and
+  // work, tags name commits worth keeping (an improved instruction set, a release), and
   // a rollback moves a branch back to an earlier commit by committing its
   // tree again, checkpoint and metrics included.
 
@@ -492,12 +492,12 @@ export class BatchDecisions {
   }
 }
 
-export class Alignments {
+export class InstructionOptimizations {
   constructor(private readonly transport: Transport) {}
 
-  create(params: CreateAlignmentParams & { model: string }): Promise<Alignment>;
-  create(model: string, params: CreateAlignmentParams): Promise<Alignment>;
-  async create(modelOrParams: string | (CreateAlignmentParams & {model: string}), options?: CreateAlignmentParams): Promise<Alignment> {
+  create(params: CreateInstructionOptimizationParams & { model: string }): Promise<InstructionOptimization>;
+  create(model: string, params: CreateInstructionOptimizationParams): Promise<InstructionOptimization>;
+  async create(modelOrParams: string | (CreateInstructionOptimizationParams & {model: string}), options?: CreateInstructionOptimizationParams): Promise<InstructionOptimization> {
     const model = typeof modelOrParams === "string" ? modelOrParams : modelOrParams.model;
     const params = typeof modelOrParams === "string" ? options! : modelOrParams;
     const { idempotencyKey, maxMetricCalls, reflection, trainingFile, validationFile, evalOnlyDataset, ...rest } = params;
@@ -508,44 +508,44 @@ export class Alignments {
       ...(maxMetricCalls !== undefined && {budget: {maxMetricCalls}}),
       reflection: {seed: 0, ...reflection},
     };
-    return this.transport.request<Alignment>("POST", "/instruction-optimizations", {body, headers: {"idempotency-key": idempotencyKey}});
+    return this.transport.request<InstructionOptimization>("POST", "/instruction-optimizations", {body, headers: {"idempotency-key": idempotencyKey}});
   }
 
-  async list(modelId: string, options: { limit?: number } = {}): Promise<AlignmentList> {
-    return this.transport.request<AlignmentList>(
+  async list(modelId: string, options: { limit?: number } = {}): Promise<InstructionOptimizationList> {
+    return this.transport.request<InstructionOptimizationList>(
       "GET",
       modelPath(modelId, "/instruction-optimizations"),
       { query: { limit: options.limit ?? 20 } },
     );
   }
 
-  async get(alignmentId: string): Promise<Alignment> {
-    return this.transport.request<Alignment>("GET", `/instruction-optimizations/${segment(alignmentId)}`);
+  async get(instructionOptimizationId: string): Promise<InstructionOptimization> {
+    return this.transport.request<InstructionOptimization>("GET", `/instruction-optimizations/${segment(instructionOptimizationId)}`);
   }
 
-  async logs(alignmentId: string): Promise<AlignmentLogs> {
-    return this.transport.request<AlignmentLogs>(
+  async logs(instructionOptimizationId: string): Promise<InstructionOptimizationLogs> {
+    return this.transport.request<InstructionOptimizationLogs>(
       "GET",
-      `/instruction-optimizations/${segment(alignmentId)}/logs`,
+      `/instruction-optimizations/${segment(instructionOptimizationId)}/logs`,
     );
   }
 
-  async cancel(alignmentId: string): Promise<void> {
-    await this.transport.request<void>("DELETE", `/instruction-optimizations/${segment(alignmentId)}`);
+  async cancel(instructionOptimizationId: string): Promise<void> {
+    await this.transport.request<void>("DELETE", `/instruction-optimizations/${segment(instructionOptimizationId)}`);
   }
 
-  async wait(alignmentId: string, options: WaitOptions = {}): Promise<Alignment> {
+  async wait(instructionOptimizationId: string, options: WaitOptions = {}): Promise<InstructionOptimization> {
     const timeoutMs = options.timeoutMs ?? 900_000;
     const pollIntervalMs = options.pollIntervalMs ?? 1_000;
     const deadline = Date.now() + timeoutMs;
     const display = new JobProgress(options.progress ?? false);
     try {
       while (true) {
-        const alignment = await this.get(alignmentId);
-        display.update(alignment);
-        if (TERMINAL_STATUSES.has(alignment.status)) return alignment;
+        const job = await this.get(instructionOptimizationId);
+        display.update(job);
+        if (TERMINAL_STATUSES.has(job.status)) return job;
         if (Date.now() >= deadline) {
-          throw new ModaicTimeoutError(`Timed out waiting for alignment ${alignmentId}.`);
+          throw new ModaicTimeoutError(`Timed out waiting for instruction optimization ${instructionOptimizationId}.`);
         }
         await sleep(pollIntervalMs);
       }
@@ -606,7 +606,7 @@ export class Modaic {
   readonly examples: Examples;
   readonly batchPredictions: BatchDecisions;
   readonly batchDecisions: BatchDecisions;
-  readonly instructionOptimizations: Alignments;
+  readonly instructionOptimizations: InstructionOptimizations;
   readonly fineTunes: FineTunes;
   readonly uploads: Uploads;
   readonly resources: Resources;
@@ -620,7 +620,7 @@ export class Modaic {
     this.examples = new Examples(transport);
     this.batchPredictions = new BatchDecisions(transport);
     this.batchDecisions = this.batchPredictions;
-    this.instructionOptimizations = new Alignments(transport);
+    this.instructionOptimizations = new InstructionOptimizations(transport);
     this.fineTunes = new FineTunes(transport);
     this.uploads = new Uploads(transport);
     this.resources = new Resources(transport);

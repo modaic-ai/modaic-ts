@@ -2,7 +2,7 @@ import { expect, spyOn, test } from "bun:test";
 
 import { Modaic, ModaicAPIError, ModaicTimeoutError } from "../src/index.js";
 import { JobProgress } from "../src/progress.js";
-import type { Alignment, BatchDecision, JobStatus } from "../src/types.js";
+import type { InstructionOptimization, BatchDecision, JobStatus } from "../src/types.js";
 
 function batch(status: JobStatus = "running"): BatchDecision {
   return {
@@ -13,7 +13,7 @@ function batch(status: JobStatus = "running"): BatchDecision {
   };
 }
 
-function alignment(status: JobStatus = "running"): Alignment {
+function alignment(status: JobStatus = "running"): InstructionOptimization {
   return { ...batch(status), phase: "optimizing", resultCommitSha: null,
     progress: { stage: "optimizing", metricCalls: 2, maxMetricCalls: 10 } };
 }

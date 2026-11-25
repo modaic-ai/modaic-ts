@@ -98,8 +98,8 @@ skip the call; never catch a 500 as "already up to date".
 
 If `configuration.checkpoint > 0`, instruction optimization has rewritten the questions.
 `models.update` with different `questions` rejects with a 409 whose `code`
-is `alignment_would_be_discarded` rather than reverting the model. Keep
-optimized instructions by omitting `questions`; pass `discardAlignment: true`
+is `optimized_instructions_would_be_discarded` rather than reverting the model. Keep
+optimized instructions by omitting `questions`; pass `discardOptimizedInstructions: true`
 only when the user explicitly wants to replace them and reset the checkpoint.
 
 `(await models.get(...)).commit?.commitSha` is the default branch head. Pass

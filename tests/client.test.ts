@@ -263,19 +263,21 @@ describe("regressions for model-bound resources", () => {
     expect(await requests[1]!.json()).toEqual({ message: "Only message" });
   });
 
-  test("update passes discardAlignment through and surfaces the guardrail", async () => {
+  test("update passes discardOptimizedInstructions through and surfaces the guardrail", async () => {
     const { modaic, requests } = setup(() => Response.json(modelJson()));
-    await modaic.models.update(MODEL_ID, { questions, discardAlignment: true });
-    expect(await requests[0]!.json()).toEqual({ questions, discardAlignment: true });
+    await modaic.models.update(MODEL_ID, { questions, discardOptimizedInstructions: true });
+    expect(await requests[0]!.json()).toEqual({ questions, discardOptimizedInstructions: true });
+    await modaic.models.update(MODEL_ID, { questions, discardOptimizedInstructions: false });
+    expect(await requests[1]!.json()).toEqual({ questions, discardOptimizedInstructions: false });
 
     const refused = setup(() =>
       Response.json(
         {
-          type: "https://modaic.dev/problems/alignment-would-be-discarded",
+          type: "https://modaic.dev/problems/optimized-instructions-would-be-discarded",
           title: "Conflict",
           status: 409,
-          code: "alignment_would_be_discarded",
-          detail: "The questions on main were written by alignment (checkpoint 1).",
+          code: "optimized_instructions_would_be_discarded",
+          detail: "The questions on main contain optimized instructions (checkpoint 1).",
           details: { branch: "main", commitSha: "abc", checkpoint: 1 },
         },
         { status: 409 },
@@ -283,7 +285,7 @@ describe("regressions for model-bound resources", () => {
     );
     await expect(refused.modaic.models.update(MODEL_ID, { questions })).rejects.toMatchObject({
       status: 409,
-      code: "alignment_would_be_discarded",
+      code: "optimized_instructions_would_be_discarded",
     });
   });
 

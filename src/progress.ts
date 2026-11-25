@@ -1,4 +1,4 @@
-import type { Alignment, BatchDecision } from "./types.js";
+import type { InstructionOptimization, BatchDecision } from "./types.js";
 
 interface Output {
   isTTY?: boolean;
@@ -19,14 +19,14 @@ export class JobProgress {
     this.output = enabled ? output ?? stderr() : undefined;
   }
 
-  update(job: BatchDecision | Alignment): void {
+  update(job: BatchDecision | InstructionOptimization): void {
     if (!this.output) return;
     let current: number | undefined;
     let total: number | undefined;
     let unit: string;
     let status: string;
     if ("resultCommitSha" in job) {
-      this.label = `Alignment ${job.id.slice(0, 8)}`;
+      this.label = `Instruction optimization ${job.id.slice(0, 8)}`;
       current = job.progress?.metricCalls;
       total = job.progress?.maxMetricCalls ?? undefined;
       unit = "metric calls";

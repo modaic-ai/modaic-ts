@@ -1,5 +1,5 @@
 export {
-  Alignments,
+  InstructionOptimizations,
   BatchDecisions,
   Decisions,
   Examples,
